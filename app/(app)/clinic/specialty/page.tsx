@@ -63,7 +63,10 @@ export default async function SpecialtyServicesPage({
               No Nookal report source for this category on the director&apos;s sheet — entered manually on
               Weekly Input.
             </p>
-            <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_total")} label="Total Consults" />
+            <div className="mb-3 flex flex-wrap gap-6">
+              <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_initial")} label="Initial Consults" />
+              <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_total")} label="Total Consults" />
+            </div>
             <div className="mt-3">
               <LineTrendChart
                 title="Women's Health — Total Consults"

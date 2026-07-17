@@ -131,6 +131,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 71, id: "ad_pod_3rd_party_90", label: "Podiatry Ageing Debt — 3rd Party >90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
   { idx: 72, id: "ad_pod_medicare_dva_31", label: "Podiatry Ageing Debt — Medicare/DVA over 31 Days", source: "manual", type: "currency", category: "AgeingDebt" },
   { idx: 73, id: "ad_pod_total", label: "Total Ageing Debt — Podiatry Only", source: "manual", type: "currency", category: "AgeingDebt" },
+
+  // Sheet also tracks Women's Health Initial Consults alongside the total (matching the
+  // Vestibular/Headaches/Paeds Init/Sub/Total pattern above) — no CSV source, so manual like the total.
+  { idx: 74, id: "specialty_womens_health_initial", label: "Women's Health Initial Consults", source: "manual", type: "number", category: "Clinic" },
 ];
 
 export function getClinicHeaders(): string[] {
