@@ -3,52 +3,49 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
-import { STATUS } from "@/components/charts/palette";
 import { formatValue } from "@/lib/format";
+import { formatWeekLabel } from "@/lib/week";
 import { ProviderField } from "@/lib/providerSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 
 export interface WeekMetrics {
   week_ending: string;
   metrics: Record<string, unknown>;
+  kpas: Record<string, unknown>;
 }
 
-function trendArrow(current: unknown, previous: unknown) {
-  if (typeof current !== "number" || typeof previous !== "number") return null;
-  if (current === previous) return <span className="text-muted">→</span>;
-  const up = current > previous;
-  return (
-    <span style={{ color: up ? STATUS.good : STATUS.critical }}>{up ? "↑" : "↓"}</span>
-  );
-}
-
-export function PerformanceTable({
+/**
+ * One row per KPI, one column per week (target/minimum-expectation first),
+ * matching the real "Accountability Meeting" scorecard: KPI | Target |
+ * 7.3.26 | 14.3.26 | ... Only the currently-selected week (the last entry
+ * in `history`) is editable; older weeks are the saved historical record.
+ */
+export function WeeklyScorecardTable({
   title,
   fields,
   targets,
   providerId,
   currentWeek,
   history,
+  section = "metrics",
 }: {
   title: string;
   fields: ProviderField[];
   targets: Record<string, unknown>;
   providerId: string;
   currentWeek: string;
-  /** Last N weeks ascending, last entry = currentWeek. */
+  /** Weeks ascending, last entry = currentWeek (the editable column). */
   history: WeekMetrics[];
+  section?: "metrics" | "kpas";
 }) {
   const currentIndex = history.length - 1;
-  const previousIndex = currentIndex - 1;
-  const [current, setCurrent] = useState<Record<string, unknown>>(
-    history[currentIndex]?.metrics ?? {}
-  );
+  const [current, setCurrent] = useState<Record<string, unknown>>(history[currentIndex]?.[section] ?? {});
 
   const { status, set } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/provider-weekly", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider_id: providerId, week_ending: currentWeek, section: "metrics", patch }),
+      body: JSON.stringify({ provider_id: providerId, week_ending: currentWeek, section, patch }),
     });
     if (!res.ok) throw new Error("save failed");
   });
@@ -74,62 +71,68 @@ export function PerformanceTable({
   return (
     <Card title={title} action={<SaveIndicator status={status} />}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] border-collapse text-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-              <th className="py-2 pr-3 font-medium">KPI</th>
-              <th className="py-2 pr-3 font-medium">Target</th>
-              <th className="py-2 pr-3 font-medium">Current Week</th>
-              <th className="py-2 pr-3 font-medium">Previous Week</th>
-              <th className="py-2 font-medium">Trend</th>
+              <th className="sticky left-0 bg-surface py-2 pr-3 font-medium">KPI</th>
+              <th className="py-2 px-3 font-medium">Target</th>
+              {history.map((w, i) => (
+                <th
+                  key={w.week_ending}
+                  className={`py-2 px-3 font-medium whitespace-nowrap ${i === currentIndex ? "text-accent" : ""}`}
+                >
+                  {formatWeekLabel(w.week_ending)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {fields.map((field) => {
               const target = targets[field.key];
-              const previousValue = previousIndex >= 0 ? history[previousIndex]?.metrics[field.key] : undefined;
-              const currentValue = current[field.key];
-
               return (
                 <tr key={field.key} className="border-b border-border/60 last:border-0">
-                  <td className="py-2 pr-3 text-foreground">{field.label}</td>
-                  <td className="py-2 pr-3 text-muted">
+                  <td className="sticky left-0 bg-surface py-2 pr-3 text-foreground whitespace-nowrap">
+                    {field.label}
+                  </td>
+                  <td className="py-2 px-3 text-muted whitespace-nowrap">
                     {typeof target === "number" ? formatValue(target, field.type, field.decimals) : "—"}
                   </td>
-                  <td className="py-2 pr-3">
-                    {field.type === "boolean" ? (
-                      <input
-                        type="checkbox"
-                        checked={Boolean(currentValue)}
-                        onChange={(e) => updateBoolean(field.key, e.target.checked)}
-                        className="h-4 w-4 rounded border-border bg-surface-raised accent-accent"
-                      />
-                    ) : (
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={
-                          currentValue === null || currentValue === undefined
-                            ? ""
-                            : field.type === "percent"
-                              ? Math.round((currentValue as number) * 10000) / 100
-                              : (currentValue as number)
-                        }
-                        onChange={(e) => updateNumber(field.key, e.target.value, field.type)}
-                        className="w-24 rounded-md border border-border bg-surface-raised px-2 py-1 text-sm text-foreground outline-none focus:border-accent"
-                      />
-                    )}
-                  </td>
-                  <td className="py-2 pr-3 text-muted">
-                    {field.type === "boolean"
-                      ? previousValue
-                        ? "Yes"
-                        : previousValue === false
-                          ? "No"
-                          : "—"
-                      : formatValue(previousValue as number | null, field.type, field.decimals)}
-                  </td>
-                  <td className="py-2">{trendArrow(currentValue, previousValue)}</td>
+                  {history.map((w, i) => {
+                    const isCurrent = i === currentIndex;
+                    const value = isCurrent ? current[field.key] : w[section][field.key];
+                    return (
+                      <td key={w.week_ending} className="py-2 px-3 whitespace-nowrap">
+                        {isCurrent ? (
+                          field.type === "boolean" ? (
+                            <input
+                              type="checkbox"
+                              checked={Boolean(value)}
+                              onChange={(e) => updateBoolean(field.key, e.target.checked)}
+                              className="h-4 w-4 rounded border-border bg-surface-raised accent-accent"
+                            />
+                          ) : (
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={
+                                value === null || value === undefined
+                                  ? ""
+                                  : field.type === "percent"
+                                    ? Math.round((value as number) * 10000) / 100
+                                    : (value as number)
+                              }
+                              onChange={(e) => updateNumber(field.key, e.target.value, field.type)}
+                              className="w-20 rounded-md border border-border bg-surface-raised px-2 py-1 text-sm text-foreground outline-none focus:border-accent"
+                            />
+                          )
+                        ) : field.type === "boolean" ? (
+                          <span className="text-muted">{value === true ? "Y" : value === false ? "N" : "—"}</span>
+                        ) : (
+                          <span className="text-muted">{formatValue(value as number | null, field.type, field.decimals)}</span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

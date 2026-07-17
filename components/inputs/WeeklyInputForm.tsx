@@ -24,6 +24,17 @@ export function WeeklyInputForm({
 }) {
   const [weekly, setWeekly] = useState<WeeklyKpis>(initialWeekly);
 
+  // A Nookal upload can auto-fill fields server-side; router.refresh() (called
+  // by NookalUpload after a parsed upload) re-fetches initialWeekly with new
+  // data. Adjust local state during render when that prop object changes,
+  // rather than via useEffect (React's recommended pattern — avoids an
+  // extra render and the "setState in an effect" cascading-render issue).
+  const [syncedWeekly, setSyncedWeekly] = useState(initialWeekly);
+  if (initialWeekly !== syncedWeekly) {
+    setSyncedWeekly(initialWeekly);
+    setWeekly(initialWeekly);
+  }
+
   const { status, set } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/weekly-kpis", {
       method: "PATCH",
@@ -49,8 +60,10 @@ export function WeeklyInputForm({
         action={<SaveIndicator status={status} />}
       >
         <p className="mb-4 text-xs text-muted">
-          Read off the Nookal Business Performance / Occupancy reports. This
-          will populate automatically once Nookal report parsing is wired up.
+          Total Revenue and Occupancy auto-fill from the Activity and
+          Occupancy report uploads above — cancellations/DNAs and new
+          clients auto-fill too, once those reports are uploaded. Everything
+          stays editable.
         </p>
         <ClinicFieldGrid
           fields={[
@@ -60,6 +73,10 @@ export function WeeklyInputForm({
           values={weekly}
           onChange={onChange}
         />
+      </Card>
+
+      <Card title="Revenue by Payer" action={<span className="text-xs text-muted">Auto-fills from Activity Report</span>}>
+        <ClinicFieldGrid fields={getClinicFieldsByCategory("Payer")} values={weekly} onChange={onChange} />
       </Card>
 
       <Card title="Manual Clinic Fields">

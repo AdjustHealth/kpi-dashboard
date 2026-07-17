@@ -34,7 +34,7 @@ function LoginFormInner() {
       className="w-full max-w-sm rounded-xl border border-border bg-surface p-8"
     >
       <div className="mb-6 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-semibold text-accent-foreground">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-accent to-accent-secondary text-sm font-semibold text-accent-foreground">
           A
         </div>
         <span className="text-base font-semibold text-foreground">

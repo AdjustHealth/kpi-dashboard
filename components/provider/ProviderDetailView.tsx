@@ -1,7 +1,6 @@
 import { MeetingNotesCard } from "@/components/provider/MeetingNotesCard";
-import { PerformanceTable, WeekMetrics } from "@/components/provider/PerformanceTable";
+import { WeeklyScorecardTable, WeekMetrics } from "@/components/provider/PerformanceTable";
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
-import { ChecklistCard } from "@/components/provider/ChecklistCard";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
 import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { COMPLIANCE_FIELDS, SYSTEMS_KPA_FIELDS, metricFieldsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
@@ -11,7 +10,6 @@ export function ProviderDetailView({
   provider,
   week,
   history,
-  currentKpas,
   currentMeetingNotes,
   clinicJbvHistory,
   variant,
@@ -19,7 +17,6 @@ export function ProviderDetailView({
   provider: Provider;
   week: string;
   history: WeekMetrics[];
-  currentKpas: Record<string, unknown>;
   currentMeetingNotes: ProviderMeetingNotes;
   clinicJbvHistory?: (number | null)[];
   variant: "standard" | "senior" | "admin";
@@ -40,13 +37,14 @@ export function ProviderDetailView({
         />
       )}
 
-      <PerformanceTable
-        title="Performance"
+      <WeeklyScorecardTable
+        title="KPI Scorecard"
         fields={metricFields}
         targets={provider.targets}
         providerId={provider.id}
         currentWeek={week}
         history={history}
+        section="metrics"
       />
 
       {variant === "senior" && (
@@ -58,21 +56,25 @@ export function ProviderDetailView({
         />
       )}
 
-      <ChecklistCard
-        title="Compliance Checklist"
+      <WeeklyScorecardTable
+        title="Compliance"
         fields={COMPLIANCE_FIELDS}
+        targets={{}}
         providerId={provider.id}
-        week={week}
-        initialValues={currentKpas}
+        currentWeek={week}
+        history={history}
+        section="kpas"
       />
 
       {variant !== "admin" && (
-        <ChecklistCard
-          title="Systems + KPAs"
+        <WeeklyScorecardTable
+          title="KPA Scorecard"
           fields={SYSTEMS_KPA_FIELDS}
+          targets={{}}
           providerId={provider.id}
-          week={week}
-          initialValues={currentKpas}
+          currentWeek={week}
+          history={history}
+          section="kpas"
         />
       )}
 

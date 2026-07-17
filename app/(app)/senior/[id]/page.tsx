@@ -15,7 +15,7 @@ export default async function SeniorPhysioPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const [{ provider, history, currentKpas, currentMeetingNotes }, jbvHistory] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes }, jbvHistory] = await Promise.all([
     getProviderDetailData(id, week),
     getClinicJbvHistory(week),
   ]);
@@ -28,7 +28,6 @@ export default async function SeniorPhysioPage({
         provider={provider}
         week={week}
         history={history}
-        currentKpas={currentKpas}
         currentMeetingNotes={currentMeetingNotes}
         clinicJbvHistory={jbvHistory}
         variant="senior"

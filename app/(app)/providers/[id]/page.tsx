@@ -16,7 +16,7 @@ export default async function ProviderDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const { provider, history, currentKpas, currentMeetingNotes } = await getProviderDetailData(id, week);
+  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week);
   if (!provider) notFound();
 
   return (
@@ -26,7 +26,6 @@ export default async function ProviderDetailPage({
         provider={provider}
         week={week}
         history={history}
-        currentKpas={currentKpas}
         currentMeetingNotes={currentMeetingNotes}
         variant="standard"
       />

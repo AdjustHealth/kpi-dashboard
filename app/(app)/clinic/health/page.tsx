@@ -2,9 +2,10 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { NotTrackedPanel } from "@/components/dashboard/NotTrackedPanel";
 import { getClinicHistory } from "@/lib/clinicData";
-import { clinicStatTile } from "@/components/dashboard/statHelpers";
+import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding } from "@/lib/week";
 
 export default async function ClinicHealthPage({
@@ -26,17 +27,19 @@ export default async function ClinicHealthPage({
 
   const cvaData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
-    "New Grads": h.cva_new_grads ?? null,
+    "New Grad": h.cva_new_grads ?? null,
     "2-5yr": h.cva_2_5yr ?? null,
-    EP: h.cva_ep ?? null,
+    "Senior (6+yr)": h.cva_senior ?? null,
     Massage: h.cva_massage ?? null,
+    EP: h.cva_ep ?? null,
   }));
 
   const cancellationData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Cancellation %": h.cx_pct ?? null,
-    "Reschedule Rate": h.cx_rsx_pct ?? null,
+    "Reschedule Rate (Save Rate)": h.cx_rsx_pct ?? null,
     "Not Rebooked %": h.cx_nr_pct ?? null,
+    "Booked Within 7 Days %": h.cx_in7_pct ?? null,
   }));
 
   return (
@@ -49,9 +52,30 @@ export default async function ClinicHealthPage({
             <StatTile {...clinicStatTile(history, "total_consults")} label="Completed Appointments" />
             <StatTile {...clinicStatTile(history, "total_nc")} label="New Patients" />
             <StatTile {...clinicStatTile(history, "clinic_occ")} label="Clinic Occupancy" />
-            <StatTile {...clinicStatTile(history, "online_bookings_total")} label="Online Bookings" />
+            <StatTile {...clinicStatTile(history, "online_bookings_new")} label="Online Bookings — New" />
           </div>
         </div>
+
+        <Card title="Weekly Activity">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <MultiLineChart
+              title="Total Appointments vs New Patients"
+              data={history.map((h) => ({
+                label: formatWeekLabel(h.week_ending),
+                "Completed Appointments": h.total_consults ?? null,
+                "New Patients": h.total_nc ?? null,
+              }))}
+              seriesKeys={["Completed Appointments", "New Patients"]}
+              format="number"
+            />
+            <LineTrendChart
+              title="Online Bookings (Total)"
+              data={toTrendSeries(history, "online_bookings_total")}
+              format="number"
+              colorIndex={4}
+            />
+          </div>
+        </Card>
 
         <Card title="Occupancy by Service Line">
           <MultiLineChart
@@ -64,17 +88,20 @@ export default async function ClinicHealthPage({
         </Card>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Retention</h2>
-          <NotTrackedPanel title="Clinic UCVA / NCVA / TPR" items={["clinic-wide rollups of provider UCVA, NCVA, and TPR"]} />
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Retention / Value</h2>
+          <NotTrackedPanel
+            title="Clinic-wide UCVA / NCVA / TPR"
+            items={["a clinic-level rollup of provider UCVA, NCVA, and TPR — the tier breakdown below is tracked"]}
+          />
           <div className="mt-4">
             <Card title="CVA by Provider Tier">
               <p className="mb-3 text-xs text-muted">
-                Break down of client visit average by Senior Physio / New Graduate / Massage / EP.
+                Client visit average by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
               </p>
               <MultiLineChart
                 title="CVA by Tier"
                 data={cvaData}
-                seriesKeys={["New Grads", "2-5yr", "EP", "Massage"]}
+                seriesKeys={["New Grad", "2-5yr", "Senior (6+yr)", "Massage", "EP"]}
                 format="decimal"
                 decimals={2}
               />
@@ -88,17 +115,14 @@ export default async function ClinicHealthPage({
             <StatTile {...clinicStatTile(history, "cx_cancels", "down")} label="Total Cancellations" />
             <StatTile {...clinicStatTile(history, "cx_pct", "down")} label="Cancellation %" />
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
-            <StatTile {...clinicStatTile(history, "cx_rsx_pct", "down")} label="Reschedule Rate" />
+            <StatTile {...clinicStatTile(history, "cx_rsx_pct")} label="Reschedule Rate (Save Rate)" />
           </div>
-          <p className="mt-2 text-[11px] text-muted">
-            &ldquo;Save Rate&rdquo; from the spec isn&rsquo;t tracked yet — add a Weekly Input field for it to bring this to life.
-          </p>
           <div className="mt-4">
             <Card title="Cancellations Trend">
               <MultiLineChart
-                title="Cancellation % / Reschedule Rate / Not Rebooked %"
+                title="Cancellation % / Reschedule (Save) Rate / Not Rebooked % / Booked Within 7 Days %"
                 data={cancellationData}
-                seriesKeys={["Cancellation %", "Reschedule Rate", "Not Rebooked %"]}
+                seriesKeys={["Cancellation %", "Reschedule Rate (Save Rate)", "Not Rebooked %", "Booked Within 7 Days %"]}
                 format="percent"
               />
             </Card>

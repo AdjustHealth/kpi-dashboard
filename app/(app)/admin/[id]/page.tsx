@@ -15,7 +15,7 @@ export default async function AdminDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const { provider, history, currentKpas, currentMeetingNotes } = await getProviderDetailData(id, week);
+  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week);
   if (!provider || provider.role !== "admin") notFound();
 
   return (
@@ -25,7 +25,6 @@ export default async function AdminDetailPage({
         provider={provider}
         week={week}
         history={history}
-        currentKpas={currentKpas}
         currentMeetingNotes={currentMeetingNotes}
         variant="admin"
       />

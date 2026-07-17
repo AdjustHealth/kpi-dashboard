@@ -16,6 +16,7 @@ export type ClinicFieldType = "date" | "currency" | "number" | "decimal" | "perc
 export type ClinicFieldCategory =
   | "Meta"
   | "Revenue"
+  | "Payer"
   | "Occupancy"
   | "Gym"
   | "Podiatry"
@@ -83,6 +84,16 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 40, id: "admin_email_optin_pct", label: "Email Opt-In %", source: "manual", type: "percent", category: "Admin" },
   { idx: 41, id: "admin_website_optin_pct", label: "Website Opt-In %", source: "manual", type: "percent", category: "Admin" },
   { idx: 42, id: "admin_new_client_emails", label: "New Client Emails Collected", source: "manual", type: "number", category: "Admin" },
+
+  // Revenue by payer (auto-populated from the Nookal Activity Report; see lib/nookal/payerCategories.ts)
+  { idx: 43, id: "rev_private", label: "Revenue — Private", source: "calc", type: "currency", category: "Payer" },
+  { idx: 44, id: "rev_medicare", label: "Revenue — Medicare", source: "calc", type: "currency", category: "Payer" },
+  { idx: 45, id: "rev_dva", label: "Revenue — DVA", source: "calc", type: "currency", category: "Payer" },
+  { idx: 46, id: "rev_workcover", label: "Revenue — WorkCover", source: "calc", type: "currency", category: "Payer" },
+  { idx: 47, id: "rev_ndis", label: "Revenue — NDIS", source: "calc", type: "currency", category: "Payer" },
+  { idx: 48, id: "rev_other", label: "Revenue — Other", source: "calc", type: "currency", category: "Payer" },
+
+  { idx: 49, id: "cva_senior", label: "CVA — Senior (6+ yrs)", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
 ];
 
 export function getClinicHeaders(): string[] {

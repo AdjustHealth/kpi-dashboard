@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --surface: #131316;
-  --surface-raised: #19191d;
-  --border: #26262b;
-  --foreground: #f4f4f5;
-  --muted: #9a9aa3;
-  --accent: #6366f1;
-  --accent-foreground: #ffffff;
+  /* Adjust Health brand: deep navy background, lime -> mint gradient accent */
+  --background: #0a0e17;
+  --surface: #10151f;
+  --surface-raised: #161c29;
+  --border: #232a3a;
+  --foreground: #f4f6f8;
+  --muted: #8b93a5;
+  --accent: #a6e22e;
+  --accent-secondary: #34d399;
+  --accent-foreground: #0a0e17;
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
@@ -22,12 +24,20 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-secondary: var(--accent-secondary);
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+.brand-gradient-text {
+  background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 html {

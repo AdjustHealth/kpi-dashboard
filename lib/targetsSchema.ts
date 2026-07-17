@@ -9,11 +9,16 @@ export interface TargetField {
 export const CLINIC_TARGET_FIELDS: TargetField[] = [
   { key: "annual_revenue_target", label: "Annual Revenue Target", type: "currency" },
   { key: "weekly_revenue_target", label: "Weekly Revenue Target", type: "currency" },
+  { key: "weekly_breakeven_target", label: "Weekly Break-Even", type: "currency" },
   { key: "clinic_occ_target", label: "Clinic Occupancy Target", type: "percent" },
   { key: "physio_occ_target", label: "Physio Occupancy Target", type: "percent" },
   { key: "massage_occ_target", label: "Massage Occupancy Target", type: "percent" },
   { key: "ep_occ_target", label: "EP Occupancy Target", type: "percent" },
   { key: "cx_pct_target", label: "Max Cancellation % Target", type: "percent" },
+  // Weekly cost-line benchmarks, plotted as reference lines on the Revenue page
+  { key: "cost_staff", label: "Staff Costs (weekly)", type: "currency" },
+  { key: "cost_staff_rent_glofox", label: "Staff + Rent + Glofox (weekly)", type: "currency" },
+  { key: "cost_staff_rent_glofox_loan", label: "Staff + Rent + Glofox + Loan (weekly)", type: "currency" },
 ];
 
 /** Fixed provider target fields, on top of any per-provider specialty_metrics targets. */

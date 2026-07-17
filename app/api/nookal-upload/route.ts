@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { NOOKAL_REPORT_TYPES } from "@/lib/schema";
+import { NOOKAL_REPORT_TYPES, NookalReportType } from "@/lib/schema";
+import { applyNookalReport } from "@/lib/nookal/applyReport";
+
+const PARSEABLE_REPORT_TYPES: readonly NookalReportType[] = [
+  "activity",
+  "occupancy",
+  "cancellations",
+  "clients_and_cases",
+];
 
 export async function GET(request: NextRequest) {
   const week = request.nextUrl.searchParams.get("week");
@@ -51,5 +59,18 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ data });
+
+  let autoFilled = null;
+  if (PARSEABLE_REPORT_TYPES.includes(reportType as NookalReportType)) {
+    try {
+      const csvText = await file.text();
+      autoFilled = await applyNookalReport(supabase, reportType as NookalReportType, weekEnding, csvText);
+    } catch (e) {
+      // Upload itself succeeded — surface the parse failure without failing the request,
+      // so the file is still safely stored even if auto-populate couldn't run.
+      autoFilled = { error: e instanceof Error ? e.message : "Could not parse this file" };
+    }
+  }
+
+  return NextResponse.json({ data, autoFilled });
 }

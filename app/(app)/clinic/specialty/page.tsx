@@ -41,7 +41,7 @@ export default async function SpecialtyServicesPage({
 
   function historyFor(providerId: string): WeekMetrics[] {
     const byWeek = new Map(allWeekly.filter((r) => r.provider_id === providerId).map((r) => [r.week_ending, r]));
-    return weeks.map((w) => ({ week_ending: w, metrics: byWeek.get(w)?.metrics ?? {} }));
+    return weeks.map((w) => ({ week_ending: w, metrics: byWeek.get(w)?.metrics ?? {}, kpas: byWeek.get(w)?.kpas ?? {} }));
   }
 
   function findProvider(keyword: RegExp) {

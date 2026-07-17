@@ -23,6 +23,7 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   const history: WeekMetrics[] = weeks.map((w) => ({
     week_ending: w,
     metrics: rowsByWeek.get(w)?.metrics ?? {},
+    kpas: rowsByWeek.get(w)?.kpas ?? {},
   }));
 
   const current = rowsByWeek.get(week);
@@ -30,7 +31,6 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   return {
     provider,
     history,
-    currentKpas: current?.kpas ?? {},
     currentMeetingNotes: current?.meeting_notes ?? {},
   };
 }
