@@ -6,9 +6,6 @@
 -- script — section 2 corrects names/roles if they're already there.
 --
 -- What this does:
---   0. Dedupes any provider that ended up with 2+ rows under the same
---      name (e.g. from an earlier partial run) — merges any weekly data
---      into one row before deleting the rest.
 --   1. Adds the pending schema columns (revenue-by-payer, senior CVA,
 --      specialty consult counts).
 --   2. Removes Anika Woodford (director, not tracked) and adds Michael
@@ -20,6 +17,10 @@
 --      bonus tiers / specialty targets.
 --   4. Adds the rest of the team with the same targets, and the admin
 --      team with the admin KPI targets from your screenshot.
+--   5. Dedupes any provider that ended up with 2+ rows under the same
+--      name+role (this MUST run last — some duplicates only become
+--      identical after step 2's renames normalize the name) — merges any
+--      weekly data into one row before deleting the rest.
 --
 -- ALL team member full names below are now confirmed directly from the
 -- real Nookal provider dropdown screenshot: Anika Woodford, Dean Walker,
@@ -29,37 +30,6 @@
 -- first-name-only — check Settings and correct her spelling to match
 -- your Nookal exports exactly, or CSV auto-fill won't match her.
 -- ============================================================
-
--- ------------------------------------------------------------
--- 0. Dedupe any duplicate provider rows (same name + role) — safe to
---    re-run, no-op once there are no duplicates left. Keeps the row with
---    the lowest sort_order (or lowest id as a tiebreak), merges any
---    provider_weekly history from the other row(s) into it, then deletes
---    the duplicate row(s).
--- ------------------------------------------------------------
-create temporary table _dup_losers as
-with dups as (
-  select name, role, array_agg(id order by sort_order, id) as ids
-  from providers
-  group by name, role
-  having count(*) > 1
-)
-select unnest(ids[2:array_length(ids, 1)]) as loser_id, ids[1] as keeper_id
-from dups;
-
-insert into provider_weekly (provider_id, week_ending, metrics, kpas, meeting_notes)
-select d.keeper_id, pw.week_ending, pw.metrics, pw.kpas, pw.meeting_notes
-from _dup_losers d
-join provider_weekly pw on pw.provider_id = d.loser_id
-on conflict (provider_id, week_ending) do update
-  set metrics = provider_weekly.metrics || excluded.metrics,
-      kpas = provider_weekly.kpas || excluded.kpas,
-      meeting_notes = provider_weekly.meeting_notes || excluded.meeting_notes;
-
-delete from provider_weekly where provider_id in (select loser_id from _dup_losers);
-delete from providers where id in (select loser_id from _dup_losers);
-
-drop table _dup_losers;
 
 -- ------------------------------------------------------------
 -- 1. Pending columns + the Providers & Practice upload fix
@@ -221,3 +191,53 @@ where not exists (select 1 from providers where lower(name) in ('koreena', 'kore
 insert into providers (name, role, targets, sort_order)
 select 'Edi Henderson', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 25
 where not exists (select 1 from providers where lower(name) in ('edi', 'edi henderson'));
+
+-- ------------------------------------------------------------
+-- 6. Dedupe any duplicate provider rows (same name + role) — MUST run
+--    last, after every rename/insert above, since duplicates like
+--    "Tayla" (an old placeholder) and "Tayla Cattanach" (already-correct)
+--    only become identical once step 2's renames have normalized the
+--    name. Safe to re-run — a no-op once there are no duplicates left.
+--    Keeps the row with the lowest sort_order (or lowest id as a
+--    tiebreak), merges any provider_weekly history from the other row(s)
+--    into it, then deletes the duplicate row(s). Deliberately avoids a
+--    temporary table — some SQL editors don't guarantee one survives
+--    across separate statement executions — so the same "losers" lookup
+--    is repeated inline in each statement instead.
+-- ------------------------------------------------------------
+insert into provider_weekly (provider_id, week_ending, metrics, kpas, meeting_notes)
+select d.keeper_id, pw.week_ending, pw.metrics, pw.kpas, pw.meeting_notes
+from (
+  select unnest(ids[2:array_length(ids, 1)]) as loser_id, ids[1] as keeper_id
+  from (
+    select array_agg(id order by sort_order, id) as ids
+    from providers
+    group by name, role
+    having count(*) > 1
+  ) dups
+) d
+join provider_weekly pw on pw.provider_id = d.loser_id
+on conflict (provider_id, week_ending) do update
+  set metrics = provider_weekly.metrics || excluded.metrics,
+      kpas = provider_weekly.kpas || excluded.kpas,
+      meeting_notes = provider_weekly.meeting_notes || excluded.meeting_notes;
+
+delete from provider_weekly where provider_id in (
+  select unnest(ids[2:array_length(ids, 1)])
+  from (
+    select array_agg(id order by sort_order, id) as ids
+    from providers
+    group by name, role
+    having count(*) > 1
+  ) dups
+);
+
+delete from providers where id in (
+  select unnest(ids[2:array_length(ids, 1)])
+  from (
+    select array_agg(id order by sort_order, id) as ids
+    from providers
+    group by name, role
+    having count(*) > 1
+  ) dups
+);

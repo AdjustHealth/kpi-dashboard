@@ -155,14 +155,48 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
   return { byProvider };
 }
 
+// A cancellation's Note field starting with "RSX"/"RX" is staff explicitly
+// tagging it as a rescheduled/"saved" cancellation — the real business
+// definition of "Reschedule Rate (Save Rate)", confirmed against a working
+// reference tool built directly off the director's own note conventions.
+// Just having a future Next Booking date is NOT the same thing (a client
+// can have a future appointment already on the books without this specific
+// cancellation having been "saved" by staff intervention).
+const RSX_NOTE_PATTERN = /^rs[x]?\b|^rx\b/i;
+
+// Notes matching these patterns mean the whole booking plan was cancelled
+// in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
+// produce one Details row per future appointment in that plan, which would
+// wildly overcount "this week's cancellations" if each row were counted as
+// a real, individual cancellation event.
+const BULK_CANCEL_NOTE_PATTERNS = [
+  /plan\s*cancel/i,
+  /plan\s*cx/i,
+  /bulk\s*cancel/i,
+  /bulk\s*cx/i,
+  /cnx\s*all\b/i,
+  /cancel\s*all\b/i,
+  /(cnx|cx|cancel)\s*all\s*apps?\s*up\s*to/i,
+  /take\s*out\s*all\s*(remaining|future)/i,
+];
+
+function isBulkCancelNote(note: string | undefined): boolean {
+  const n = (note ?? "").trim();
+  if (!n) return false;
+  return BULK_CANCEL_NOTE_PATTERNS.some((re) => re.test(n));
+}
+
 /**
  * Cancellations Report — the Summary gives per-provider counts/percentages
  * directly from Nookal. The Details rows (one per cancelled/DNA event) are
- * used to compute "Not Rebooked" and "Reschedule Rate", per the business's
- * own definition: a cancellation counts as rescheduled if it has a Next
- * Booking date. "Booked within 7 Days" is the share of all cancellations
- * (rescheduled or not) that were rebooked within 7 days of the original
- * appointment date — confirm this matches intent if the number looks off.
+ * used to compute "Not Rebooked" and "Reschedule Rate": a cancellation
+ * counts toward the reschedule rate ("saved") only when staff tagged its
+ * Note "RSX"/"RX"; it counts as Not Rebooked only when it has no future
+ * Next Booking at all. Rows whose Note indicates a bulk/whole-plan
+ * cancellation are excluded entirely (see BULK_CANCEL_NOTE_PATTERNS) so
+ * they don't inflate this week's real cancellation count. "Booked within 7
+ * Days" is the share of all (non-excluded) cancellations that were
+ * rebooked within 7 days of the original appointment date.
  */
 export function parseCancellationsReport(text: string): CancellationsReportResult {
   const rows = parseCsvRows(text);
@@ -186,6 +220,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
         rescheduledCount: 0,
         rescheduleRatePct: null,
         bookedWithin7DaysPct: null,
+        eventsCount: 0,
       };
     }
   }
@@ -208,10 +243,24 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
     for (const row of details.rows) {
       const r = rowToRecord(details.header, row);
       const provider = r["Provider"];
+      const status = r["Status"];
+      const note = r["Note"];
+
+      // DNAs are already counted from the Summary section's DNAs column —
+      // they're a different event type from a cancellation and shouldn't
+      // also feed reschedule/not-rebooked rates.
+      if (status !== "Cancelled") continue;
+      // A whole-plan bulk cancellation can produce one row per future
+      // appointment in Nookal's export — counting every one as a distinct
+      // cancellation this week would wildly overcount.
+      if (isBulkCancelNote(note)) continue;
+
       const nextBooking = r["Next Booking"];
       const apptDate = parseNookalDate(r["Appointment Date"]);
       const nextDate = nextBooking ? parseNookalDate(nextBooking) : null;
       const daysBetween = apptDate && nextDate ? (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24) : null;
+      const hasNext = Boolean(nextBooking);
+      const rsx = RSX_NOTE_PATTERN.test((note ?? "").trim());
 
       if (provider) {
         if (!byProvider[provider]) {
@@ -226,16 +275,17 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
             rescheduledCount: 0,
             rescheduleRatePct: null,
             bookedWithin7DaysPct: null,
+            eventsCount: 0,
           };
         }
         total[provider] = (total[provider] ?? 0) + 1;
-        if (nextBooking) {
-          byProvider[provider].rescheduledCount += 1;
-          if (daysBetween !== null && daysBetween <= 7) {
-            rebookedWithin7[provider] = (rebookedWithin7[provider] ?? 0) + 1;
-          }
-        } else {
-          byProvider[provider].notRebooked += 1;
+        if (rsx) byProvider[provider].rescheduledCount += 1;
+        else if (!hasNext) byProvider[provider].notRebooked += 1;
+        // else: has a future booking but wasn't explicitly tagged RSX/RX —
+        // counts toward this week's cancellations, but not toward either
+        // the reschedule rate or the not-rebooked rate.
+        if (hasNext && daysBetween !== null && daysBetween <= 7) {
+          rebookedWithin7[provider] = (rebookedWithin7[provider] ?? 0) + 1;
         }
       }
 
@@ -243,15 +293,12 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       if (admin) {
         adminTotal[admin] = (adminTotal[admin] ?? 0) + 1;
         totalHandledByAnyAdmin += 1;
-        if (nextBooking) {
-          adminRescheduled[admin] = (adminRescheduled[admin] ?? 0) + 1;
-          if (daysBetween !== null) {
-            adminDaysToNextSum[admin] = (adminDaysToNextSum[admin] ?? 0) + daysBetween;
-            adminDaysToNextCount[admin] = (adminDaysToNextCount[admin] ?? 0) + 1;
-            if (daysBetween <= 7) adminRebookedWithin7[admin] = (adminRebookedWithin7[admin] ?? 0) + 1;
-          }
-        } else {
-          adminNotRebooked[admin] = (adminNotRebooked[admin] ?? 0) + 1;
+        if (rsx) adminRescheduled[admin] = (adminRescheduled[admin] ?? 0) + 1;
+        else if (!hasNext) adminNotRebooked[admin] = (adminNotRebooked[admin] ?? 0) + 1;
+        if (hasNext && daysBetween !== null) {
+          adminDaysToNextSum[admin] = (adminDaysToNextSum[admin] ?? 0) + daysBetween;
+          adminDaysToNextCount[admin] = (adminDaysToNextCount[admin] ?? 0) + 1;
+          if (daysBetween <= 7) adminRebookedWithin7[admin] = (adminRebookedWithin7[admin] ?? 0) + 1;
         }
       }
     }
@@ -262,6 +309,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       byProvider[provider].rescheduleRatePct = byProvider[provider].rescheduledCount / t;
       byProvider[provider].notRebookedPct = byProvider[provider].notRebooked / t;
       byProvider[provider].bookedWithin7DaysPct = (rebookedWithin7[provider] ?? 0) / t;
+      byProvider[provider].eventsCount = t;
     }
 
     for (const admin of Object.keys(adminTotal)) {

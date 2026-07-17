@@ -50,16 +50,16 @@ export default async function RevenuePage({
     ...(costFull !== null ? { "+ Loan": costFull } : {}),
   }));
 
-  const gymPrivate = history.map((h) => (typeof h.m_glofox === "number" ? h.m_glofox : 0));
-
-  const gymSeriesKeys = ["Gym Total", "Gym Private", "Gym 3rd Party"];
+  // Gym 3rd Party revenue is already included within Glofox Income (Glofox
+  // reconciles 3rd-party-collected payments into the same total) — it's
+  // shown here as a breakdown of Gym Total, not summed on top of it.
+  const gymSeriesKeys = ["Gym Total", "Gym 3rd Party (of which)"];
   if (gymTarget !== null) gymSeriesKeys.push("Target");
 
-  const gymData = history.map((h, i) => ({
+  const gymData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Gym Total": h.gym_total ?? null,
-    "Gym Private": gymPrivate[i],
-    "Gym 3rd Party": h.m_gym3p ?? null,
+    "Gym 3rd Party (of which)": h.m_gym3p ?? null,
     ...(gymTarget !== null ? { Target: gymTarget } : {}),
   }));
 

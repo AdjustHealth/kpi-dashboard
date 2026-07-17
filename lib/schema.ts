@@ -46,7 +46,7 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 8, id: "ep_occ", label: "EP Occupancy %", source: "calc", type: "percent", category: "Occupancy" },
   { idx: 9, id: "m_glofox", label: "Glofox Income", source: "manual", type: "currency", category: "Gym" },
   { idx: 10, id: "m_glofox_fees", label: "Glofox Fees", source: "manual", type: "currency", category: "Gym" },
-  { idx: 11, id: "m_gym3p", label: "3rd Party Gym Revenue", source: "manual", type: "currency", category: "Gym" },
+  { idx: 11, id: "m_gym3p", label: "3rd Party Gym Revenue (of which — already included in Glofox Income)", source: "manual", type: "currency", category: "Gym" },
   { idx: 13, id: "gym_total", label: "Total Gym Revenue", source: "calc", type: "currency", category: "Gym" },
   { idx: 14, id: "m_mems", label: "Paid Memberships", source: "manual", type: "number", category: "Gym" },
   { idx: 15, id: "m_pod_rev", label: "Podiatry Revenue (÷2)", source: "manual", type: "currency", category: "Podiatry" },

@@ -46,9 +46,11 @@ Total,2,1,10,,,
 
 Details
 Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
-01/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,08/07/2026,"had a clash, rebooked",01/07/2026,9:00am,Staff One,1001
-02/07/2026,Adjust Physiotherapy,Test Client Two,0400 000 002,Alex Example,Private - Physio,Service,Cancelled,2026-06-02 10:00:00,,no rebook,02/07/2026,9:00am,Staff One,1002
-03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Did Not Arrive,2026-06-03 10:00:00,20/07/2026,rebooked late,03/07/2026,9:00am,Staff One,1003
+01/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,08/07/2026,rsx moved to next week,01/07/2026,9:00am,Staff One,1001
+02/07/2026,Adjust Physiotherapy,Test Client Two,0400 000 002,Alex Example,Private - Physio,Service,Cancelled,2026-06-02 10:00:00,,no rebook needed,02/07/2026,9:00am,Staff One,1002
+03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Cancelled,2026-06-03 10:00:00,20/07/2026,will call to rebook,03/07/2026,9:00am,Staff One,1003
+04/07/2026,Adjust Physiotherapy,Test Client Four,0400 000 004,Alex Example,Private - Physio,Service,Did Not Arrive,2026-06-04 10:00:00,,dna,04/07/2026,9:00am,Staff One,1004
+05/07/2026,Adjust Physiotherapy,Test Client Five,0400 000 005,Alex Example,Private - Physio,Service,Cancelled,2026-06-05 10:00:00,,plan cancelled - client left,05/07/2026,9:00am,Staff One,1005
 
 `;
 
@@ -218,13 +220,22 @@ describe("parseCancellationsReport", () => {
     expect(result.byProvider["Alex Example"].cancellationPct).toBeCloseTo(0.1538, 3);
   });
 
-  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details", () => {
+  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details — RSX-tagged notes only, DNA and bulk-cancel rows excluded", () => {
     const result = parseCancellationsReport(CANCELLATIONS_CSV);
     const alex = result.byProvider["Alex Example"];
-    // 3 events: one rebooked within 7 days (01/07 -> 08/07), one not rebooked, one rebooked outside 7 days (03/07 -> 20/07)
+    // 5 Details rows, but only 3 are real events for the rate denominator:
+    //   row1: "rsx moved to next week", next booking 01/07->08/07 (7 days) -> counts as rescheduled + booked-within-7
+    //   row2: "no rebook needed", no next booking -> counts as not rebooked
+    //   row3: "will call to rebook", HAS a next booking (03/07->20/07) but isn't RSX-tagged -> counts toward the
+    //         denominator only, not toward either rescheduled or not-rebooked (matches the real per-provider sheet,
+    //         where RSX% + NR% never add to 100%)
+    //   row4: Did Not Arrive -> excluded (DNAs come from Summary, not this rate)
+    //   row5: "plan cancelled" -> excluded (bulk/whole-plan cancellation, not a real single event)
+    expect(alex.eventsCount).toBe(3);
     expect(alex.notRebooked).toBe(1);
-    expect(alex.rescheduledCount).toBe(2);
-    expect(alex.rescheduleRatePct).toBeCloseTo(2 / 3, 4);
+    expect(alex.rescheduledCount).toBe(1);
+    expect(alex.rescheduleRatePct).toBeCloseTo(1 / 3, 4);
+    expect(alex.notRebookedPct).toBeCloseTo(1 / 3, 4);
     expect(alex.bookedWithin7DaysPct).toBeCloseTo(1 / 3, 4);
   });
 });

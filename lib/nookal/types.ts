@@ -44,6 +44,8 @@ export interface CancellationsReportResult {
       rescheduledCount: number;
       rescheduleRatePct: number | null;
       bookedWithin7DaysPct: number | null;
+      /** Real (non-DNA, non-bulk-cancelled) Details rows for this provider — the denominator behind notRebookedPct/rescheduleRatePct/bookedWithin7DaysPct. Sum across providers for a consistent clinic-wide denominator. */
+      eventsCount: number;
     }
   >;
   /** Same Details rows, grouped by the "Modified User" column — the admin staff member who handled the cancellation. */

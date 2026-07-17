@@ -192,9 +192,8 @@ export async function applyNookalReport(
       totalCompleted += data.completed ?? 0;
       totalNotRebooked += data.notRebooked;
       totalRescheduled += data.rescheduledCount;
-      const events = data.notRebooked + data.rescheduledCount;
-      totalEvents += events;
-      if (data.bookedWithin7DaysPct !== null) totalBookedWithin7 += data.bookedWithin7DaysPct * events;
+      totalEvents += data.eventsCount;
+      if (data.bookedWithin7DaysPct !== null) totalBookedWithin7 += data.bookedWithin7DaysPct * data.eventsCount;
 
       const p = findProvider(name);
       if (p) {
