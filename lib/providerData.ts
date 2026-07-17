@@ -35,14 +35,3 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   };
 }
 
-export async function getClinicJbvHistory(week: string, historyWeeks = 12): Promise<(number | null)[]> {
-  const supabase = await createClient();
-  const weeks = recentWeeks(week, historyWeeks);
-  const { data } = await supabase
-    .from("weekly_kpis")
-    .select("week_ending, jbv_total")
-    .in("week_ending", weeks);
-
-  const byWeek = new Map((data ?? []).map((r) => [r.week_ending as string, r.jbv_total as number | null]));
-  return weeks.map((w) => byWeek.get(w) ?? null);
-}

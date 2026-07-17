@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
-import { getClinicJbvHistory, getProviderDetailData } from "@/lib/providerData";
+import { getProviderDetailData } from "@/lib/providerData";
+import { getClinicHistory } from "@/lib/clinicData";
 import { defaultWeekEnding } from "@/lib/week";
 
 export default async function SeniorPhysioPage({
@@ -15,9 +16,9 @@ export default async function SeniorPhysioPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const [{ provider, history, currentMeetingNotes }, jbvHistory] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes }, clinicHistory] = await Promise.all([
     getProviderDetailData(id, week),
-    getClinicJbvHistory(week),
+    getClinicHistory(week),
   ]);
   if (!provider || provider.role !== "senior_physio") notFound();
 
@@ -29,7 +30,7 @@ export default async function SeniorPhysioPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
-        clinicJbvHistory={jbvHistory}
+        clinicHistory={clinicHistory}
         variant="senior"
       />
     </>

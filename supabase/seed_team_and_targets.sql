@@ -36,7 +36,7 @@ alter table weekly_kpis
 --    (merges in — doesn't overwrite personal_cva / bonus_tiers / etc.)
 -- ------------------------------------------------------------
 update providers
-set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb
+set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb
 where lower(name) in ('sam johnson', 'marcio dos santos');
 
 -- ------------------------------------------------------------
@@ -49,55 +49,55 @@ where lower(name) in ('sam johnson', 'marcio dos santos');
 
 -- Senior physios
 insert into providers (name, role, targets, sort_order)
-select 'Michael', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 10
+select 'Michael', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 10
 where not exists (select 1 from providers where lower(name) = 'michael');
 
 insert into providers (name, role, targets, sort_order)
-select 'Nick', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
+select 'Nick', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
 where not exists (select 1 from providers where lower(name) = 'nick');
 
 -- New grad physios
 insert into providers (name, role, targets, sort_order)
-select 'Imogen', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 12
+select 'Imogen', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 12
 where not exists (select 1 from providers where lower(name) = 'imogen');
 
 insert into providers (name, role, targets, sort_order)
-select 'Riley', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 13
+select 'Riley', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 13
 where not exists (select 1 from providers where lower(name) = 'riley');
 
 -- 2-5yr physios
 insert into providers (name, role, targets, sort_order)
-select 'Ilan', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 14
+select 'Ilan', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 14
 where not exists (select 1 from providers where lower(name) = 'ilan');
 
 insert into providers (name, role, targets, sort_order)
-select 'Samantha', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 15
+select 'Samantha', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 15
 where not exists (select 1 from providers where lower(name) = 'samantha');
 
 insert into providers (name, role, targets, sort_order)
-select 'Tayla', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 16
+select 'Tayla', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 16
 where not exists (select 1 from providers where lower(name) = 'tayla');
 
 insert into providers (name, role, targets, sort_order)
-select 'Wilson', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 17
+select 'Wilson', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 17
 where not exists (select 1 from providers where lower(name) = 'wilson');
 
 insert into providers (name, role, targets, sort_order)
-select 'Dean', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
+select 'Dean', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
 where not exists (select 1 from providers where lower(name) = 'dean');
 
 -- EP
 insert into providers (name, role, targets, sort_order)
-select 'Lachlan', 'ep', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 19
+select 'Lachlan', 'ep', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 19
 where not exists (select 1 from providers where lower(name) = 'lachlan');
 
 -- Massage
 insert into providers (name, role, targets, sort_order)
-select 'Jake', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 20
+select 'Jake', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 20
 where not exists (select 1 from providers where lower(name) = 'jake');
 
 insert into providers (name, role, targets, sort_order)
-select 'Erin', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 21
+select 'Erin', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 21
 where not exists (select 1 from providers where lower(name) = 'erin');
 
 -- ------------------------------------------------------------

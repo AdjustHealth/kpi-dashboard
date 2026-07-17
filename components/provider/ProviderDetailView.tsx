@@ -3,22 +3,24 @@ import { WeeklyScorecardTable, WeekMetrics } from "@/components/provider/Perform
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
 import { BonusTierCard } from "@/components/provider/BonusTierCard";
+import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { COMPLIANCE_FIELDS, SYSTEMS_KPA_FIELDS, metricFieldsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
+import { ClinicWeekRow } from "@/lib/clinicData";
 
 export function ProviderDetailView({
   provider,
   week,
   history,
   currentMeetingNotes,
-  clinicJbvHistory,
+  clinicHistory,
   variant,
 }: {
   provider: Provider;
   week: string;
   history: WeekMetrics[];
   currentMeetingNotes: ProviderMeetingNotes;
-  clinicJbvHistory?: (number | null)[];
+  clinicHistory?: ClinicWeekRow[];
   variant: "standard" | "senior" | "admin";
 }) {
   const metricFields = metricFieldsForRole(provider.role);
@@ -37,6 +39,8 @@ export function ProviderDetailView({
         />
       )}
 
+      {variant === "senior" && clinicHistory && <ClinicAnalysisCard history={clinicHistory} />}
+
       <WeeklyScorecardTable
         title="KPI Scorecard"
         fields={metricFields}
@@ -52,7 +56,7 @@ export function ProviderDetailView({
           targets={provider.targets}
           weeklyTurnover={history.map((h) => (typeof h.metrics.turnover === "number" ? h.metrics.turnover : null))}
           weekLabels={history.map((h) => h.week_ending)}
-          jbvHistory={clinicJbvHistory ?? []}
+          jbvHistory={(clinicHistory ?? []).map((h) => (typeof h.jbv_total === "number" ? h.jbv_total : null))}
         />
       )}
 

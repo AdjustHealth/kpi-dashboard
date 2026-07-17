@@ -45,6 +45,7 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
   { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2 },
+  { key: "voxers_completed_pct", label: "Voxers Completed", type: "percent" },
   { key: "ucva", label: "UCVA", type: "decimal", decimals: 2 },
   { key: "ncva", label: "NCVA", type: "decimal", decimals: 2 },
   { key: "dnas", label: "Number of DNAs", type: "number" },
@@ -89,9 +90,14 @@ export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
   return role === "admin" ? ADMIN_METRIC_FIELDS : CLINICIAN_METRIC_FIELDS;
 }
 
-/** Weekly compliance checklist — same set for every provider role, written from Weekly Input or the provider page. */
+/**
+ * Weekly compliance checklist — same set for every provider role, written
+ * from Weekly Input or the provider page. Voxers Completed is NOT here —
+ * despite the name it's tracked as a completion percentage on the sheet
+ * (sometimes over 100%), not a Y/N checkbox, so it lives in
+ * CLINICIAN_METRIC_FIELDS as voxers_completed_pct instead.
+ */
 export const COMPLIANCE_FIELDS: ProviderField[] = [
-  { key: "voxers_completed", label: "Voxers Completed", type: "boolean" },
   { key: "cancellation_management", label: "Cancellation Management", type: "boolean" },
   { key: "clinical_notes_completed", label: "Clinical Notes Completed", type: "boolean" },
   { key: "clinical_correspondence", label: "Clinical Correspondence Completed", type: "boolean" },

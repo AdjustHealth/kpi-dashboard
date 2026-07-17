@@ -23,24 +23,24 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        <ul className="flex flex-col gap-5">
-          {NAV.map((group) => (
-            <li key={group.label}>
-              <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted/70">
+        <ul className="flex flex-col">
+          {NAV.map((group, i) => (
+            <li key={group.label} className={i > 0 ? "mt-5 border-t border-border pt-5" : ""}>
+              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-secondary/80">
                 {group.label}
               </div>
               {group.items && (
-                <ul className="flex flex-col gap-0.5">
+                <ul className="flex flex-col gap-1">
                   {group.items.map((item) => {
                     const active = isActive(pathname, item.href);
                     return (
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors ${
+                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
                             active
-                              ? "border-accent bg-accent/10 font-semibold text-accent"
-                              : "border-transparent font-medium text-foreground/85 hover:border-border hover:bg-surface-raised hover:text-foreground"
+                              ? "border-accent/40 bg-accent/15 font-semibold text-accent shadow-sm"
+                              : "border-transparent bg-surface-raised/60 font-medium text-foreground hover:border-border hover:bg-surface-raised"
                           }`}
                         >
                           {item.label}
