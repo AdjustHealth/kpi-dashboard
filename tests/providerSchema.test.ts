@@ -5,7 +5,10 @@ import {
   SENIOR_ONLY_METRIC_FIELDS,
   COMPLIANCE_FIELDS,
   metricFieldsForRole,
-  SYSTEMS_KPA_FIELDS,
+  kpaFieldsForRole,
+  SENIOR_KPA_FIELDS,
+  PROVIDER_KPA_FIELDS,
+  PROVIDER_GOAL_FIELDS,
 } from "@/lib/providerSchema";
 
 describe("providerSchema", () => {
@@ -21,8 +24,23 @@ describe("providerSchema", () => {
     expect(seniorFields.length).toBe(CLINICIAN_METRIC_FIELDS.length + SENIOR_ONLY_METRIC_FIELDS.length);
   });
 
+  it("kpaFieldsForRole returns the senior set only for senior_physio", () => {
+    expect(kpaFieldsForRole("senior_physio")).toBe(SENIOR_KPA_FIELDS);
+    expect(kpaFieldsForRole("physio")).toBe(PROVIDER_KPA_FIELDS);
+    expect(kpaFieldsForRole("massage")).toBe(PROVIDER_KPA_FIELDS);
+    expect(kpaFieldsForRole("ep")).toBe(PROVIDER_KPA_FIELDS);
+    expect(kpaFieldsForRole("admin")).toBe(PROVIDER_KPA_FIELDS);
+  });
+
   it("field keys are unique within each set", () => {
-    for (const set of [CLINICIAN_METRIC_FIELDS, ADMIN_METRIC_FIELDS, COMPLIANCE_FIELDS, SYSTEMS_KPA_FIELDS]) {
+    for (const set of [
+      CLINICIAN_METRIC_FIELDS,
+      ADMIN_METRIC_FIELDS,
+      COMPLIANCE_FIELDS,
+      SENIOR_KPA_FIELDS,
+      PROVIDER_KPA_FIELDS,
+      PROVIDER_GOAL_FIELDS,
+    ]) {
       const keys = set.map((f) => f.key);
       expect(new Set(keys).size).toBe(keys.length);
     }

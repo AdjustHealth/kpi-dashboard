@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { ClinicFieldGrid } from "@/components/inputs/ClinicFieldGrid";
@@ -9,6 +10,7 @@ import { ChecklistCard } from "@/components/provider/ChecklistCard";
 import { getClinicFieldsByCategory } from "@/lib/schema";
 import { COMPLIANCE_FIELDS } from "@/lib/providerSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
+import { shiftWeek, formatWeekLabel } from "@/lib/week";
 import { Provider, ProviderWeekly, WeeklyKpis } from "@/lib/types";
 
 export function WeeklyInputForm({
@@ -35,7 +37,8 @@ export function WeeklyInputForm({
     setWeekly(initialWeekly);
   }
 
-  const { status, set } = useBatchedAutosave(async (patch) => {
+  const router = useRouter();
+  const { status, set, flush } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/weekly-kpis", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -43,6 +46,11 @@ export function WeeklyInputForm({
     });
     if (!res.ok) throw new Error("save failed");
   });
+
+  async function goToWeek(nextWeek: string) {
+    await flush();
+    router.push(`/inputs?week=${nextWeek}`);
+  }
 
   function onChange(id: string, value: number | null) {
     setWeekly((prev) => ({ ...prev, [id]: value }));
@@ -55,8 +63,28 @@ export function WeeklyInputForm({
     <div className="flex flex-col gap-6 p-8">
       <NookalUpload week={week} />
 
-      <div className="flex items-center justify-end">
-        <SaveIndicator status={status} />
+      <div className="flex items-center justify-between rounded-lg border border-border bg-surface-raised px-4 py-2.5">
+        <span className="text-sm text-muted">
+          Editing week ending <span className="font-medium text-foreground">{formatWeekLabel(week)}</span> — everything
+          above autosaves as you type.
+        </span>
+        <div className="flex items-center gap-3">
+          <SaveIndicator status={status} />
+          <button
+            type="button"
+            onClick={() => goToWeek(shiftWeek(week, -1))}
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent"
+          >
+            ‹ Previous Week
+          </button>
+          <button
+            type="button"
+            onClick={() => goToWeek(shiftWeek(week, 1))}
+            className="rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/15"
+          >
+            Next Week ›
+          </button>
+        </div>
       </div>
 
       <div>

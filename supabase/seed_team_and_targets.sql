@@ -16,10 +16,12 @@
 --   4. Adds the rest of the team with the same targets, and the admin
 --      team with the admin KPI targets from your screenshot.
 --
--- IMPORTANT: names below are first-name-only where I don't have a
--- confirmed surname. Check the Settings page after running this and
--- correct spelling to exactly match your Nookal exports — CSV auto-fill
--- matches on exact name (case-insensitive, but spelling must match).
+-- IMPORTANT: Dean Walker, Nick Baxter, Tayla Cattanach, Erin Duthie, Jake
+-- Mitchell, Koreena Nesbitt, Dayle Cobern, and Edi Henderson are confirmed
+-- full names (seen directly in your own uploaded Nookal data). Imogen,
+-- Riley, Ilan, Samantha, Wilson, Lachlan, and Sarah are still first-name-
+-- only — check Settings and correct their spelling to match your Nookal
+-- exports exactly, or CSV auto-fill won't match them.
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -50,6 +52,18 @@ update providers
 set role = 'physio', targets = targets || '{"experience_tier":"2_5yr"}'::jsonb
 where lower(name) = 'nick';
 
+-- Real full names confirmed from your actual Nookal exports — renames
+-- whichever first-name-only placeholder is still sitting there so CSV
+-- auto-fill (which matches on exact name) starts working for them.
+update providers set name = 'Dean Walker' where lower(name) = 'dean';
+update providers set name = 'Nick Baxter' where lower(name) = 'nick';
+update providers set name = 'Tayla Cattanach' where lower(name) = 'tayla';
+update providers set name = 'Erin Duthie' where lower(name) = 'erin';
+update providers set name = 'Jake Mitchell' where lower(name) = 'jake';
+update providers set name = 'Koreena Nesbitt' where lower(name) = 'koreena';
+update providers set name = 'Dayle Cobern' where lower(name) = 'dayle';
+update providers set name = 'Edi Henderson' where lower(name) = 'edi';
+
 -- ------------------------------------------------------------
 -- 3. KPI Scorecard targets for your two already-seeded senior physios
 --    (merges in — doesn't overwrite personal_cva / bonus_tiers / etc.)
@@ -75,10 +89,10 @@ where lower(name) = 'sam johnson';
 --    Rate / Booked Within 7 Days, which aren't tracked per-physio)
 -- ------------------------------------------------------------
 
--- Nick — mid-tier (2-5yr) physio for now
+-- Nick Baxter — mid-tier (2-5yr) physio for now
 insert into providers (name, role, targets, sort_order)
-select 'Nick', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
-where not exists (select 1 from providers where lower(name) = 'nick');
+select 'Nick Baxter', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
+where not exists (select 1 from providers where lower(name) in ('nick', 'nick baxter'));
 
 -- New grad physios
 insert into providers (name, role, targets, sort_order)
@@ -99,16 +113,16 @@ select 'Samantha', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct"
 where not exists (select 1 from providers where lower(name) = 'samantha');
 
 insert into providers (name, role, targets, sort_order)
-select 'Tayla', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 16
-where not exists (select 1 from providers where lower(name) = 'tayla');
+select 'Tayla Cattanach', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 16
+where not exists (select 1 from providers where lower(name) in ('tayla', 'tayla cattanach'));
 
 insert into providers (name, role, targets, sort_order)
 select 'Wilson', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 17
 where not exists (select 1 from providers where lower(name) = 'wilson');
 
 insert into providers (name, role, targets, sort_order)
-select 'Dean', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
-where not exists (select 1 from providers where lower(name) = 'dean');
+select 'Dean Walker', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
+where not exists (select 1 from providers where lower(name) in ('dean', 'dean walker'));
 
 -- EP
 insert into providers (name, role, targets, sort_order)
@@ -117,12 +131,12 @@ where not exists (select 1 from providers where lower(name) = 'lachlan');
 
 -- Massage
 insert into providers (name, role, targets, sort_order)
-select 'Jake', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 20
-where not exists (select 1 from providers where lower(name) = 'jake');
+select 'Jake Mitchell', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 20
+where not exists (select 1 from providers where lower(name) in ('jake', 'jake mitchell'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Erin', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 21
-where not exists (select 1 from providers where lower(name) = 'erin');
+select 'Erin Duthie', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 21
+where not exists (select 1 from providers where lower(name) in ('erin', 'erin duthie'));
 
 -- ------------------------------------------------------------
 -- 5. Admin team (targets from your admin KPI screenshot: Diary
@@ -136,13 +150,13 @@ select 'Sarah', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.3
 where not exists (select 1 from providers where lower(name) = 'sarah');
 
 insert into providers (name, role, targets, sort_order)
-select 'Dayle', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 23
-where not exists (select 1 from providers where lower(name) = 'dayle');
+select 'Dayle Cobern', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 23
+where not exists (select 1 from providers where lower(name) in ('dayle', 'dayle cobern'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Koreena', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 24
-where not exists (select 1 from providers where lower(name) = 'koreena');
+select 'Koreena Nesbitt', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 24
+where not exists (select 1 from providers where lower(name) in ('koreena', 'koreena nesbitt'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Edi', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 25
-where not exists (select 1 from providers where lower(name) = 'edi');
+select 'Edi Henderson', 'admin', '{"diary_management_pct":0.90,"reschedule_rate_pct":0.30,"cancellations_not_rebooked_pct":0.30,"booked_within_7_days_pct":0.30,"avg_days_to_next_booking":14,"follow_up_phone_calls_pct":1.00,"obv_not_sent":0,"rx_notes_made_pct":0.75,"answered_calls_pct":0.90}'::jsonb, 25
+where not exists (select 1 from providers where lower(name) in ('edi', 'edi henderson'));

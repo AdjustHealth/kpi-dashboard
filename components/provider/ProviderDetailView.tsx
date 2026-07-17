@@ -5,7 +5,13 @@ import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
 import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
-import { COMPLIANCE_FIELDS, SYSTEMS_KPA_FIELDS, metricFieldsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
+import {
+  COMPLIANCE_FIELDS,
+  PROVIDER_GOAL_FIELDS,
+  metricFieldsForRole,
+  kpaFieldsForRole,
+  ProviderMeetingNotes,
+} from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
 import { ClinicWeekRow } from "@/lib/clinicData";
 
@@ -87,7 +93,19 @@ export function ProviderDetailView({
       {variant !== "admin" && (
         <WeeklyScorecardTable
           title="KPA Scorecard"
-          fields={SYSTEMS_KPA_FIELDS}
+          fields={kpaFieldsForRole(provider.role)}
+          targets={{}}
+          providerId={provider.id}
+          currentWeek={week}
+          history={history}
+          section="kpas"
+        />
+      )}
+
+      {variant === "standard" && (
+        <WeeklyScorecardTable
+          title="Performance Review Goals"
+          fields={PROVIDER_GOAL_FIELDS}
           targets={{}}
           providerId={provider.id}
           currentWeek={week}

@@ -127,17 +127,78 @@ export const COMPLIANCE_FIELDS: ProviderField[] = [
 ];
 
 /**
- * Weekly KPA (Key Performance Area) scorecard — clinician roles only.
- * Scored on a 3-tier rating, not Y/N: Above & Beyond (green) / Demonstrated
- * (yellow) / Not Met (red).
+ * Weekly KPA (Key Performance Area) scorecard. Scored on a 3-tier rating,
+ * not Y/N: Above & Beyond (green) / Demonstrated (yellow) / Not Met (red).
+ * Senior physios use this shorter, higher-level set (confirmed from the
+ * senior meeting sheet's own "REGULAR SYSTEMS KPA'S" section).
  */
-export const SYSTEMS_KPA_FIELDS: ProviderField[] = [
+export const SENIOR_KPA_FIELDS: ProviderField[] = [
   { key: "core_values", label: "Core Values", type: "rating" },
   { key: "speciality_service_growth", label: "Speciality Service Growth", type: "rating" },
   { key: "lead_junior_staff", label: "Lead Junior Staff", type: "rating" },
   { key: "clinical_training", label: "Clinical Training", type: "rating" },
   { key: "marketing_internal", label: "Marketing — Internal", type: "rating" },
   { key: "marketing_external", label: "Marketing — External", type: "rating" },
+];
+
+/**
+ * Regular (non-senior) providers use this longer, more granular KPA set —
+ * 7 core values plus 12 specific behavioural standards, taken directly
+ * from the real KPA Scorecard screenshot.
+ */
+export const PROVIDER_KPA_FIELDS: ProviderField[] = [
+  { key: "courage", label: "Courage", type: "rating" },
+  { key: "teamwork", label: "Teamwork", type: "rating" },
+  { key: "accountability", label: "Accountability", type: "rating" },
+  { key: "joy", label: "Joy", type: "rating" },
+  { key: "compassion", label: "Compassion", type: "rating" },
+  { key: "integrity", label: "Integrity", type: "rating" },
+  { key: "excellence", label: "Excellence", type: "rating" },
+  { key: "greet_walk_client", label: "Greeting and walking client to and from front desk", type: "rating" },
+  { key: "adjust_consultation", label: "Utilisation of the Adjust Client-Centered Consultation for all new clients", type: "rating" },
+  { key: "treatment_plan", label: "Develop & carry out a detailed treatment plan for all clients", type: "rating" },
+  {
+    key: "communication_treatment_plan",
+    label: "Ensure high quality communication to client & admin around treatment plan, bookings & plan for next session",
+    type: "rating",
+  },
+  {
+    key: "voxer_new_clients",
+    label: "Send Voxer messages to all new clients within 4-6hrs of initial appointment covering all required points at a high quality",
+    type: "rating",
+  },
+  { key: "follow_up_cancellations_dnas", label: "Following up on all cancellations, DNA's and last attendances weekly", type: "rating" },
+  { key: "external_marketing_events", label: "Attend and participate in all external marketing events as requested by management", type: "rating" },
+  { key: "staff_meetings_participation", label: "Positive contribution & participation in all staff meetings and in-services", type: "rating" },
+  { key: "adjust_procedures_training", label: "Implement training by following all Adjust procedures & protocols", type: "rating" },
+  {
+    key: "third_party_client_monitoring",
+    label: "Monitor all third party clients to ensure that they remain within approved guidelines for both treatment and medical certificates",
+    type: "rating",
+  },
+  { key: "unbooked_time_work", label: "Any un-booked time is to be spent completing work-related activities", type: "rating" },
+  {
+    key: "meeting_tasks_goals_actions",
+    label: "Complete and prepare all meeting tasks, goals and action steps as delegated by your supervisor at a high quality",
+    type: "rating",
+  },
+];
+
+export function kpaFieldsForRole(role: ProviderRole): ProviderField[] {
+  return role === "senior_physio" ? SENIOR_KPA_FIELDS : PROVIDER_KPA_FIELDS;
+}
+
+/**
+ * Performance Review Goals for regular (non-senior) providers — 3 fixed
+ * short-term goal slots, rated per week the same way as the KPA Scorecard
+ * (per the real KPA Scorecard screenshot's "PERFORMANCE REVIEW GOALS"
+ * section). Senior physios instead get a free-text goals section at the
+ * bottom of their page (ActionStepsCard) — different structure, not this.
+ */
+export const PROVIDER_GOAL_FIELDS: ProviderField[] = [
+  { key: "short_term_1", label: "Short Term 1", type: "rating" },
+  { key: "short_term_2", label: "Short Term 2", type: "rating" },
+  { key: "short_term_3", label: "Short Term 3", type: "rating" },
 ];
 
 export const ROLE_LABELS: Record<ProviderRole, string> = {
