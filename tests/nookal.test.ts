@@ -53,6 +53,8 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
 03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Cancelled,2026-06-03 10:00:00,2026-07-20 09:00:00,will call to rebook,03/07/2026,9:00am,Staff One,1003
 04/07/2026,Adjust Physiotherapy,Test Client Four,0400 000 004,Alex Example,Private - Physio,Service,Did Not Arrive,2026-06-04 10:00:00,,dna,04/07/2026,9:00am,Staff One,1004
 05/07/2026,Adjust Physiotherapy,Test Client Five,0400 000 005,Alex Example,Private - Physio,Service,Cancelled,2026-06-05 10:00:00,,plan cancelled - client left,05/07/2026,9:00am,Staff One,1005
+03/07/2026,Adjust Physiotherapy,Test Client Six,0400 000 006,Alex Example,Private - Physio,Service,Cancelled,2026-01-01 10:00:00,,stale carry-through — plan was cancelled months ago,01/01/2026,9:00am,Staff One,1006
+04/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,,second service for the same client this week,04/07/2026,9:00am,Staff One,1001
 
 `;
 
@@ -234,26 +236,34 @@ describe("parseOccupancyReport", () => {
 });
 
 describe("parseCancellationsReport", () => {
-  it("takes counts/percentages from Summary", () => {
+  it("takes DNAs/completed/percentages from Summary, but computes cancellations itself from Details (Summary's raw count overcounts real events)", () => {
     const result = parseCancellationsReport(CANCELLATIONS_CSV);
-    expect(result.byProvider["Alex Example"].cancellations).toBe(2);
     expect(result.byProvider["Alex Example"].dnas).toBe(1);
     expect(result.byProvider["Alex Example"].cancellationPct).toBeCloseTo(0.1538, 3);
+    // Summary says "2", but that's Nookal's raw Details row count. The real
+    // per-client event count (see the "derives not-rebooked..." test below
+    // for the row-by-row breakdown) is 3.
+    expect(result.byProvider["Alex Example"].cancellations).toBe(3);
   });
 
-  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details — RSX-tagged notes only, DNA and bulk-cancel rows excluded", () => {
+  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details — RSX-tagged notes only, DNA/bulk-cancel/stale rows excluded, same-client rows deduped", () => {
     const result = parseCancellationsReport(CANCELLATIONS_CSV);
     const alex = result.byProvider["Alex Example"];
-    // 5 Details rows, but only 3 are real events for the rate denominator:
-    //   row1: "rsx moved to next week", next booking 01/07->08/07 (7 days) -> counts as rescheduled + booked-within-7
-    //         (Next Booking is in real Nookal's actual YYYY-MM-DD format here, not DD/MM/YYYY like Appointment Date —
-    //         parseNookalDate must handle both or this silently reads as "no next booking")
-    //   row2: "no rebook needed", no next booking -> counts as not rebooked
-    //   row3: "will call to rebook", HAS a next booking (03/07->20/07) but isn't RSX-tagged -> counts toward the
-    //         denominator only, not toward either rescheduled or not-rebooked (matches the real per-provider sheet,
-    //         where RSX% + NR% never add to 100%)
+    // 7 Details rows, but only 3 real per-client events for the rate denominator:
+    //   row1+row7: "Test Client One", 2 rows (a second service cancelled the same week) -> 1 event, not 2.
+    //     row1: "rsx moved to next week", next booking 01/07->08/07 (7 days) -> the RSX tag makes the whole
+    //           client count as rescheduled + booked-within-7 (Next Booking is in real Nookal's actual
+    //           YYYY-MM-DD format here, not DD/MM/YYYY like Appointment Date — parseNookalDate must handle
+    //           both or this silently reads as "no next booking")
+    //     row7: no RSX tag, no next booking -> doesn't change the client's rescheduled verdict (RSX wins)
+    //   row2 "Test Client Two": "no rebook needed", no next booking -> counts as not rebooked
+    //   row3 "Test Client Three": "will call to rebook", HAS a next booking (03/07->20/07) but isn't
+    //     RSX-tagged -> counts toward the denominator only, not toward either rescheduled or not-rebooked
+    //     (matches the real per-provider sheet, where RSX% + NR% never add to 100%)
     //   row4: Did Not Arrive -> excluded (DNAs come from Summary, not this rate)
     //   row5: "plan cancelled" -> excluded (bulk/whole-plan cancellation, not a real single event)
+    //   row6 "Test Client Six": modified 01/01/2026 for a 03/07/2026 appointment, >14 days apart -> excluded
+    //     as a stale, already-actioned cancellation just carrying through to this week's diary
     expect(alex.eventsCount).toBe(3);
     expect(alex.notRebooked).toBe(1);
     expect(alex.rescheduledCount).toBe(1);

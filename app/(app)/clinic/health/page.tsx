@@ -108,6 +108,21 @@ export default async function ClinicHealthPage({
         </div>
 
         <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Ageing Debts</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile {...clinicStatTile(history, "ad_total", "down")} label="Total Ageing Debt (Adjust)" />
+            <StatTile {...clinicStatTile(history, "ad_medicare_dva_31", "down")} label="Medicare/DVA over 31 Days" />
+            <StatTile {...clinicStatTile(history, "ad_3rd_party_90", "down")} label="3rd Party > 90 Days" />
+            <StatTile {...clinicStatTile(history, "ad_pod_total", "down")} label="Total Ageing Debt (Podiatry)" />
+          </div>
+          <div className="mt-4">
+            <Card title="Total Ageing Debt Trend">
+              <LineTrendChart title="Adjust + Podiatry" data={toTrendSeries(history, "ad_total")} format="currency" colorIndex={2} />
+            </Card>
+          </div>
+        </div>
+
+        <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Cancellations</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile {...clinicStatTile(history, "cx_cancels", "down")} label="Total Cancellations" />

@@ -23,7 +23,8 @@ export type ClinicFieldCategory =
   | "CX"
   | "Diary"
   | "Clinic"
-  | "Admin";
+  | "Admin"
+  | "AgeingDebt";
 
 export interface ClinicField {
   idx: number;
@@ -107,6 +108,29 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 57, id: "specialty_paeds_sub", label: "Paeds Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 58, id: "specialty_paeds_total", label: "Paeds Total Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 59, id: "specialty_womens_health_total", label: "Women's Health Total Consults", source: "manual", type: "number", category: "Clinic" },
+
+  // Ageing Debts — from the director's "C. Ageing Debts" / "AGEING DEBT PODIATRY" sheet sections.
+  // The Nookal Aged Debtors report only exports "All Locations" combined and groups by payer
+  // type, not by individual client — it can't tell us which of a "[Private]" balance belongs to
+  // a true private-pay client vs. an NDIS self-managed client invoiced as Private, and it can't
+  // split Adjust Physiotherapy from Podiatry. Rather than guess at a split on numbers this
+  // sensitive, every field here stays manual (typed straight off the report), same as Gym/Podiatry
+  // revenue today.
+  { idx: 60, id: "ad_total_private", label: "Ageing Debt — Total Private", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 61, id: "ad_actual_private", label: "Ageing Debt — Actual Private", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 62, id: "ad_ndis", label: "Ageing Debt — NDIS", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt — 3rd Party 61-90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt — 3rd Party >90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 65, id: "ad_medicare_dva_31", label: "Ageing Debt — Medicare/DVA over 31 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 66, id: "ad_total", label: "Total Ageing Debt — Adjust Only", source: "manual", type: "currency", category: "AgeingDebt" },
+
+  { idx: 67, id: "ad_pod_total_private", label: "Podiatry Ageing Debt — Total Private", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 68, id: "ad_pod_actual_private", label: "Podiatry Ageing Debt — Actual Private", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 69, id: "ad_pod_ndis", label: "Podiatry Ageing Debt — NDIS", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 70, id: "ad_pod_3rd_party_61_90", label: "Podiatry Ageing Debt — 3rd Party 61-90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 71, id: "ad_pod_3rd_party_90", label: "Podiatry Ageing Debt — 3rd Party >90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 72, id: "ad_pod_medicare_dva_31", label: "Podiatry Ageing Debt — Medicare/DVA over 31 Days", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 73, id: "ad_pod_total", label: "Total Ageing Debt — Podiatry Only", source: "manual", type: "currency", category: "AgeingDebt" },
 ];
 
 export function getClinicHeaders(): string[] {
