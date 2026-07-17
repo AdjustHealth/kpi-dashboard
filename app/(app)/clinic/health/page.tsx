@@ -2,10 +2,9 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
-import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { NotTrackedPanel } from "@/components/dashboard/NotTrackedPanel";
 import { getClinicHistory } from "@/lib/clinicData";
-import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
+import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding } from "@/lib/week";
 
 export default async function ClinicHealthPage({
@@ -37,9 +36,15 @@ export default async function ClinicHealthPage({
   const cancellationData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Cancellation %": h.cx_pct ?? null,
-    "Reschedule Rate (Save Rate)": h.cx_rsx_pct ?? null,
+    "Reschedule Rate": h.cx_rsx_pct ?? null,
     "Not Rebooked %": h.cx_nr_pct ?? null,
     "Booked Within 7 Days %": h.cx_in7_pct ?? null,
+  }));
+
+  const onlineBookingsData = history.map((h) => ({
+    label: formatWeekLabel(h.week_ending),
+    Total: h.online_bookings_total ?? null,
+    New: h.online_bookings_new ?? null,
   }));
 
   return (
@@ -48,11 +53,10 @@ export default async function ClinicHealthPage({
       <div className="flex flex-col gap-6 p-8">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Clinic Activity</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile {...clinicStatTile(history, "total_consults")} label="Completed Appointments" />
             <StatTile {...clinicStatTile(history, "total_nc")} label="New Patients" />
             <StatTile {...clinicStatTile(history, "clinic_occ")} label="Clinic Occupancy" />
-            <StatTile {...clinicStatTile(history, "online_bookings_new")} label="Online Bookings — New" />
           </div>
         </div>
 
@@ -68,11 +72,11 @@ export default async function ClinicHealthPage({
               seriesKeys={["Completed Appointments", "New Patients"]}
               format="number"
             />
-            <LineTrendChart
-              title="Online Bookings (Total)"
-              data={toTrendSeries(history, "online_bookings_total")}
+            <MultiLineChart
+              title="Online Bookings — Total vs New"
+              data={onlineBookingsData}
+              seriesKeys={["Total", "New"]}
               format="number"
-              colorIndex={4}
             />
           </div>
         </Card>
@@ -115,14 +119,14 @@ export default async function ClinicHealthPage({
             <StatTile {...clinicStatTile(history, "cx_cancels", "down")} label="Total Cancellations" />
             <StatTile {...clinicStatTile(history, "cx_pct", "down")} label="Cancellation %" />
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
-            <StatTile {...clinicStatTile(history, "cx_rsx_pct")} label="Reschedule Rate (Save Rate)" />
+            <StatTile {...clinicStatTile(history, "cx_rsx_pct")} label="Reschedule Rate" />
           </div>
           <div className="mt-4">
             <Card title="Cancellations Trend">
               <MultiLineChart
-                title="Cancellation % / Reschedule (Save) Rate / Not Rebooked % / Booked Within 7 Days %"
+                title="Cancellation % / Reschedule Rate / Not Rebooked % / Booked Within 7 Days %"
                 data={cancellationData}
-                seriesKeys={["Cancellation %", "Reschedule Rate (Save Rate)", "Not Rebooked %", "Booked Within 7 Days %"]}
+                seriesKeys={["Cancellation %", "Reschedule Rate", "Not Rebooked %", "Booked Within 7 Days %"]}
                 format="percent"
               />
             </Card>

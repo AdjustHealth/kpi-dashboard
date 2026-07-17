@@ -67,7 +67,7 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
   { key: "pct_of_total_clinic_cx", label: "% of Total Clinic Cx", type: "percent" },
   { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate (Save Rate)", type: "percent" },
+  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1 },
   // Communication — placeholder, confirm exact fields against the current sheet
   { key: "comm_followup_calls", label: "Communication: Follow-up Calls Completed", type: "number" },

@@ -20,6 +20,12 @@ interface AutoFillSummary {
   error?: string;
 }
 
+interface UploadApiResponse {
+  data?: UploadRecord;
+  autoFilled?: AutoFillSummary | null;
+  error?: string;
+}
+
 export function NookalUpload({ week }: { week: string }) {
   const router = useRouter();
   const [uploads, setUploads] = useState<UploadRecord[]>([]);
@@ -44,10 +50,21 @@ export function NookalUpload({ week }: { week: string }) {
     formData.append("file", file);
     formData.append("week_ending", week);
     formData.append("report_type", reportType);
-    const res = await fetch("/api/nookal-upload", { method: "POST", body: formData });
-    const json = await res.json();
-    setUploading(null);
-    refresh();
+    let json: UploadApiResponse;
+    try {
+      const res = await fetch("/api/nookal-upload", { method: "POST", body: formData });
+      json = await res.json();
+      if (!res.ok) {
+        setLastResult({ type: reportType, summary: { error: json.error ?? `Upload failed (${res.status})` } });
+        return;
+      }
+    } catch {
+      setLastResult({ type: reportType, summary: { error: "Upload failed — check your connection and try again." } });
+      return;
+    } finally {
+      setUploading(null);
+      refresh();
+    }
     if (json.autoFilled) {
       setLastResult({ type: reportType, summary: json.autoFilled });
       router.refresh(); // pull newly auto-filled values into the rest of the page
@@ -57,8 +74,9 @@ export function NookalUpload({ week }: { week: string }) {
   return (
     <Card title="Upload Nookal Reports">
       <p className="mb-4 text-xs text-muted">
-        Activity, Occupancy, Cancellations, and Clients &amp; Cases reports auto-fill the fields below — still
-        editable afterward. Business Performance and Aged Debtors are stored but not auto-parsed yet.
+        Activity, Occupancy, Cancellations, Clients &amp; Cases, and Providers &amp; Practice reports auto-fill the
+        fields marked <span className="font-medium text-accent">Auto</span> below — still editable afterward.
+        Business Performance and Aged Debtors are stored but not auto-parsed yet.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {NOOKAL_REPORT_TYPES.map((type) => {

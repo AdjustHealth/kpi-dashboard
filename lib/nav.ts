@@ -10,19 +10,35 @@ export type NavGroup = {
 };
 
 export const NAV: NavGroup[] = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Weekly Input", href: "/inputs" },
   {
-    label: "Clinic",
+    label: "Overview",
+    items: [{ label: "Dashboard", href: "/dashboard" }],
+  },
+  {
+    label: "Data Entry",
+    items: [{ label: "Weekly Input", href: "/inputs" }],
+  },
+  {
+    label: "Clinic Reports",
     items: [
       { label: "Revenue", href: "/clinic/revenue" },
       { label: "Clinic Health", href: "/clinic/health" },
       { label: "Specialty Services", href: "/clinic/specialty" },
     ],
   },
-  { label: "Providers", href: "/providers" },
-  { label: "Admin", href: "/admin" },
-  { label: "Senior Physio", href: "/senior" },
-  { label: "Targets", href: "/targets" },
-  { label: "Settings", href: "/settings" },
+  {
+    label: "Meetings",
+    items: [
+      { label: "Providers", href: "/providers" },
+      { label: "Senior Physio", href: "/senior" },
+      { label: "Admin", href: "/admin" },
+    ],
+  },
+  {
+    label: "Configuration",
+    items: [
+      { label: "Targets", href: "/targets" },
+      { label: "Settings", href: "/settings" },
+    ],
+  },
 ];

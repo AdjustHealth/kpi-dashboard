@@ -29,8 +29,16 @@ export default async function DashboardPage({
     <>
       <PageHeader title="Dashboard" subtitle="Adjust Health at a glance." />
       <div className="flex flex-col gap-6 p-8">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile {...clinicStatTile(history, "total_rev")} />
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Revenue</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatTile {...clinicStatTile(history, "total_rev")} label="Adjust Revenue" />
+            <StatTile {...clinicStatTile(history, "gym_total")} label="Gym Revenue" />
+            <StatTile {...clinicStatTile(history, "m_pod_rev")} label="Podiatry Revenue" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatTile {...clinicStatTile(history, "total_consults")} />
           <StatTile {...clinicStatTile(history, "total_nc")} />
           <StatTile {...clinicStatTile(history, "clinic_occ")} />

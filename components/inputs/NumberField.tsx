@@ -1,6 +1,7 @@
 "use client";
 
 import { Field, Input } from "@/components/ui/Field";
+import { Badge } from "@/components/ui/Badge";
 
 type NumericType = "currency" | "number" | "decimal" | "percent";
 
@@ -11,12 +12,15 @@ export function NumberField({
   value,
   onChange,
   decimals,
+  source,
 }: {
   label: string;
   type: NumericType;
   value: number | null | undefined;
   onChange: (value: number | null) => void;
   decimals?: number;
+  /** "calc" fields auto-fill from a Nookal report upload; "manual" fields are always hand-entered. */
+  source?: "calc" | "manual";
 }) {
   const displayValue =
     value === null || value === undefined
@@ -25,8 +29,15 @@ export function NumberField({
         ? round(value * 100, 2)
         : value;
 
+  const tag =
+    source === "calc" ? (
+      <Badge tone="good">Auto</Badge>
+    ) : source === "manual" ? (
+      <Badge tone="neutral">Manual</Badge>
+    ) : undefined;
+
   return (
-    <Field label={label}>
+    <Field label={label} tag={tag}>
       <div className="relative">
         <Input
           type="number"

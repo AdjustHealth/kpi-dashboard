@@ -141,6 +141,7 @@ export const NOOKAL_REPORT_TYPES = [
   "business_performance",
   "occupancy",
   "clients_and_cases",
+  "providers_and_practice",
   "cancellations",
   "aged_debtors",
 ] as const;
@@ -152,6 +153,7 @@ export const NOOKAL_REPORT_LABELS: Record<NookalReportType, string> = {
   business_performance: "Business Performance",
   occupancy: "Occupancy",
   clients_and_cases: "Clients & Cases",
+  providers_and_practice: "Providers & Practice",
   cancellations: "Cancellations",
   aged_debtors: "Aged Debtors",
 };

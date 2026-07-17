@@ -55,82 +55,97 @@ export function WeeklyInputForm({
     <div className="flex flex-col gap-6 p-8">
       <NookalUpload week={week} />
 
-      <Card
-        title="Clinic Activity & Occupancy"
-        action={<SaveIndicator status={status} />}
-      >
-        <p className="mb-4 text-xs text-muted">
-          Total Revenue and Occupancy auto-fill from the Activity and
-          Occupancy report uploads above — cancellations/DNAs and new
-          clients auto-fill too, once those reports are uploaded. Everything
-          stays editable.
+      <div className="flex items-center justify-end">
+        <SaveIndicator status={status} />
+      </div>
+
+      <div>
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Manual Entry</h2>
+        <p className="mb-3 text-xs text-muted">
+          These numbers aren&apos;t in any Nookal report — they need to be typed in every week.
         </p>
-        <ClinicFieldGrid
-          fields={[
-            ...getClinicFieldsByCategory("Revenue").filter((f) => f.source !== "date" && f.id !== "total_adjust_pod_rev"),
-            ...getClinicFieldsByCategory("Occupancy"),
-          ]}
-          values={weekly}
-          onChange={onChange}
-        />
-      </Card>
+        <div className="flex flex-col gap-6">
+          <Card title="Gym &amp; Podiatry">
+            <ClinicFieldGrid
+              fields={[
+                ...getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total"),
+                ...getClinicFieldsByCategory("Podiatry"),
+              ]}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
 
-      <Card title="Revenue by Payer" action={<span className="text-xs text-muted">Auto-fills from Activity Report</span>}>
-        <ClinicFieldGrid fields={getClinicFieldsByCategory("Payer")} values={weekly} onChange={onChange} />
-      </Card>
+          <Card title="Diary Management">
+            <ClinicFieldGrid
+              fields={getClinicFieldsByCategory("Diary").filter((f) => f.id !== "diary_mgmt_pct")}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
 
-      <Card title="Manual Clinic Fields">
-        <ClinicFieldGrid
-          fields={[
-            ...getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total"),
-            ...getClinicFieldsByCategory("Podiatry"),
-          ]}
-          values={weekly}
-          onChange={onChange}
-        />
-      </Card>
+          <Card title="Admin Manual Fields">
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("Admin")} values={weekly} onChange={onChange} />
+          </Card>
 
-      <Card title="Diary Management">
-        <ClinicFieldGrid
-          fields={getClinicFieldsByCategory("Diary").filter((f) => f.id !== "diary_mgmt_pct")}
-          values={weekly}
-          onChange={onChange}
-        />
-      </Card>
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-foreground">Provider Compliance — every provider</h3>
+            {providers.length === 0 && (
+              <p className="text-sm text-muted">
+                No active providers yet — add them on the Settings page.
+              </p>
+            )}
+            {providers.map((provider) => (
+              <ChecklistCard
+                key={provider.id}
+                title={provider.name}
+                fields={COMPLIANCE_FIELDS}
+                providerId={provider.id}
+                week={week}
+                initialValues={kpasByProvider.get(provider.id) ?? {}}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
 
-      <Card title="Clinic — CVA & JBV" action={<span className="text-xs text-muted">Shared across all provider pages</span>}>
-        <ClinicFieldGrid
-          fields={getClinicFieldsByCategory("Clinic").filter((f) => f.id !== "jbv_total")}
-          values={weekly}
-          onChange={onChange}
-        />
-      </Card>
+      <div>
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Auto-Filled from CSV Reports</h2>
+        <p className="mb-3 text-xs text-muted">
+          Populated by the report uploads above — check them, but you shouldn&apos;t normally need to type into these.
+        </p>
+        <div className="flex flex-col gap-6">
+          <Card title="Clinic Activity &amp; Occupancy">
+            <ClinicFieldGrid
+              fields={[
+                ...getClinicFieldsByCategory("Revenue").filter((f) => f.source !== "date" && f.id !== "total_adjust_pod_rev"),
+                ...getClinicFieldsByCategory("Occupancy"),
+              ]}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
 
-      <Card title="Cancellations & CX">
-        <ClinicFieldGrid fields={getClinicFieldsByCategory("CX")} values={weekly} onChange={onChange} />
-      </Card>
+          <Card title="Revenue by Payer">
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("Payer")} values={weekly} onChange={onChange} />
+          </Card>
 
-      <Card title="Admin Manual Fields">
-        <ClinicFieldGrid fields={getClinicFieldsByCategory("Admin")} values={weekly} onChange={onChange} />
-      </Card>
+          <Card title="Cancellations & CX">
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("CX")} values={weekly} onChange={onChange} />
+          </Card>
 
-      <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold text-foreground">Provider Compliance</h2>
-        {providers.length === 0 && (
-          <p className="text-sm text-muted">
-            No active providers yet — add them on the Settings page.
-          </p>
-        )}
-        {providers.map((provider) => (
-          <ChecklistCard
-            key={provider.id}
-            title={provider.name}
-            fields={COMPLIANCE_FIELDS}
-            providerId={provider.id}
-            week={week}
-            initialValues={kpasByProvider.get(provider.id) ?? {}}
-          />
-        ))}
+          <Card title="Clinic — CVA &amp; JBV">
+            <p className="mb-4 text-xs text-muted">
+              Senior / Massage / EP CVA auto-fill from the Providers &amp; Practice report. New Grad, 2-5yr, and
+              JBV aren&apos;t in any Nookal report yet, so those stay manual.
+            </p>
+            <ClinicFieldGrid
+              fields={getClinicFieldsByCategory("Clinic").filter((f) => f.id !== "jbv_total")}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ export function ClinicFieldGrid({
           decimals={field.decimals}
           value={values[field.id] as number | null | undefined}
           onChange={(v) => onChange(field.id, v)}
+          source={field.source === "calc" ? "calc" : "manual"}
         />
       ))}
     </div>

@@ -34,8 +34,9 @@ export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
         <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} />
         <LineTrendChart
           title="New Patient Booking Rate"
-          data={series(history, "new_pt_booking_rate_pct")}
-          format="percent"
+          data={series(history, "new_pt_booking_rate")}
+          format="decimal"
+          decimals={2}
           colorIndex={3}
         />
         <LineTrendChart title="New Patients" data={series(history, "new_patients")} format="number" colorIndex={4} />

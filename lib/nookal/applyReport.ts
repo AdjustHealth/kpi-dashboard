@@ -5,6 +5,7 @@ import {
   parseCancellationsReport,
   parseClientsAndCasesReport,
   parseOccupancyReport,
+  parseProvidersAndPracticeReport,
 } from "@/lib/nookal/parsers";
 
 export interface ApplyReportResult {
@@ -34,7 +35,10 @@ function average(values: number[]): number | null {
  * on the Providers/Settings page).
  *
  * "business_performance" and "aged_debtors" are stored (by the caller) but
- * not parsed here — see lib/nookal/parsers.ts for why.
+ * not parsed here — see lib/nookal/parsers.ts for why. cva_new_grads and
+ * cva_2_5yr aren't set by this report either — Nookal reports don't split
+ * the "physio" role into New Grad vs 2-5yr experience tiers, so those two
+ * stay manual until that distinction exists somewhere in the data model.
  */
 export async function applyNookalReport(
   supabase: SupabaseClient,
@@ -153,6 +157,34 @@ export async function applyNookalReport(
       if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClients });
     }
     clinicPatch.total_nc = totalNewClients;
+  } else if (reportType === "providers_and_practice") {
+    // Nookal's "Client Visit Average" (Services / Unique Clients) is the
+    // per-provider CVA figure the paper meeting template calls UCVA.
+    const result = parseProvidersAndPracticeReport(csvText);
+    const ucvaByRole: Record<string, number[]> = { senior_physio: [], massage: [], ep: [] };
+    let totalCompletedConsults = 0;
+
+    for (const [name, data] of Object.entries(result.byProvider)) {
+      if (data.completedConsults !== null) totalCompletedConsults += data.completedConsults;
+
+      const p = findProvider(name);
+      if (!p) continue;
+      const patch: Record<string, unknown> = {};
+      if (data.cva !== null) patch.ucva = data.cva;
+      if (data.completedConsults !== null) patch.completed_consults = data.completedConsults;
+      if (data.forwardBookingAverage !== null) patch.fba = data.forwardBookingAverage;
+      if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
+
+      if (data.cva !== null && ucvaByRole[p.role]) ucvaByRole[p.role].push(data.cva);
+    }
+
+    if (totalCompletedConsults > 0) clinicPatch.total_consults = totalCompletedConsults;
+    const seniorAvg = average(ucvaByRole.senior_physio);
+    const massageAvg = average(ucvaByRole.massage);
+    const epAvg = average(ucvaByRole.ep);
+    if (seniorAvg !== null) clinicPatch.cva_senior = seniorAvg;
+    if (massageAvg !== null) clinicPatch.cva_massage = massageAvg;
+    if (epAvg !== null) clinicPatch.cva_ep = epAvg;
   }
 
   if (Object.keys(clinicPatch).length > 0) {
