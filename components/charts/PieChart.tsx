@@ -1,6 +1,6 @@
 "use client";
 
-import { Cell, Legend, Pie, PieChart as RePieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart as RePieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
 import { formatValue } from "@/lib/format";
 import { ChartFormat } from "@/components/charts/LineTrendChart";
@@ -12,15 +12,16 @@ export interface PieSlice {
 
 /**
  * Beyond 4 categorical slots the palette can't guarantee full pairwise
- * separation, so every slice is direct-labeled (name + value) rather than
- * relying on color/legend alone — per the dataviz skill's guidance for
- * charts with more than 4 series.
+ * separation, so every slice is direct-labeled (name + percent) rather
+ * than relying on a legend — per the dataviz skill's guidance for charts
+ * with more than 4 series. No separate legend: it would just repeat the
+ * direct labels and eats the margin those labels need to not clip.
  */
 export function PieChart({
   title,
   data,
   format = "currency",
-  height = 260,
+  height = 320,
 }: {
   title: string;
   data: PieSlice[];
@@ -34,13 +35,13 @@ export function PieChart({
       <div className="mb-1 text-xs font-medium text-muted">{title}</div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <RePieChart>
+          <RePieChart margin={{ top: 24, right: 60, bottom: 24, left: 60 }}>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius="55%"
-              outerRadius="80%"
+              innerRadius="45%"
+              outerRadius="65%"
               paddingAngle={2}
               label={({ name, value }) =>
                 total > 0 ? `${name} ${Math.round((value / total) * 100)}%` : name
@@ -60,7 +61,6 @@ export function PieChart({
               }}
               formatter={(v) => formatValue(Number(v), format)}
             />
-            <Legend wrapperStyle={{ fontSize: 11, color: CHART_CHROME.secondaryInk }} />
           </RePieChart>
         </ResponsiveContainer>
       </div>

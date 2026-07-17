@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { STATUS } from "@/components/charts/palette";
 import { NOOKAL_REPORT_TYPES, NOOKAL_REPORT_LABELS, NookalReportType } from "@/lib/schema";
 
 interface UploadRecord {
@@ -18,6 +19,7 @@ interface AutoFillSummary {
   unmatchedNames?: string[];
   clinicFieldsUpdated?: string[];
   error?: string;
+  warning?: string;
 }
 
 interface UploadApiResponse {
@@ -81,16 +83,27 @@ export function NookalUpload({ week }: { week: string }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {NOOKAL_REPORT_TYPES.map((type) => {
           const existing = uploads.filter((u) => u.report_type === type);
+          const done = existing.length > 0;
+          const latest = existing[0];
           return (
             <div
               key={type}
-              className="flex flex-col gap-2 rounded-lg border border-border bg-surface-raised p-3"
+              className={`flex flex-col gap-2 rounded-lg border p-3 ${
+                done ? "border-accent-secondary/40 bg-accent-secondary/5" : "border-border bg-surface-raised"
+              }`}
             >
-              <span className="text-xs font-medium text-foreground">
-                {NOOKAL_REPORT_LABELS[type]}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-foreground">
+                  {NOOKAL_REPORT_LABELS[type]}
+                </span>
+                {done && (
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-accent-secondary">
+                    <span aria-hidden>✓</span> Uploaded
+                  </span>
+                )}
+              </div>
               <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-accent hover:text-accent">
-                {uploading === type ? "Uploading…" : "Choose file"}
+                {uploading === type ? "Uploading…" : done ? "Replace file" : "Choose file"}
                 <input
                   type="file"
                   className="hidden"
@@ -101,14 +114,10 @@ export function NookalUpload({ week }: { week: string }) {
                   }}
                 />
               </label>
-              {existing.length > 0 && (
-                <ul className="flex flex-col gap-1">
-                  {existing.map((u) => (
-                    <li key={u.id} className="truncate text-[11px] text-muted" title={u.file_name}>
-                      {u.file_name}
-                    </li>
-                  ))}
-                </ul>
+              {latest && (
+                <span className="truncate text-[11px] text-muted" title={latest.file_name}>
+                  {latest.file_name}
+                </span>
               )}
             </div>
           );
@@ -122,6 +131,9 @@ export function NookalUpload({ week }: { week: string }) {
             <p className="mt-1 text-danger">{lastResult.summary.error}</p>
           ) : (
             <div className="mt-2 flex flex-col gap-2">
+              {lastResult.summary.warning && (
+                <p style={{ color: STATUS.warning }}>{lastResult.summary.warning}</p>
+              )}
               {!!lastResult.summary.clinicFieldsUpdated?.length && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-muted">Clinic fields updated:</span>

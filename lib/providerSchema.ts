@@ -8,9 +8,10 @@
  *
  * Field set and labels are taken directly from the real "Accountability
  * Meeting" template and the director's own paper notes — see KPI Scorecard
- * section (FBA, Occupancy, Diary Management, New Patient Booking Rate +
- * its two calculation inputs, UCVA/NCVA, DNAs, Cancellations, Not
- * Rebooked, Reschedule Rate, Booked Within 7 Days).
+ * section (FBA, Occupancy, New Patient Booking Rate + its two calculation
+ * inputs, UCVA/NCVA, DNAs, Cancellations, Not Rebooked, Reschedule Rate).
+ * Diary Management and Booked Within 7 Days are clinic/admin-level, not
+ * per-physio.
  *
  * A senior physio's specialty metrics (e.g. Sam's Memberships/Programming %,
  * Marcio's Headache Init/Sub) are NOT hardcoded here — they're configured
@@ -20,7 +21,8 @@
 
 export type ProviderRole = "senior_physio" | "physio" | "massage" | "ep" | "admin";
 
-export type ProviderFieldType = "currency" | "number" | "decimal" | "percent" | "boolean";
+/** "rating" is the 3-tier KPA score: above_and_beyond / demonstrated / not_met. */
+export type ProviderFieldType = "currency" | "number" | "decimal" | "percent" | "boolean" | "rating";
 
 export interface ProviderField {
   key: string;
@@ -29,30 +31,44 @@ export interface ProviderField {
   decimals?: number;
 }
 
+export const KPA_RATINGS = ["not_met", "demonstrated", "above_and_beyond"] as const;
+export type KpaRating = (typeof KPA_RATINGS)[number];
+
+export const KPA_RATING_LABELS: Record<KpaRating, string> = {
+  not_met: "Not Met",
+  demonstrated: "Demonstrated",
+  above_and_beyond: "Above & Beyond",
+};
+
 export interface SpecialtyMetric extends ProviderField {
   /** Provider-defined, stored on providers.specialty_metrics; 'calc' fields (e.g. a total) are computed in providerCalc.ts by key convention `${key}_total`. */
   source?: "manual" | "calc";
 }
 
-/** Personal performance KPIs — shown in the Provider/Senior Physio KPI Scorecard. */
+/**
+ * Personal performance KPIs — shown in the Provider/Senior Physio KPI
+ * Scorecard. Diary Management and Booked Within 7 Days are clinic-wide/
+ * admin-tracked, not per-physio, so they're not here.
+ */
 export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "turnover", label: "Turnover", type: "currency" },
   { key: "personal_cva", label: "Personal CVA", type: "decimal", decimals: 2 },
   { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 2 },
   { key: "occupancy_pct", label: "Occupancy", type: "percent" },
-  { key: "diary_management_pct", label: "Diary Management", type: "percent" },
   { key: "completed_consults", label: "Completed Consults", type: "number" },
   { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
   { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2 },
-  { key: "voxers_completed_pct", label: "Voxers Completed", type: "percent" },
   { key: "ucva", label: "UCVA", type: "decimal", decimals: 2 },
   { key: "ncva", label: "NCVA", type: "decimal", decimals: 2 },
   { key: "dnas", label: "Number of DNAs", type: "number" },
   { key: "cancellations", label: "Number of Cancellations", type: "number" },
   { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
-  { key: "booked_within_7_days_pct", label: "Booked Within 7 Days", type: "percent" },
+];
+
+/** Extra KPI Scorecard fields for senior physios only — not regular physio/massage/EP. */
+export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
   { key: "sm_reel", label: "Social Media Reel Posted", type: "boolean" },
   { key: "blog", label: "Blog Posted", type: "boolean" },
 ];
@@ -87,17 +103,20 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
 ];
 
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
-  return role === "admin" ? ADMIN_METRIC_FIELDS : CLINICIAN_METRIC_FIELDS;
+  if (role === "admin") return ADMIN_METRIC_FIELDS;
+  if (role === "senior_physio") return [...CLINICIAN_METRIC_FIELDS, ...SENIOR_ONLY_METRIC_FIELDS];
+  return CLINICIAN_METRIC_FIELDS;
 }
 
 /**
  * Weekly compliance checklist — same set for every provider role, written
- * from Weekly Input or the provider page. Voxers Completed is NOT here —
- * despite the name it's tracked as a completion percentage on the sheet
- * (sometimes over 100%), not a Y/N checkbox, so it lives in
- * CLINICIAN_METRIC_FIELDS as voxers_completed_pct instead.
+ * from Weekly Input or the provider page. Voxers Completed lives here as a
+ * percentage (sometimes over 100% on the real sheet), not a Y/N checkbox —
+ * ChecklistCard and WeeklyScorecardTable both render fields by their
+ * declared `type`, so a percent field works fine alongside the booleans.
  */
 export const COMPLIANCE_FIELDS: ProviderField[] = [
+  { key: "voxers_completed_pct", label: "Voxers Completed", type: "percent" },
   { key: "cancellation_management", label: "Cancellation Management", type: "boolean" },
   { key: "clinical_notes_completed", label: "Clinical Notes Completed", type: "boolean" },
   { key: "clinical_correspondence", label: "Clinical Correspondence Completed", type: "boolean" },
@@ -107,14 +126,18 @@ export const COMPLIANCE_FIELDS: ProviderField[] = [
   { key: "cx_report_completed", label: "CX Report Completed", type: "boolean" },
 ];
 
-/** Weekly KPA (Key Performance Area) scorecard — clinician roles only. */
+/**
+ * Weekly KPA (Key Performance Area) scorecard — clinician roles only.
+ * Scored on a 3-tier rating, not Y/N: Above & Beyond (green) / Demonstrated
+ * (yellow) / Not Met (red).
+ */
 export const SYSTEMS_KPA_FIELDS: ProviderField[] = [
-  { key: "core_values", label: "Core Values", type: "boolean" },
-  { key: "speciality_service_growth", label: "Speciality Service Growth", type: "boolean" },
-  { key: "lead_junior_staff", label: "Lead Junior Staff", type: "boolean" },
-  { key: "clinical_training", label: "Clinical Training", type: "boolean" },
-  { key: "marketing_internal", label: "Marketing — Internal", type: "boolean" },
-  { key: "marketing_external", label: "Marketing — External", type: "boolean" },
+  { key: "core_values", label: "Core Values", type: "rating" },
+  { key: "speciality_service_growth", label: "Speciality Service Growth", type: "rating" },
+  { key: "lead_junior_staff", label: "Lead Junior Staff", type: "rating" },
+  { key: "clinical_training", label: "Clinical Training", type: "rating" },
+  { key: "marketing_internal", label: "Marketing — Internal", type: "rating" },
+  { key: "marketing_external", label: "Marketing — External", type: "rating" },
 ];
 
 export const ROLE_LABELS: Record<ProviderRole, string> = {

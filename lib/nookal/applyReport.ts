@@ -12,6 +12,8 @@ export interface ApplyReportResult {
   matchedProviders: string[];
   unmatchedNames: string[];
   clinicFieldsUpdated: string[];
+  /** Set when the file parsed without error but yielded zero usable rows — usually the wrong report/week, or a section header Nookal renamed. */
+  warning?: string;
 }
 
 interface ProviderRow {
@@ -66,6 +68,7 @@ export async function applyNookalReport(
   const matched = new Set<string>();
   const unmatched = new Set<string>();
   const clinicPatch: Record<string, unknown> = {};
+  let rowsFound = 0;
 
   function findProvider(name: string): ProviderRow | undefined {
     const p = providerByName.get(name.trim().toLowerCase());
@@ -89,6 +92,7 @@ export async function applyNookalReport(
 
   if (reportType === "activity") {
     const result = parseActivityReport(csvText);
+    rowsFound = Object.keys(result.revenueByProvider).length + (result.totalRevenue !== null ? 1 : 0);
     if (result.totalRevenue !== null) clinicPatch.total_rev = result.totalRevenue;
     clinicPatch.rev_private = result.revenueByPayerCategory.private;
     clinicPatch.rev_medicare = result.revenueByPayerCategory.medicare;
@@ -103,6 +107,7 @@ export async function applyNookalReport(
     }
   } else if (reportType === "occupancy") {
     const result = parseOccupancyReport(csvText);
+    rowsFound = Object.keys(result.byProvider).length;
     const byRole: Record<string, number[]> = { senior_physio: [], physio: [], massage: [], ep: [] };
 
     for (const [name, data] of Object.entries(result.byProvider)) {
@@ -122,6 +127,7 @@ export async function applyNookalReport(
     if (clinicAvg !== null) clinicPatch.clinic_occ = clinicAvg;
   } else if (reportType === "cancellations") {
     const result = parseCancellationsReport(csvText);
+    rowsFound = Object.keys(result.byProvider).length + Object.keys(result.byAdmin).length;
     let totalCancels = 0;
     let totalDnas = 0;
     let totalCompleted = 0;
@@ -142,12 +148,13 @@ export async function applyNookalReport(
 
       const p = findProvider(name);
       if (p) {
+        // booked_within_7_days_pct isn't on the individual KPI Scorecard —
+        // it's clinic/admin-level, not per-physio.
         await upsertProviderMetrics(p.id, {
           cancellations: data.cancellations,
           dnas: data.dnas,
           not_rebooked: data.notRebooked,
           reschedule_rate_pct: data.rescheduleRatePct,
-          booked_within_7_days_pct: data.bookedWithin7DaysPct,
         });
       }
     }
@@ -179,6 +186,7 @@ export async function applyNookalReport(
     }
   } else if (reportType === "clients_and_cases") {
     const result = parseClientsAndCasesReport(csvText);
+    rowsFound = Object.keys(result.byProvider).length;
     let totalNewClients = 0;
 
     for (const [name, data] of Object.entries(result.byProvider)) {
@@ -191,6 +199,7 @@ export async function applyNookalReport(
     // Nookal's "Client Visit Average" (Services / Unique Clients) is the
     // per-provider CVA figure the paper meeting template calls UCVA.
     const result = parseProvidersAndPracticeReport(csvText);
+    rowsFound = Object.keys(result.byProvider).length;
     const ucvaByTier: Record<string, number[]> = { senior_physio: [], massage: [], ep: [], new_grad: [], "2_5yr": [] };
     let totalCompletedConsults = 0;
 
@@ -230,5 +239,9 @@ export async function applyNookalReport(
     matchedProviders: Array.from(matched),
     unmatchedNames: Array.from(unmatched),
     clinicFieldsUpdated: Object.keys(clinicPatch),
+    warning:
+      rowsFound === 0
+        ? "No matching rows were found in this file — check it's the correct report type and covers the week you're uploading it against."
+        : undefined,
   };
 }

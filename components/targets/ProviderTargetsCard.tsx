@@ -37,7 +37,8 @@ export function ProviderTargetsCard({ provider }: { provider: Provider }) {
   // plus a few target-only fields (personal_cva, annual_turnover_target,
   // working_weeks) that don't have a matching weekly metric.
   const metricTargetFields = metricFieldsForRole(provider.role).filter(
-    (f): f is ProviderField & { type: Exclude<ProviderField["type"], "boolean"> } => f.type !== "boolean"
+    (f): f is ProviderField & { type: Exclude<ProviderField["type"], "boolean" | "rating"> } =>
+      f.type !== "boolean" && f.type !== "rating"
   );
   const baseFields = [...metricTargetFields, ...(provider.role === "admin" ? [] : PROVIDER_TARGET_FIELDS)];
 

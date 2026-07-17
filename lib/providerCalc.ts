@@ -28,6 +28,8 @@ export interface ProviderTargets {
   annual_turnover_target?: number;
   working_weeks?: number;
   bonus_tiers?: BonusTiers;
+  /** Week-ending date (YYYY-MM-DD) this provider started as a senior physio — cumulative turnover only counts weeks from here forward. */
+  senior_since?: string;
   [key: string]: unknown;
 }
 

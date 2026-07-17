@@ -1,4 +1,5 @@
 import { MeetingNotesCard } from "@/components/provider/MeetingNotesCard";
+import { ActionStepsCard } from "@/components/provider/ActionStepsCard";
 import { WeeklyScorecardTable, WeekMetrics } from "@/components/provider/PerformanceTable";
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
@@ -14,6 +15,7 @@ export function ProviderDetailView({
   history,
   currentMeetingNotes,
   clinicHistory,
+  seniorSince,
   variant,
 }: {
   provider: Provider;
@@ -21,13 +23,25 @@ export function ProviderDetailView({
   history: WeekMetrics[];
   currentMeetingNotes: ProviderMeetingNotes;
   clinicHistory?: ClinicWeekRow[];
+  /** Only count weeks from this date forward toward bonus-tier cumulative turnover. */
+  seniorSince?: string | null;
   variant: "standard" | "senior" | "admin";
 }) {
   const metricFields = metricFieldsForRole(provider.role);
+  // Cumulative turnover must only count weeks since this senior physio
+  // actually started the role, not the whole fetched history window.
+  const bonusHistory = seniorSince ? history.filter((h) => h.week_ending >= seniorSince) : history;
+  const bonusClinicHistory = seniorSince
+    ? (clinicHistory ?? []).filter((h) => h.week_ending >= seniorSince)
+    : (clinicHistory ?? []);
 
   return (
     <div className="flex flex-col gap-6 p-8">
       <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+
+      {variant !== "senior" && (
+        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+      )}
 
       {variant === "senior" && (
         <SpecialtyKpiCard
@@ -54,9 +68,9 @@ export function ProviderDetailView({
       {variant === "senior" && (
         <BonusTierCard
           targets={provider.targets}
-          weeklyTurnover={history.map((h) => (typeof h.metrics.turnover === "number" ? h.metrics.turnover : null))}
-          weekLabels={history.map((h) => h.week_ending)}
-          jbvHistory={(clinicHistory ?? []).map((h) => (typeof h.jbv_total === "number" ? h.jbv_total : null))}
+          weeklyTurnover={bonusHistory.map((h) => (typeof h.metrics.turnover === "number" ? h.metrics.turnover : null))}
+          weekLabels={bonusHistory.map((h) => h.week_ending)}
+          jbvHistory={bonusClinicHistory.map((h) => (typeof h.jbv_total === "number" ? h.jbv_total : null))}
         />
       )}
 
@@ -82,7 +96,11 @@ export function ProviderDetailView({
         />
       )}
 
-      <ProviderCharts history={history} />
+      {variant !== "admin" && <ProviderCharts history={history} />}
+
+      {variant === "senior" && (
+        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" />
+      )}
     </div>
   );
 }

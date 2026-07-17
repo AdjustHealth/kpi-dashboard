@@ -1,16 +1,19 @@
 -- ============================================================
 -- ONE-OFF SETUP SCRIPT — run this once in the Supabase SQL Editor.
 -- Not part of the numbered migration sequence; safe to re-run (every
--- insert is guarded so it won't create duplicates).
+-- statement is guarded so it won't create duplicates or clobber data).
+-- Also safe to run even if you already ran an earlier version of this
+-- script — section 2 corrects Michael/Nick if they're already there.
 --
 -- What this does:
---   1. Adds the two pending schema columns (revenue-by-payer, senior CVA)
---      — safe even if you already ran 0002/0003, they're no-ops if the
---      columns already exist.
---   2. Adds the KPI Scorecard targets to your two existing senior physios
+--   1. Adds the pending schema columns (revenue-by-payer, senior CVA).
+--   2. Removes Michael (you're a director, not a tracked provider) and
+--      fixes Nick to physio / 2-5yr tier if either was already added by
+--      an earlier run of this script.
+--   3. Adds the KPI Scorecard targets to your two existing senior physios
 --      (Sam Johnson, Marcio dos Santos) without touching their existing
 --      bonus tiers / specialty targets.
---   3. Adds the rest of the team with the same targets, and the admin
+--   4. Adds the rest of the team with the same targets, and the admin
 --      team with the admin KPI targets from your screenshot.
 --
 -- IMPORTANT: names below are first-name-only where I don't have a
@@ -32,28 +35,42 @@ alter table weekly_kpis
   add column if not exists cva_senior numeric;
 
 -- ------------------------------------------------------------
--- 2. KPI Scorecard targets for your two already-seeded senior physios
+-- 2. Corrections (no-op if these were never added)
+-- ------------------------------------------------------------
+delete from providers where lower(name) = 'michael';
+
+update providers
+set role = 'physio', targets = targets || '{"experience_tier":"2_5yr"}'::jsonb
+where lower(name) = 'nick';
+
+-- ------------------------------------------------------------
+-- 3. KPI Scorecard targets for your two already-seeded senior physios
 --    (merges in — doesn't overwrite personal_cva / bonus_tiers / etc.)
+--    senior_since = 2026-07-01, from the "Start Date (Week 1)" cell on
+--    your senior-physio meeting sheet — bonus-tier cumulative turnover
+--    now only counts weeks from this date forward, not everything in
+--    the history window.
 -- ------------------------------------------------------------
 update providers
-set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb
+set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5,"senior_since":"2026-07-01"}'::jsonb
 where lower(name) in ('sam johnson', 'marcio dos santos');
 
+-- Sam's "Memberships" specialty target was missing (target 75 on your sheet).
+update providers
+set targets = targets || '{"memberships":75}'::jsonb
+where lower(name) = 'sam johnson';
+
 -- ------------------------------------------------------------
--- 3. The rest of the physio team (KPI Scorecard target set:
+-- 4. The rest of the physio team (KPI Scorecard target set:
 --    FBA >=2, Occupancy 80%, New Patient Booking Rate 5, DNAs <2,
---    Cancellations <20, Not Rebooked <5 — from your screenshot,
---    skipping the red rows: Diary Management / Reschedule Rate /
---    Booked Within 7 Days, which aren't tracked per-physio)
+--    Cancellations <20, Not Rebooked <5, Voxers 100% — from your
+--    screenshot, skipping the red rows: Diary Management / Reschedule
+--    Rate / Booked Within 7 Days, which aren't tracked per-physio)
 -- ------------------------------------------------------------
 
--- Senior physios
+-- Nick — mid-tier (2-5yr) physio for now
 insert into providers (name, role, targets, sort_order)
-select 'Michael', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 10
-where not exists (select 1 from providers where lower(name) = 'michael');
-
-insert into providers (name, role, targets, sort_order)
-select 'Nick', 'senior_physio', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
+select 'Nick', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
 where not exists (select 1 from providers where lower(name) = 'nick');
 
 -- New grad physios
@@ -101,7 +118,7 @@ select 'Erin', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5
 where not exists (select 1 from providers where lower(name) = 'erin');
 
 -- ------------------------------------------------------------
--- 4. Admin team (targets from your admin KPI screenshot: Diary
+-- 5. Admin team (targets from your admin KPI screenshot: Diary
 --    Management 90%, Reschedule Rate >30%, Cancellations Not Rebooked
 --    <30%, Booked Within 7 Days >30%, Avg Days to Next Booking <14,
 --    Follow Up Phone Calls 100%, OBV Number Not Sent 0, Rx Notes Made

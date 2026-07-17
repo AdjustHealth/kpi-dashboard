@@ -36,3 +36,10 @@ export function recentWeeks(weekEnding: string, count: number): string[] {
   }
   return weeks;
 }
+
+/** Whole weeks between two week-ending dates (rounded). */
+export function weeksBetween(from: string, to: string): number {
+  const a = new Date(`${from}T00:00:00Z`).getTime();
+  const b = new Date(`${to}T00:00:00Z`).getTime();
+  return Math.round((b - a) / (7 * 24 * 60 * 60 * 1000));
+}

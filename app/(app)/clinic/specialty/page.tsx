@@ -50,7 +50,9 @@ export default async function SpecialtyServicesPage({
     );
   }
 
-  const jbvTargetGrowthRate = 0.05; // spec: "Target = 5%"
+  // Verified against the real senior-physio sheet's JBV Trend column
+  // (17.00 -> 17.51 -> 18.04 -> 18.58 compounds at 3%/week, not 5%).
+  const jbvTargetGrowthRate = 0.03;
   const firstJbv = clinicHistory.find((h) => typeof h.jbv_total === "number")?.jbv_total as number | undefined;
   const jbvTrendTarget = firstJbv !== undefined ? compoundingTrendSeries(firstJbv, jbvTargetGrowthRate, clinicHistory.length) : [];
 
@@ -95,7 +97,7 @@ export default async function SpecialtyServicesPage({
             <StatTile {...clinicStatTile(clinicHistory, "jbv_initial")} label="JBV Initial Consults" />
             <StatTile {...clinicStatTile(clinicHistory, "jbv_sub")} label="JBV Subsequent Consults" />
           </div>
-          <p className="mb-3 text-[11px] text-muted">Target growth: 5% per week.</p>
+          <p className="mb-3 text-[11px] text-muted">Target growth: 3% per week.</p>
           <LineTrendChart
             title="JBV Total vs 5% Growth Target"
             data={toTrendSeries(clinicHistory, "jbv_total")}

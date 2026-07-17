@@ -49,11 +49,7 @@ export default async function RevenuePage({
     ...(costFull !== null ? { "+ Loan": costFull } : {}),
   }));
 
-  const gymPrivate = history.map((h) => {
-    const glofox = typeof h.m_glofox === "number" ? h.m_glofox : 0;
-    const mscred = typeof h.m_mscred === "number" ? h.m_mscred : 0;
-    return glofox + mscred;
-  });
+  const gymPrivate = history.map((h) => (typeof h.m_glofox === "number" ? h.m_glofox : 0));
 
   const gymData = history.map((h, i) => ({
     label: formatWeekLabel(h.week_ending),

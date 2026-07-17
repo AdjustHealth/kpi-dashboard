@@ -21,15 +21,17 @@ describe("CLINIC_SCHEMA", () => {
   });
 
   it("preserves the original EXPORT_SCHEMA.js ids", () => {
+    // m_mscred (Move Strong Credits) deliberately removed — no longer tracked.
     const originalIds = [
       "week", "total_rev", "total_consults", "total_nc", "clinic_occ",
       "physio_occ", "massage_occ", "ep_occ", "m_glofox", "m_gym3p",
-      "m_mscred", "gym_total", "m_mems", "m_pod_rev", "m_pod_c",
+      "gym_total", "m_mems", "m_pod_rev", "m_pod_c",
       "m_pod_ytd", "total_adjust_pod_rev", "cx_cancels", "cx_pct",
       "cx_dnas", "cx_nr", "cx_nr_pct", "cx_rsx_pct", "cx_in7_pct",
     ];
     const ids = new Set(CLINIC_SCHEMA.map((f) => f.id));
     for (const id of originalIds) expect(ids.has(id)).toBe(true);
+    expect(ids.has("m_mscred")).toBe(false);
   });
 
   it("getClinicField finds a known field", () => {

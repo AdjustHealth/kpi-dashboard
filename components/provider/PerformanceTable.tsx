@@ -5,8 +5,15 @@ import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { formatValue } from "@/lib/format";
 import { formatWeekLabel } from "@/lib/week";
-import { ProviderField } from "@/lib/providerSchema";
+import { ProviderField, KPA_RATINGS, KPA_RATING_LABELS, KpaRating } from "@/lib/providerSchema";
+import { STATUS } from "@/components/charts/palette";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
+
+const RATING_COLOR: Record<KpaRating, string> = {
+  above_and_beyond: STATUS.good,
+  demonstrated: STATUS.warning,
+  not_met: STATUS.critical,
+};
 
 export interface WeekMetrics {
   week_ending: string;
@@ -68,6 +75,11 @@ export function WeeklyScorecardTable({
     set(key, checked);
   }
 
+  function updateRating(key: string, rating: KpaRating) {
+    setCurrent((prev) => ({ ...prev, [key]: rating }));
+    set(key, rating);
+  }
+
   return (
     <Card title={title} action={<SaveIndicator status={status} />}>
       <div className="overflow-x-auto">
@@ -110,6 +122,27 @@ export function WeeklyScorecardTable({
                               onChange={(e) => updateBoolean(field.key, e.target.checked)}
                               className="h-4 w-4 rounded border-border bg-surface-raised accent-accent"
                             />
+                          ) : field.type === "rating" ? (
+                            <div className="flex gap-1">
+                              {KPA_RATINGS.map((r) => {
+                                const active = value === r;
+                                const color = RATING_COLOR[r];
+                                return (
+                                  <button
+                                    key={r}
+                                    type="button"
+                                    title={KPA_RATING_LABELS[r]}
+                                    onClick={() => updateRating(field.key, r)}
+                                    className="h-5 w-5 rounded-full border-2 transition-transform"
+                                    style={{
+                                      backgroundColor: active ? color : "transparent",
+                                      borderColor: color,
+                                      transform: active ? "scale(1.1)" : "scale(1)",
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
                           ) : (
                             <input
                               type="number"
@@ -127,6 +160,20 @@ export function WeeklyScorecardTable({
                           )
                         ) : field.type === "boolean" ? (
                           <span className="text-muted">{value === true ? "Y" : value === false ? "N" : "—"}</span>
+                        ) : field.type === "rating" ? (
+                          KPA_RATINGS.includes(value as KpaRating) ? (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                              style={{
+                                color: RATING_COLOR[value as KpaRating],
+                                backgroundColor: `${RATING_COLOR[value as KpaRating]}1a`,
+                              }}
+                            >
+                              {KPA_RATING_LABELS[value as KpaRating]}
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )
                         ) : (
                           <span className="text-muted">{formatValue(value as number | null, field.type, field.decimals)}</span>
                         )}
