@@ -40,6 +40,7 @@ export interface CancellationsReportResult {
       cancellationPct: number | null;
       dnaPct: number | null;
       notRebooked: number;
+      notRebookedPct: number | null;
       rescheduledCount: number;
       rescheduleRatePct: number | null;
       bookedWithin7DaysPct: number | null;
@@ -75,6 +76,24 @@ export interface ProvidersAndPracticeReportResult {
       caseVA: number | null;
       forwardBookingAverage: number | null;
       totalSales: number | null;
+    }
+  >;
+}
+
+/**
+ * Business Performance Report — the real source of UCVA/NCVA/TPR (confirmed
+ * against the director's own "where the data comes from" sheet and a real
+ * export: Nookal's own payer-exclusion filter is already applied when the
+ * report is generated in Nookal, based on the Parameters section's Payers
+ * list — nothing further to exclude here).
+ */
+export interface BusinessPerformanceReportResult {
+  byProvider: Record<
+    string,
+    {
+      ncva: number | null;
+      ucva: number | null;
+      tpr: number | null;
     }
   >;
 }

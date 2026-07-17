@@ -15,6 +15,7 @@ const EXPERIENCE_TIERS = [
   { value: "", label: "— Not set —" },
   { value: "new_grad", label: "New Grad" },
   { value: "2_5yr", label: "2-5yr" },
+  { value: "senior", label: "Senior (6+yr)" },
 ] as const;
 
 export function ProviderRow({ provider }: { provider: Provider }) {

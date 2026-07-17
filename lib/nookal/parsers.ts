@@ -10,6 +10,7 @@ import {
 import { categorizePayer, PayerCategory } from "@/lib/nookal/payerCategories";
 import {
   ActivityReportResult,
+  BusinessPerformanceReportResult,
   CancellationsReportResult,
   ClientsAndCasesReportResult,
   OccupancyReportResult,
@@ -181,6 +182,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
         cancellationPct: parsePercent(r["Cancellation %"]),
         dnaPct: parsePercent(r["DNA %"]),
         notRebooked: 0,
+        notRebookedPct: null,
         rescheduledCount: 0,
         rescheduleRatePct: null,
         bookedWithin7DaysPct: null,
@@ -220,6 +222,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
             cancellationPct: null,
             dnaPct: null,
             notRebooked: 0,
+            notRebookedPct: null,
             rescheduledCount: 0,
             rescheduleRatePct: null,
             bookedWithin7DaysPct: null,
@@ -257,6 +260,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       const t = total[provider];
       if (!t) continue;
       byProvider[provider].rescheduleRatePct = byProvider[provider].rescheduledCount / t;
+      byProvider[provider].notRebookedPct = byProvider[provider].notRebooked / t;
       byProvider[provider].bookedWithin7DaysPct = (rebookedWithin7[provider] ?? 0) / t;
     }
 
@@ -360,6 +364,36 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
       if (!provider) continue;
       ensure(provider).forwardBookingAverage = parseNumber(r["Booking Average"]);
     }
+  }
+
+  return { byProvider };
+}
+
+/**
+ * Business Performance Report — single "Details" table, one row per
+ * provider: Provider, BPC, LTVC, NCVA, UCVA, AVV, TPR, UR, $/h, ARR, CRR.
+ * We only read NCVA/UCVA/TPR (the KPI Scorecard's UCVA/NCVA/TPR row) —
+ * BPC/LTVC/AVV/UR/$/h/ARR/CRR aren't tracked anywhere yet. Nookal's own
+ * payer-exclusion filter (Village/Top Golf/Move OT, excl Pre Employments)
+ * is applied when the report is generated in Nookal itself, based on the
+ * Parameters section's Payers list — nothing further to exclude here.
+ */
+export function parseBusinessPerformanceReport(text: string): BusinessPerformanceReportResult {
+  const rows = parseCsvRows(text);
+  const byProvider: BusinessPerformanceReportResult["byProvider"] = {};
+
+  const section = extractSection(rows, "Details");
+  if (!section) return { byProvider };
+
+  for (const row of section.rows) {
+    const r = rowToRecord(section.header, row);
+    const provider = r["Provider"];
+    if (!provider) continue;
+    byProvider[provider] = {
+      ncva: parseNumber(r["NCVA"]),
+      ucva: parseNumber(r["UCVA"]),
+      tpr: parseNumber(r["TPR"]),
+    };
   }
 
   return { byProvider };

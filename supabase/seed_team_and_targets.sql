@@ -11,9 +11,10 @@
 --      into one row before deleting the rest.
 --   1. Adds the pending schema columns (revenue-by-payer, senior CVA,
 --      specialty consult counts).
---   2. Removes Michael and Anika Woodford (directors, not tracked
---      providers) and fixes Nick to physio / 2-5yr tier if any were
---      already added by an earlier run of this script.
+--   2. Removes Anika Woodford (director, not tracked) and adds Michael
+--      Houbert as a regular physio (director, but still tracked — just
+--      not on the Senior Physio tab) if either was already added by an
+--      earlier run. Fixes Nick to physio / 2-5yr tier likewise.
 --   3. Adds the KPI Scorecard targets to your two existing senior physios
 --      (Sam Johnston, Marcio dos Santos) without touching their existing
 --      bonus tiers / specialty targets.
@@ -82,7 +83,12 @@ alter table nookal_uploads add constraint nookal_uploads_report_type_check check
 -- ------------------------------------------------------------
 -- 2. Corrections (no-op if these were never added)
 -- ------------------------------------------------------------
-delete from providers where lower(name) in ('michael', 'anika', 'anika woodford');
+-- Anika is a director, not a tracked provider. Michael is ALSO a director,
+-- but (per your latest confirmation) he still sees clients and should be
+-- tracked as a regular physio — just off the Senior Physio tab, not
+-- excluded entirely like an earlier round assumed.
+delete from providers where lower(name) in ('anika', 'anika woodford');
+update providers set name = 'Michael Houbert' where lower(name) = 'michael';
 
 -- CORRECTION: an earlier version of this script deleted "Samantha" on the
 -- assumption she was a guessed placeholder duplicate of Sam Johnston. She
@@ -122,7 +128,7 @@ update providers set name = 'Wilson Page' where lower(name) = 'wilson';
 --    the history window.
 -- ------------------------------------------------------------
 update providers
-set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5,"senior_since":"2026-07-01"}'::jsonb
+set targets = targets || '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30,"senior_since":"2026-07-01"}'::jsonb
 where lower(name) in ('sam johnston', 'marcio dos santos');
 
 -- Sam's "Memberships" specialty target was missing (target 75 on your sheet).
@@ -140,51 +146,57 @@ where lower(name) = 'sam johnston';
 
 -- Nick Baxter — mid-tier (2-5yr) physio for now
 insert into providers (name, role, targets, sort_order)
-select 'Nick Baxter', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 11
+select 'Nick Baxter', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 11
 where not exists (select 1 from providers where lower(name) in ('nick', 'nick baxter'));
+
+-- Michael Houbert — director who still sees clients; tracked as a regular
+-- physio (Providers tab), not on the Senior Physio tab.
+insert into providers (name, role, targets, sort_order)
+select 'Michael Houbert', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 9
+where not exists (select 1 from providers where lower(name) in ('michael', 'michael houbert'));
 
 -- New grad physios
 insert into providers (name, role, targets, sort_order)
-select 'Imogen O''Neill', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 12
+select 'Imogen O''Neill', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 12
 where not exists (select 1 from providers where lower(name) in ('imogen', 'imogen o''neill'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Riley Fairhurst', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 13
+select 'Riley Fairhurst', 'physio', '{"experience_tier":"new_grad","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 13
 where not exists (select 1 from providers where lower(name) in ('riley', 'riley fairhurst'));
 
 -- 2-5yr physios
 insert into providers (name, role, targets, sort_order)
-select 'Ilan Berkowitz', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 14
+select 'Ilan Berkowitz', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 14
 where not exists (select 1 from providers where lower(name) in ('ilan', 'ilan berkowitz'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Tayla Cattanach', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 16
+select 'Tayla Cattanach', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 16
 where not exists (select 1 from providers where lower(name) in ('tayla', 'tayla cattanach'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Wilson Page', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 17
+select 'Wilson Page', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 17
 where not exists (select 1 from providers where lower(name) in ('wilson', 'wilson page'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Dean Walker', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
+select 'Dean Walker', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 18
 where not exists (select 1 from providers where lower(name) in ('dean', 'dean walker'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Samantha Delohery', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 15
+select 'Samantha Delohery', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 15
 where not exists (select 1 from providers where lower(name) in ('samantha', 'samantha delohery'));
 
 -- EP
 insert into providers (name, role, targets, sort_order)
-select 'Lachlan Brazier', 'ep', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 19
+select 'Lachlan Brazier', 'ep', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 19
 where not exists (select 1 from providers where lower(name) in ('lachlan', 'lachlan brazier'));
 
 -- Massage
 insert into providers (name, role, targets, sort_order)
-select 'Jake Mitchell', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 20
+select 'Jake Mitchell', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 20
 where not exists (select 1 from providers where lower(name) in ('jake', 'jake mitchell'));
 
 insert into providers (name, role, targets, sort_order)
-select 'Erin Duthie', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 21
+select 'Erin Duthie', 'massage', '{"fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked_pct":0.30}'::jsonb, 21
 where not exists (select 1 from providers where lower(name) in ('erin', 'erin duthie'));
 
 -- ------------------------------------------------------------

@@ -188,7 +188,7 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(weeklyKpis["2026-07-05"].cx_in7_pct).toBeCloseTo(1 / 3, 4);
     // Cancellation % = cancellations / (cancellations + completed) = 2 / (2 + 10)
     expect(weeklyKpis["2026-07-05"].cx_pct).toBeCloseTo(2 / 12, 4);
-    expect(providerWeekly["p1:2026-07-05"].not_rebooked).toBe(1);
+    expect(providerWeekly["p1:2026-07-05"].not_rebooked_pct).toBeCloseTo(1 / 3, 4);
   });
 
   const PROVIDERS_AND_PRACTICE_CSV = `Providers and Practice Report
@@ -228,6 +228,45 @@ Total,120,30,,0,0,
     expect(weeklyKpis["2026-07-05"].cva_massage).toBeUndefined();
     expect(weeklyKpis["2026-07-05"].cva_ep).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Senior One"]);
+  });
+
+  const BUSINESS_PERFORMANCE_CSV = `Business Performance Report
+
+Parameters
+Dates,05/07/2025 - 05/07/2026
+
+Details
+Provider,BPC,LTVC,NCVA,UCVA,AVV,TPR,UR,$/h,ARR,CRR
+Senior One,4.69,0,27.19,6.20,99.2,615.04,71.38%,128.79,31.54%,0.18%
+Massage One,4.06,0,22.43,4.26,117.47,500.42,71.98%,78.92,22.95%,0%
+Physio Senior Tier,5.19,0,42.59,7.04,100.66,708.65,105.17%,171.26,27.62%,0%
+Physio Mid Tier,3.84,0,11.78,4.62,90.13,416.40,61.83%,105.75,28.76%,0.06%
+Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
+`;
+
+  it("business_performance: sets ucva/ncva/tpr per provider and averages CVA-by-tier using experience_tier (including role:physio bucketed as senior)", async () => {
+    const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
+      { id: "p1", name: "Senior One", role: "senior_physio" },
+      { id: "p2", name: "Massage One", role: "massage" },
+      { id: "p3", name: "Physio Senior Tier", role: "physio", targets: { experience_tier: "senior" } },
+      { id: "p4", name: "Physio Mid Tier", role: "physio", targets: { experience_tier: "2_5yr" } },
+      { id: "p5", name: "Physio New Grad", role: "physio", targets: { experience_tier: "new_grad" } },
+    ]);
+
+    const result = await applyNookalReport(client as never, "business_performance", "2026-07-12", BUSINESS_PERFORMANCE_CSV);
+
+    expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(6.2, 2);
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(27.19, 2);
+    expect(providerWeekly["p1:2026-07-12"].tpr).toBeCloseTo(615.04, 2);
+
+    // Both role:senior_physio (Senior One) and role:physio+experience_tier:senior
+    // (Physio Senior Tier) bucket into the same "senior" CVA-by-tier average.
+    expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo((6.2 + 7.04) / 2, 2);
+    expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(4.26, 2);
+    expect(weeklyKpis["2026-07-12"].cva_2_5yr).toBeCloseTo(4.62, 2);
+    expect(weeklyKpis["2026-07-12"].cva_new_grads).toBeCloseTo(3.12, 2);
+    expect(weeklyKpis["2026-07-12"].cva_ep).toBeUndefined();
+    expect(result.matchedProviders.sort()).toEqual(["Massage One", "Physio Mid Tier", "Physio New Grad", "Physio Senior Tier", "Senior One"]);
   });
 
   it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled", async () => {

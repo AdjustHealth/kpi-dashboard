@@ -63,9 +63,10 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2, betterWhen: "higher" },
   { key: "ucva", label: "UCVA", type: "decimal", decimals: 2, betterWhen: "higher" },
   { key: "ncva", label: "NCVA", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
-  { key: "not_rebooked", label: "Number Not Rebooked", type: "number", betterWhen: "lower" },
+  { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent", betterWhen: "lower" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
 ];
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseActivityReport,
+  parseBusinessPerformanceReport,
   parseCancellationsReport,
   parseClientsAndCasesReport,
   parseOccupancyReport,
@@ -342,5 +343,49 @@ describe("parseProvidersAndPracticeReport", () => {
     expect(alex.cva).toBeCloseTo(1.09, 2);
     expect(alex.caseVA).toBeCloseTo(1.09, 2);
     expect(alex.forwardBookingAverage).toBeCloseTo(3.96, 2);
+  });
+});
+
+describe("parseBusinessPerformanceReport", () => {
+  // Real export, week ending 12/07/2026 — column values here are copied
+  // directly from an actual "Business Performance Report" download and
+  // cross-checked against the director's own KPI tracking sheet for that
+  // same week (Sam Johnston UCVA:6.20 NCVA:27.2 TPR:$615.04, Marcio Dos
+  // Santos UCVA:5.22 NCVA:16.7 TPR:$597.38, etc. — all match exactly).
+  const REAL_BUSINESS_PERFORMANCE_CSV = `Business Performance Report
+
+Parameters
+Dates,05/07/2025 - 05/07/2026
+Locations,Adjust Physiotherapy
+Providers,21 of 86 Providers
+
+Details
+Provider,BPC,LTVC,NCVA,UCVA,AVV,TPR,UR,$/h,ARR,CRR
+Nick Baxter,5.83,0,36.53,7.64,116.57,890.5948,75.27%,154.15305472038486,37.38%,0%
+Michael Houbert,5.19,0,42.59,7.04,100.66,708.6464,105.17%,171.2635096153846,27.62%,0%
+Sam Johnston,4.69,0,27.19,6.20,99.2,615.0400000000001,71.38%,128.78943175487464,31.54%,0.18%
+Neil / ADMIN,1.00,0,0,1.00,60,60,100%,0,0%,0%
+Admin Adjust,0,0,0,0,0,0,0%,0,0,0
+Marcio Dos Santos,4.35,0,16.73,5.22,114.44,597.3768,53.88%,111.45941898772088,23.89%,0%
+Samantha Delohery,0,0,12.29,4.12,116.09,478.29080000000005,67.62%,136.26797354747282,29.07%,0%
+Ilan Berkowitz,4.49,0,19.00,5.40,104.82,566.028,68.98%,129.0924978879189,32.6%,0%
+Lachlan Brazier,8.86,0,81.33,13.75,44.69,614.4875,53.45%,49.88119436619718,32.87%,1.68%
+
+`;
+
+  it("reads NCVA/UCVA/TPR per provider from the real report format", () => {
+    const result = parseBusinessPerformanceReport(REAL_BUSINESS_PERFORMANCE_CSV);
+    expect(result.byProvider["Sam Johnston"]).toEqual({ ncva: 27.19, ucva: 6.2, tpr: 615.0400000000001 });
+    expect(result.byProvider["Marcio Dos Santos"]).toEqual({ ncva: 16.73, ucva: 5.22, tpr: 597.3768 });
+    expect(result.byProvider["Michael Houbert"]).toEqual({ ncva: 42.59, ucva: 7.04, tpr: 708.6464 });
+    expect(result.byProvider["Lachlan Brazier"]).toEqual({ ncva: 81.33, ucva: 13.75, tpr: 614.4875 });
+  });
+
+  it("does not confuse this report's UCVA with Providers & Practice's unrelated Client Visit Average column", () => {
+    const result = parseBusinessPerformanceReport(REAL_BUSINESS_PERFORMANCE_CSV);
+    // Samantha Delohery has 0 completed consults this period (still ramping up),
+    // so Providers & Practice's CVA would be undefined/0 — but her real UCVA
+    // here (a rolling-12-month figure) is a meaningful 4.12, not 0 or 1.0.
+    expect(result.byProvider["Samantha Delohery"].ucva).toBe(4.12);
   });
 });
