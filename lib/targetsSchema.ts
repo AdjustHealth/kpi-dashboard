@@ -34,8 +34,3 @@ export const BONUS_TIER_FIELDS: { key: "t1" | "t2" | "t3" | "t4"; label: string 
   { key: "t3", label: "Tier 3" },
   { key: "t4", label: "Tier 4" },
 ];
-
-export const ADMIN_TARGET_FIELDS: TargetField[] = [
-  { key: "diary_management_pct", label: "Diary Management Target", type: "percent" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate Target", type: "percent" },
-];

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { NumberField } from "@/components/inputs/NumberField";
-import { BONUS_TIER_FIELDS, PROVIDER_TARGET_FIELDS, ADMIN_TARGET_FIELDS } from "@/lib/targetsSchema";
+import { BONUS_TIER_FIELDS, PROVIDER_TARGET_FIELDS } from "@/lib/targetsSchema";
+import { metricFieldsForRole, ProviderField } from "@/lib/providerSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { Provider } from "@/lib/types";
 
@@ -31,7 +32,14 @@ export function ProviderTargetsCard({ provider }: { provider: Provider }) {
     set("bonus_tiers", bonusTiers);
   }
 
-  const baseFields = provider.role === "admin" ? ADMIN_TARGET_FIELDS : PROVIDER_TARGET_FIELDS;
+  // Every non-boolean KPI Scorecard field gets an editable target here — the
+  // same "targets[field.key]" value the meeting page's Target column reads —
+  // plus a few target-only fields (personal_cva, annual_turnover_target,
+  // working_weeks) that don't have a matching weekly metric.
+  const metricTargetFields = metricFieldsForRole(provider.role).filter(
+    (f): f is ProviderField & { type: Exclude<ProviderField["type"], "boolean"> } => f.type !== "boolean"
+  );
+  const baseFields = [...metricTargetFields, ...(provider.role === "admin" ? [] : PROVIDER_TARGET_FIELDS)];
 
   return (
     <Card title={provider.name} action={<SaveIndicator status={status} />}>

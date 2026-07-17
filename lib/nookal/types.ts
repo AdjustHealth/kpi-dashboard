@@ -33,6 +33,20 @@ export interface CancellationsReportResult {
       bookedWithin7DaysPct: number | null;
     }
   >;
+  /** Same Details rows, grouped by the "Modified User" column — the admin staff member who handled the cancellation. */
+  byAdmin: Record<
+    string,
+    {
+      cancellationsHandled: number;
+      notRebooked: number;
+      rescheduledCount: number;
+      rescheduleRatePct: number | null;
+      notRebookedPct: number | null;
+      bookedWithin7DaysPct: number | null;
+      pctOfTotalClinicCx: number | null;
+      avgDaysToNextBooking: number | null;
+    }
+  >;
 }
 
 export interface ClientsAndCasesReportResult {

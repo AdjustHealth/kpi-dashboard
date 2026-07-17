@@ -57,24 +57,32 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
 ];
 
 /**
- * Admin staff use the same page template with this field set instead.
- * "Communication" and "Phone" fields are placeholders — the paper notes
- * say "same as what is on sheet now" without listing exact fields; confirm
- * these against the current admin tracking sheet and adjust here.
+ * Admin staff use the same page template with this field set instead —
+ * taken from the director's actual admin KPI scorecard (Diary Management /
+ * Reschedule Rate / Cancellations % of Total Clinic / Cancellations Not
+ * Rebooked / Cancellations Booked Within 7 Days / Avg Days to Next Booking /
+ * Follow Up Phone Calls / OBV Number Not Sent / Rx Notes Made / Answered
+ * Calls), replacing the earlier unconfirmed Communication/Phone placeholders.
+ * cancellations_handled, pct_of_total_clinic_cx, not_rebooked,
+ * reschedule_rate_pct, cancellations_not_rebooked_pct,
+ * booked_within_7_days_pct, and avg_days_to_next_booking auto-fill from the
+ * Cancellations report (grouped by "Modified User" — the admin who
+ * actioned it). Follow Up Phone Calls, OBV Number Not Sent, Rx Notes Made,
+ * and Answered Calls aren't in any Nookal report, so they stay manual.
  */
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "diary_management_pct", label: "Diary Management", type: "percent" },
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
-  { key: "pct_of_total_clinic_cx", label: "% of Total Clinic Cx", type: "percent" },
+  { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
   { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
+  { key: "cancellations_not_rebooked_pct", label: "Cancellations Not Rebooked %", type: "percent" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
+  { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1 },
-  // Communication — placeholder, confirm exact fields against the current sheet
-  { key: "comm_followup_calls", label: "Communication: Follow-up Calls Completed", type: "number" },
-  { key: "comm_emails_sent", label: "Communication: Emails Sent", type: "number" },
-  // Phone — placeholder, confirm exact fields against the current sheet
-  { key: "phone_calls_answered", label: "Phone: Calls Answered", type: "number" },
-  { key: "phone_calls_missed", label: "Phone: Calls Missed", type: "number" },
+  { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent" },
+  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number" },
+  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent" },
+  { key: "answered_calls_pct", label: "Answered Calls", type: "percent" },
 ];
 
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {

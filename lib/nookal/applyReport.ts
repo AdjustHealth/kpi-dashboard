@@ -18,11 +18,27 @@ interface ProviderRow {
   id: string;
   name: string;
   role: string;
+  targets: Record<string, unknown> | null;
 }
 
 function average(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+/**
+ * A "physio" role provider's finer New Grad / 2-5yr experience tier isn't
+ * a role of its own (see ProviderRole) — it's stored as
+ * providers.targets.experience_tier ("new_grad" | "2_5yr"), set on the
+ * Settings page, so adding it didn't need a migration.
+ */
+function cvaTierBucket(p: ProviderRow): "senior_physio" | "massage" | "ep" | "new_grad" | "2_5yr" | null {
+  if (p.role === "senior_physio" || p.role === "massage" || p.role === "ep") return p.role;
+  if (p.role === "physio") {
+    const tier = p.targets?.experience_tier;
+    if (tier === "new_grad" || tier === "2_5yr") return tier;
+  }
+  return null;
 }
 
 /**
@@ -35,10 +51,7 @@ function average(values: number[]): number | null {
  * on the Providers/Settings page).
  *
  * "business_performance" and "aged_debtors" are stored (by the caller) but
- * not parsed here — see lib/nookal/parsers.ts for why. cva_new_grads and
- * cva_2_5yr aren't set by this report either — Nookal reports don't split
- * the "physio" role into New Grad vs 2-5yr experience tiers, so those two
- * stay manual until that distinction exists somewhere in the data model.
+ * not parsed here — see lib/nookal/parsers.ts for why.
  */
 export async function applyNookalReport(
   supabase: SupabaseClient,
@@ -46,7 +59,7 @@ export async function applyNookalReport(
   weekEnding: string,
   csvText: string
 ): Promise<ApplyReportResult> {
-  const { data: providersData } = await supabase.from("providers").select("id, name, role");
+  const { data: providersData } = await supabase.from("providers").select("id, name, role, targets");
   const providers = (providersData ?? []) as ProviderRow[];
   const providerByName = new Map(providers.map((p) => [p.name.trim().toLowerCase(), p]));
 
@@ -147,6 +160,23 @@ export async function applyNookalReport(
       clinicPatch.cx_rsx_pct = totalRescheduled / totalEvents;
       clinicPatch.cx_in7_pct = totalBookedWithin7 / totalEvents;
     }
+
+    // Same Details rows, grouped by "Modified User" — feeds the admin
+    // meeting page's Cancellations Handled / Reschedule Rate fields.
+    for (const [name, data] of Object.entries(result.byAdmin)) {
+      const p = findProvider(name);
+      if (!p) continue;
+      const patch: Record<string, unknown> = {
+        cancellations_handled: data.cancellationsHandled,
+        not_rebooked: data.notRebooked,
+        reschedule_rate_pct: data.rescheduleRatePct,
+        pct_of_total_clinic_cx: data.pctOfTotalClinicCx,
+      };
+      if (data.notRebookedPct !== null) patch.cancellations_not_rebooked_pct = data.notRebookedPct;
+      if (data.bookedWithin7DaysPct !== null) patch.booked_within_7_days_pct = data.bookedWithin7DaysPct;
+      if (data.avgDaysToNextBooking !== null) patch.avg_days_to_next_booking = data.avgDaysToNextBooking;
+      await upsertProviderMetrics(p.id, patch);
+    }
   } else if (reportType === "clients_and_cases") {
     const result = parseClientsAndCasesReport(csvText);
     let totalNewClients = 0;
@@ -161,7 +191,7 @@ export async function applyNookalReport(
     // Nookal's "Client Visit Average" (Services / Unique Clients) is the
     // per-provider CVA figure the paper meeting template calls UCVA.
     const result = parseProvidersAndPracticeReport(csvText);
-    const ucvaByRole: Record<string, number[]> = { senior_physio: [], massage: [], ep: [] };
+    const ucvaByTier: Record<string, number[]> = { senior_physio: [], massage: [], ep: [], new_grad: [], "2_5yr": [] };
     let totalCompletedConsults = 0;
 
     for (const [name, data] of Object.entries(result.byProvider)) {
@@ -175,16 +205,21 @@ export async function applyNookalReport(
       if (data.forwardBookingAverage !== null) patch.fba = data.forwardBookingAverage;
       if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
 
-      if (data.cva !== null && ucvaByRole[p.role]) ucvaByRole[p.role].push(data.cva);
+      const tier = cvaTierBucket(p);
+      if (data.cva !== null && tier) ucvaByTier[tier].push(data.cva);
     }
 
     if (totalCompletedConsults > 0) clinicPatch.total_consults = totalCompletedConsults;
-    const seniorAvg = average(ucvaByRole.senior_physio);
-    const massageAvg = average(ucvaByRole.massage);
-    const epAvg = average(ucvaByRole.ep);
+    const seniorAvg = average(ucvaByTier.senior_physio);
+    const massageAvg = average(ucvaByTier.massage);
+    const epAvg = average(ucvaByTier.ep);
+    const newGradAvg = average(ucvaByTier.new_grad);
+    const tier25Avg = average(ucvaByTier["2_5yr"]);
     if (seniorAvg !== null) clinicPatch.cva_senior = seniorAvg;
     if (massageAvg !== null) clinicPatch.cva_massage = massageAvg;
     if (epAvg !== null) clinicPatch.cva_ep = epAvg;
+    if (newGradAvg !== null) clinicPatch.cva_new_grads = newGradAvg;
+    if (tier25Avg !== null) clinicPatch.cva_2_5yr = tier25Avg;
   }
 
   if (Object.keys(clinicPatch).length > 0) {

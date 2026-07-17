@@ -5,8 +5,7 @@ export type NavItem = {
 
 export type NavGroup = {
   label: string;
-  href?: string;
-  items?: NavItem[];
+  items: NavItem[];
 };
 
 export const NAV: NavGroup[] = [

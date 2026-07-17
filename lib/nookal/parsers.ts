@@ -93,6 +93,7 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 export function parseCancellationsReport(text: string): CancellationsReportResult {
   const rows = parseCsvRows(text);
   const byProvider: CancellationsReportResult["byProvider"] = {};
+  const byAdmin: CancellationsReportResult["byAdmin"] = {};
 
   const summary = extractSection(rows, "Summary");
   if (summary) {
@@ -118,39 +119,64 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
   if (details) {
     const rebookedWithin7: Record<string, number> = {};
     const total: Record<string, number> = {};
+    // Admin-side bucketing: same rows, grouped by "Modified User" — the
+    // admin staff member who actioned the cancellation, not the clinician
+    // it happened to.
+    const adminRescheduled: Record<string, number> = {};
+    const adminNotRebooked: Record<string, number> = {};
+    const adminTotal: Record<string, number> = {};
+    const adminDaysToNextSum: Record<string, number> = {};
+    const adminDaysToNextCount: Record<string, number> = {};
+    const adminRebookedWithin7: Record<string, number> = {};
+    let totalHandledByAnyAdmin = 0;
 
     for (const row of details.rows) {
       const r = rowToRecord(details.header, row);
       const provider = r["Provider"];
-      if (!provider) continue;
-      if (!byProvider[provider]) {
-        byProvider[provider] = {
-          cancellations: 0,
-          dnas: 0,
-          completed: null,
-          cancellationPct: null,
-          dnaPct: null,
-          notRebooked: 0,
-          rescheduledCount: 0,
-          rescheduleRatePct: null,
-          bookedWithin7DaysPct: null,
-        };
-      }
-
-      total[provider] = (total[provider] ?? 0) + 1;
       const nextBooking = r["Next Booking"];
-      if (nextBooking) {
-        byProvider[provider].rescheduledCount += 1;
-        const apptDate = parseNookalDate(r["Appointment Date"]);
-        const nextDate = parseNookalDate(nextBooking);
-        if (apptDate && nextDate) {
-          const daysBetween = (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysBetween <= 7) {
+      const apptDate = parseNookalDate(r["Appointment Date"]);
+      const nextDate = nextBooking ? parseNookalDate(nextBooking) : null;
+      const daysBetween = apptDate && nextDate ? (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24) : null;
+
+      if (provider) {
+        if (!byProvider[provider]) {
+          byProvider[provider] = {
+            cancellations: 0,
+            dnas: 0,
+            completed: null,
+            cancellationPct: null,
+            dnaPct: null,
+            notRebooked: 0,
+            rescheduledCount: 0,
+            rescheduleRatePct: null,
+            bookedWithin7DaysPct: null,
+          };
+        }
+        total[provider] = (total[provider] ?? 0) + 1;
+        if (nextBooking) {
+          byProvider[provider].rescheduledCount += 1;
+          if (daysBetween !== null && daysBetween <= 7) {
             rebookedWithin7[provider] = (rebookedWithin7[provider] ?? 0) + 1;
           }
+        } else {
+          byProvider[provider].notRebooked += 1;
         }
-      } else {
-        byProvider[provider].notRebooked += 1;
+      }
+
+      const admin = r["Modified User"];
+      if (admin) {
+        adminTotal[admin] = (adminTotal[admin] ?? 0) + 1;
+        totalHandledByAnyAdmin += 1;
+        if (nextBooking) {
+          adminRescheduled[admin] = (adminRescheduled[admin] ?? 0) + 1;
+          if (daysBetween !== null) {
+            adminDaysToNextSum[admin] = (adminDaysToNextSum[admin] ?? 0) + daysBetween;
+            adminDaysToNextCount[admin] = (adminDaysToNextCount[admin] ?? 0) + 1;
+            if (daysBetween <= 7) adminRebookedWithin7[admin] = (adminRebookedWithin7[admin] ?? 0) + 1;
+          }
+        } else {
+          adminNotRebooked[admin] = (adminNotRebooked[admin] ?? 0) + 1;
+        }
       }
     }
 
@@ -160,9 +186,24 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       byProvider[provider].rescheduleRatePct = byProvider[provider].rescheduledCount / t;
       byProvider[provider].bookedWithin7DaysPct = (rebookedWithin7[provider] ?? 0) / t;
     }
+
+    for (const admin of Object.keys(adminTotal)) {
+      const t = adminTotal[admin];
+      const daysCount = adminDaysToNextCount[admin] ?? 0;
+      byAdmin[admin] = {
+        cancellationsHandled: t,
+        notRebooked: adminNotRebooked[admin] ?? 0,
+        rescheduledCount: adminRescheduled[admin] ?? 0,
+        rescheduleRatePct: t > 0 ? (adminRescheduled[admin] ?? 0) / t : null,
+        notRebookedPct: t > 0 ? (adminNotRebooked[admin] ?? 0) / t : null,
+        bookedWithin7DaysPct: t > 0 ? (adminRebookedWithin7[admin] ?? 0) / t : null,
+        pctOfTotalClinicCx: totalHandledByAnyAdmin > 0 ? t / totalHandledByAnyAdmin : null,
+        avgDaysToNextBooking: daysCount > 0 ? adminDaysToNextSum[admin] / daysCount : null,
+      };
+    }
   }
 
-  return { byProvider };
+  return { byProvider, byAdmin };
 }
 
 /** Clients and Cases Report — new client / new case counts per provider. */

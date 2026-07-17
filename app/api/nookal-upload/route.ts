@@ -40,6 +40,17 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
+
+  // nookal_uploads.week_ending has a foreign key to weekly_kpis(week_ending),
+  // but a week's weekly_kpis row isn't created until a manual field is
+  // edited on Weekly Input — so uploading a report before typing anything
+  // else on a brand-new week fails with a foreign key violation. Ensure the
+  // row exists first; this is a no-op if it's already there.
+  const { error: weekError } = await supabase
+    .from("weekly_kpis")
+    .upsert({ week_ending: weekEnding }, { onConflict: "week_ending", ignoreDuplicates: true });
+  if (weekError) return NextResponse.json({ error: weekError.message }, { status: 500 });
+
   const storagePath = `${weekEnding}/${reportType}-${Date.now()}-${file.name}`;
 
   const { error: uploadError } = await supabase.storage

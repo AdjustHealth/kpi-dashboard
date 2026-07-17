@@ -5,6 +5,7 @@ interface FakeProvider {
   id: string;
   name: string;
   role: string;
+  targets?: Record<string, unknown>;
 }
 
 /**
@@ -182,5 +183,76 @@ Total,120,30,,0,0,
     expect(weeklyKpis["2026-07-05"].cva_massage).toBeCloseTo(2, 2);
     expect(weeklyKpis["2026-07-05"].cva_ep).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Senior One"]);
+  });
+
+  it("providers_and_practice: averages CVA by physio experience tier (providers.targets.experience_tier)", async () => {
+    const NEW_GRAD_CSV = `Providers and Practice Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Provider Stats
+Provider,Services,Completed Consults,Unique Clients,New Clients,New Cases,Client Visit Average,Case Visit Average,Classes,Participants,Completed Classes
+Grad One,20,20,10,1,1,2.00,2.00,0,0,0
+Grad Two,30,30,10,1,1,3.00,3.00,0,0,0
+Mid One,40,40,10,1,1,4.00,4.00,0,0,0
+Total,90,90,30,3,3,,,0,0,0
+
+Forward Booking Averages
+Provider,Total Appointments,Total Clients,Booking Average,Total Classes,Total Class Clients,Class Booking Average
+Grad One,20,10,2.00,0,0,0.00
+Grad Two,30,10,3.00,0,0,0.00
+Mid One,40,10,4.00,0,0,0.00
+Total,90,30,,0,0,
+
+`;
+    const { client, weeklyKpis } = createFakeSupabase([
+      { id: "p1", name: "Grad One", role: "physio", targets: { experience_tier: "new_grad" } },
+      { id: "p2", name: "Grad Two", role: "physio", targets: { experience_tier: "new_grad" } },
+      { id: "p3", name: "Mid One", role: "physio", targets: { experience_tier: "2_5yr" } },
+    ]);
+
+    await applyNookalReport(client as never, "providers_and_practice", "2026-07-05", NEW_GRAD_CSV);
+
+    expect(weeklyKpis["2026-07-05"].cva_new_grads).toBeCloseTo(2.5, 2); // avg(2, 3)
+    expect(weeklyKpis["2026-07-05"].cva_2_5yr).toBeCloseTo(4, 2);
+    expect(weeklyKpis["2026-07-05"].cva_senior).toBeUndefined();
+  });
+
+  it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled", async () => {
+    const CANCELLATIONS_CSV = `Cancellations Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+01/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,08/07/2026,ok,01/07/2026,9:00am,Admin One,1001
+02/07/2026,Adjust Physiotherapy,Test Client Two,0400 000 002,Alex Example,Private - Physio,Service,Cancelled,2026-06-02 10:00:00,,ok,02/07/2026,9:00am,Admin One,1002
+03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Did Not Arrive,2026-06-03 10:00:00,10/07/2026,ok,03/07/2026,9:00am,Admin Two,1003
+
+`;
+    const { client, providerWeekly } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      { id: "a1", name: "Admin One", role: "admin" },
+      { id: "a2", name: "Admin Two", role: "admin" },
+    ]);
+
+    await applyNookalReport(client as never, "cancellations", "2026-07-05", CANCELLATIONS_CSV);
+
+    // Admin One handled 2 of 3 total rows, 1 rescheduled (08/07) of 2
+    expect(providerWeekly["a1:2026-07-05"].cancellations_handled).toBe(2);
+    expect(providerWeekly["a1:2026-07-05"].not_rebooked).toBe(1);
+    expect(providerWeekly["a1:2026-07-05"].reschedule_rate_pct).toBeCloseTo(0.5, 4);
+    expect(providerWeekly["a1:2026-07-05"].pct_of_total_clinic_cx).toBeCloseTo(2 / 3, 4);
+    expect(providerWeekly["a1:2026-07-05"].avg_days_to_next_booking).toBeCloseTo(7, 4);
+    expect(providerWeekly["a1:2026-07-05"].cancellations_not_rebooked_pct).toBeCloseTo(0.5, 4);
+    expect(providerWeekly["a1:2026-07-05"].booked_within_7_days_pct).toBeCloseTo(0.5, 4);
+
+    // Admin Two handled 1 of 3, fully rescheduled within 7 days
+    expect(providerWeekly["a2:2026-07-05"].cancellations_handled).toBe(1);
+    expect(providerWeekly["a2:2026-07-05"].reschedule_rate_pct).toBeCloseTo(1, 4);
+    expect(providerWeekly["a2:2026-07-05"].pct_of_total_clinic_cx).toBeCloseTo(1 / 3, 4);
+    expect(providerWeekly["a2:2026-07-05"].booked_within_7_days_pct).toBeCloseTo(1, 4);
   });
 });

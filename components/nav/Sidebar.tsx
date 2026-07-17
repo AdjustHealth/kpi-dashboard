@@ -23,41 +23,31 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        <ul className="flex flex-col gap-0.5">
+        <ul className="flex flex-col gap-5">
           {NAV.map((group) => (
             <li key={group.label}>
-              {group.href ? (
-                <Link
-                  href={group.href}
-                  className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive(pathname, group.href)
-                      ? "bg-accent/15 text-accent"
-                      : "text-muted hover:bg-surface-raised hover:text-foreground"
-                  }`}
-                >
-                  {group.label}
-                </Link>
-              ) : (
-                <div className="mt-3 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                  {group.label}
-                </div>
-              )}
+              <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted/70">
+                {group.label}
+              </div>
               {group.items && (
-                <ul className="mt-0.5 flex flex-col gap-0.5">
-                  {group.items.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={`flex items-center rounded-lg px-3 py-2 text-sm transition-colors ${
-                          isActive(pathname, item.href)
-                            ? "bg-accent/15 text-accent font-medium"
-                            : "text-muted hover:bg-surface-raised hover:text-foreground"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
+                <ul className="flex flex-col gap-0.5">
+                  {group.items.map((item) => {
+                    const active = isActive(pathname, item.href);
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors ${
+                            active
+                              ? "border-accent bg-accent/10 font-semibold text-accent"
+                              : "border-transparent font-medium text-foreground/85 hover:border-border hover:bg-surface-raised hover:text-foreground"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </li>

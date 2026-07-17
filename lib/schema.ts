@@ -70,8 +70,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 30, id: "online_bookings_new", label: "Online Bookings New", source: "manual", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
-  { idx: 31, id: "cva_new_grads", label: "CVA — New Grads", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 32, id: "cva_2_5yr", label: "CVA — 2-5yr", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 31, id: "cva_new_grads", label: "CVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 32, id: "cva_2_5yr", label: "CVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 33, id: "cva_ep", label: "CVA — EP", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 34, id: "cva_massage", label: "CVA — Massage", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "manual", type: "number", category: "Clinic" },
