@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getClinicHistory } from "@/lib/clinicData";
 import { toTrendSeries } from "@/components/dashboard/statHelpers";
 import { compoundingTrendSeries } from "@/lib/providerCalc";
-import { recentWeeks, defaultWeekEnding, formatWeekLabel } from "@/lib/week";
+import { recentWeeks, defaultWeekEnding, formatWeekLabel, trackingHistoryWeeks } from "@/lib/week";
 import { StatTile } from "@/components/ui/StatTile";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { Provider, ProviderWeekly } from "@/lib/types";
@@ -27,13 +27,14 @@ export default async function SpecialtyServicesPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const weeks = recentWeeks(week, 12);
+  const historyWeeks = trackingHistoryWeeks(week);
+  const weeks = recentWeeks(week, historyWeeks);
 
   const supabase = await createClient();
   const [providersResult, allWeeklyResult, clinicHistory] = await Promise.all([
     supabase.from("providers").select("*").eq("active", true),
     supabase.from("provider_weekly").select("*").in("week_ending", weeks),
-    getClinicHistory(week, 12),
+    getClinicHistory(week, historyWeeks),
   ]);
 
   const providers = (providersResult.data ?? []) as Provider[];

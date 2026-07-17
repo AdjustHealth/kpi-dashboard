@@ -137,7 +137,8 @@ export function WeeklyInputForm({
           <Card title="Clinic — CVA &amp; JBV">
             <p className="mb-4 text-xs text-muted">
               All 5 CVA tiers auto-fill from the Providers &amp; Practice report, using each physio&apos;s
-              experience tier (set on the Settings page). JBV isn&apos;t in any Nookal report, so it stays manual.
+              experience tier (set on the Settings page). JBV Initial/Subsequent auto-fill from the Activity
+              Report by counting rows whose service item contains &quot;JBV&quot;.
             </p>
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Clinic").filter((f) => f.id !== "jbv_total")}

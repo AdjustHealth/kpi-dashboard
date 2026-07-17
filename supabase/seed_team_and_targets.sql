@@ -23,7 +23,8 @@
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 1. Pending columns
+-- 1. Pending columns + the Providers & Practice upload fix
+--    (this constraint update is what's been causing that error)
 -- ------------------------------------------------------------
 alter table weekly_kpis
   add column if not exists rev_private numeric,
@@ -33,6 +34,12 @@ alter table weekly_kpis
   add column if not exists rev_ndis numeric,
   add column if not exists rev_other numeric,
   add column if not exists cva_senior numeric;
+
+alter table nookal_uploads drop constraint if exists nookal_uploads_report_type_check;
+alter table nookal_uploads add constraint nookal_uploads_report_type_check check (report_type in (
+  'activity', 'business_performance', 'occupancy',
+  'clients_and_cases', 'providers_and_practice', 'cancellations', 'aged_debtors'
+));
 
 -- ------------------------------------------------------------
 -- 2. Corrections (no-op if these were never added)

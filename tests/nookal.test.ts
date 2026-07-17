@@ -251,6 +251,60 @@ describe("parseActivityReport", () => {
     expect(result.revenueByPayerCategory.medicare).toBeCloseTo(110, 2);
     expect(result.revenueByPayerCategory.dva).toBeCloseTo(80, 2);
   });
+
+  it("has no JBV rows in a file with no JBV items", () => {
+    const result = parseActivityReport(ACTIVITY_CSV);
+    expect(result.jbvInitialCount).toBe(0);
+    expect(result.jbvSubCount).toBe(0);
+  });
+
+  it("detects JBV Initial vs Subsequent from the Case/Item text", () => {
+    const JBV_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,300.00,0,300.00
+Total,300.00,0,300.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Test Client One,Service - JBV Initial 500,JBV Initial,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Service - JBV Subs 30 min 505,JBV Subs,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+03/07/2026,Alex Example,Adjust Physiotherapy,Test Client Three,Service - JBV Subs 30 min 505,JBV Subs,Service,1003,03/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1003
+
+`;
+    const result = parseActivityReport(JBV_CSV);
+    expect(result.jbvInitialCount).toBe(1);
+    expect(result.jbvSubCount).toBe(2);
+  });
+
+  it("counts per-provider keyword matches (e.g. a specialty init/sub pair)", () => {
+    const HEADACHE_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,200.00,0,200.00
+Total,200.00,0,200.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client One,Headache Init Consult,Headache Init,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Two,Headache Sub Consult,Headache Sub,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+
+`;
+    const result = parseActivityReport(HEADACHE_CSV, {
+      "headache:init": /(?=.*headache)(?=.*init)/i,
+      "headache:sub": /(?=.*headache)(?=.*sub)/i,
+    });
+    expect(result.keywordCountsByProvider["headache:init"]["Jamie Sample"]).toBe(1);
+    expect(result.keywordCountsByProvider["headache:sub"]["Jamie Sample"]).toBe(1);
+  });
 });
 
 describe("parseProvidersAndPracticeReport", () => {

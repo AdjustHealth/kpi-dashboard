@@ -8,7 +8,7 @@ import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatValue } from "@/lib/format";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
-import { formatWeekLabel, defaultWeekEnding } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function RevenuePage({
   searchParams,
@@ -17,13 +17,14 @@ export default async function RevenuePage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const [history, targets] = await Promise.all([getClinicHistory(week, 12), getClinicTargets()]);
+  const [history, targets] = await Promise.all([getClinicHistory(week, trackingHistoryWeeks(week)), getClinicTargets()]);
 
   const weeklyTarget = typeof targets.weekly_revenue_target === "number" ? targets.weekly_revenue_target : null;
   const breakeven = typeof targets.weekly_breakeven_target === "number" ? targets.weekly_breakeven_target : null;
   const costStaff = typeof targets.cost_staff === "number" ? targets.cost_staff : null;
   const costStaffRentGlofox = typeof targets.cost_staff_rent_glofox === "number" ? targets.cost_staff_rent_glofox : null;
   const costFull = typeof targets.cost_staff_rent_glofox_loan === "number" ? targets.cost_staff_rent_glofox_loan : null;
+  const gymTarget = typeof targets.weekly_gym_revenue_target === "number" ? targets.weekly_gym_revenue_target : null;
 
   const trendSeriesKeys = ["Total Revenue"];
   if (weeklyTarget !== null) trendSeriesKeys.push("Target");
@@ -51,10 +52,15 @@ export default async function RevenuePage({
 
   const gymPrivate = history.map((h) => (typeof h.m_glofox === "number" ? h.m_glofox : 0));
 
+  const gymSeriesKeys = ["Gym Total", "Gym Private", "Gym 3rd Party"];
+  if (gymTarget !== null) gymSeriesKeys.push("Target");
+
   const gymData = history.map((h, i) => ({
     label: formatWeekLabel(h.week_ending),
+    "Gym Total": h.gym_total ?? null,
     "Gym Private": gymPrivate[i],
     "Gym 3rd Party": h.m_gym3p ?? null,
+    ...(gymTarget !== null ? { Target: gymTarget } : {}),
   }));
 
   const latest = history[history.length - 1] ?? {};
@@ -120,8 +126,13 @@ export default async function RevenuePage({
             </div>
           </div>
           <div className="mt-4">
-            <Card title="Gym Revenue Trend">
-              <MultiLineChart title="Gym Private vs 3rd Party" data={gymData} seriesKeys={["Gym Private", "Gym 3rd Party"]} format="currency" />
+            <Card title="Gym Revenue Trend vs Target">
+              <MultiLineChart title="Gym Total vs Private vs 3rd Party vs Target" data={gymData} seriesKeys={gymSeriesKeys} format="currency" />
+              {gymTarget === null && (
+                <p className="mt-2 text-[11px] text-muted">
+                  Set a Weekly Gym Revenue Target on the Targets page to show it here.
+                </p>
+              )}
             </Card>
           </div>
         </div>

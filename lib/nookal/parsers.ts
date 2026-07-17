@@ -25,6 +25,10 @@ const EMPTY_PAYER_TOTALS: Record<PayerCategory, number> = {
   other: 0,
 };
 
+const JBV_PATTERN = /jbv/i;
+const JBV_SUB_PATTERN = /sub/i;
+const JBV_INIT_PATTERN = /init/i;
+
 /**
  * Activity Report — revenue detail, one row per invoiced line item.
  *
@@ -35,29 +39,64 @@ const EMPTY_PAYER_TOTALS: Record<PayerCategory, number> = {
  * matches Nookal exactly) while the per-provider/per-payer breakdowns come
  * from Details and will slightly undercount if the practice has meaningful
  * Classes/Inventory/Pass revenue outside of services.
+ *
+ * `keywordPatterns` lets the caller count rows matching a per-provider
+ * specialty keyword (e.g. Marcio's Headache Init/Sub) without hardcoding
+ * any specialty name here — same "Case"/"Item" text used for JBV detection.
  */
-export function parseActivityReport(text: string): ActivityReportResult {
+export function parseActivityReport(
+  text: string,
+  keywordPatterns: Record<string, RegExp> = {}
+): ActivityReportResult {
   const rows = parseCsvRows(text);
 
   const totalRow = extractSectionTotalRow(rows, "Summary");
   const totalRevenue = totalRow ? parseNumber(totalRow[totalRow.length - 1]) : null;
 
+  const empty: ActivityReportResult = {
+    totalRevenue,
+    revenueByProvider: {},
+    revenueByPayerCategory: { ...EMPTY_PAYER_TOTALS },
+    jbvInitialCount: 0,
+    jbvSubCount: 0,
+    keywordCountsByProvider: {},
+  };
   const section = extractSection(rows, "Details");
-  if (!section) return { totalRevenue, revenueByProvider: {}, revenueByPayerCategory: { ...EMPTY_PAYER_TOTALS } };
+  if (!section) return empty;
 
   const revenueByProvider: Record<string, number> = {};
   const revenueByPayerCategory: Record<PayerCategory, number> = { ...EMPTY_PAYER_TOTALS };
+  let jbvInitialCount = 0;
+  let jbvSubCount = 0;
+  const keywordCountsByProvider: Record<string, Record<string, number>> = {};
+  for (const name of Object.keys(keywordPatterns)) keywordCountsByProvider[name] = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
     const amount = parseNumber(r["Amount"]);
-    if (amount === null) continue;
     const provider = r["Staff"];
-    if (provider) revenueByProvider[provider] = (revenueByProvider[provider] ?? 0) + amount;
-    revenueByPayerCategory[categorizePayer(r["Invoice Type"])] += amount;
+    const itemText = `${r["Case"] ?? ""} ${r["Item"] ?? ""}`;
+
+    if (amount !== null) {
+      if (provider) revenueByProvider[provider] = (revenueByProvider[provider] ?? 0) + amount;
+      revenueByPayerCategory[categorizePayer(r["Invoice Type"])] += amount;
+    }
+
+    if (JBV_PATTERN.test(itemText)) {
+      if (JBV_SUB_PATTERN.test(itemText)) jbvSubCount += 1;
+      else if (JBV_INIT_PATTERN.test(itemText)) jbvInitialCount += 1;
+    }
+
+    if (provider) {
+      for (const [name, pattern] of Object.entries(keywordPatterns)) {
+        if (pattern.test(itemText)) {
+          keywordCountsByProvider[name][provider] = (keywordCountsByProvider[name][provider] ?? 0) + 1;
+        }
+      }
+    }
   }
 
-  return { totalRevenue, revenueByProvider, revenueByPayerCategory };
+  return { totalRevenue, revenueByProvider, revenueByPayerCategory, jbvInitialCount, jbvSubCount, keywordCountsByProvider };
 }
 
 /** Occupancy Report — per-provider scheduled vs. occupied minutes. */

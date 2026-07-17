@@ -6,6 +6,7 @@ interface FakeProvider {
   name: string;
   role: string;
   targets?: Record<string, unknown>;
+  specialty_metrics?: { key: string; label: string }[];
 }
 
 /**
@@ -99,6 +100,50 @@ describe("applyNookalReport", () => {
     expect(providerWeekly["p1:2026-07-05"].turnover).toBeCloseTo(220, 2);
     expect(result.matchedProviders).toEqual(["Alex Example"]);
     expect(result.unmatchedNames).toEqual(["Sam Not On File"]);
+    expect(weeklyKpis["2026-07-05"].jbv_initial).toBe(0);
+    expect(weeklyKpis["2026-07-05"].jbv_sub).toBe(0);
+  });
+
+  it("activity: auto-detects JBV Initial/Sub counts and a provider's specialty init/sub pair", async () => {
+    const JBV_AND_SPECIALTY_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,400.00,0,400.00
+Total,400.00,0,400.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Test Client One,Service - JBV Initial 500,JBV Initial,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Service - JBV Subs 30 min 505,JBV Subs,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+03/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Three,Headache Init Consult,Headache Init,Service,1003,03/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1003
+04/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Four,Headache Sub Consult,Headache Sub,Service,1004,04/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1004
+
+`;
+    const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      {
+        id: "p2",
+        name: "Jamie Sample",
+        role: "senior_physio",
+        specialty_metrics: [
+          { key: "headache_init", label: "Headache Init" },
+          { key: "headache_sub", label: "Headache Sub" },
+          { key: "headache_total", label: "Headache Total" },
+        ],
+      },
+    ]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", JBV_AND_SPECIALTY_CSV);
+
+    expect(weeklyKpis["2026-07-05"].jbv_initial).toBe(1);
+    expect(weeklyKpis["2026-07-05"].jbv_sub).toBe(1);
+    expect(providerWeekly["p2:2026-07-05"].headache_init).toBe(1);
+    expect(providerWeekly["p2:2026-07-05"].headache_sub).toBe(1);
+    expect(providerWeekly["p1:2026-07-05"].headache_init).toBeUndefined();
   });
 
   it("matching is case-insensitive and whitespace-tolerant", async () => {

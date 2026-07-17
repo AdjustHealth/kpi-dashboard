@@ -5,7 +5,7 @@ import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { NotTrackedPanel } from "@/components/dashboard/NotTrackedPanel";
 import { getClinicHistory } from "@/lib/clinicData";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
-import { formatWeekLabel, defaultWeekEnding } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function ClinicHealthPage({
   searchParams,
@@ -14,7 +14,7 @@ export default async function ClinicHealthPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const history = await getClinicHistory(week, 12);
+  const history = await getClinicHistory(week, trackingHistoryWeeks(week));
 
   const occupancyData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),

@@ -13,19 +13,21 @@ const ACTION_STEP_COUNT = 4;
  * Action Steps & Agreements + Performance Review Goals — kept separate
  * from MeetingNotesCard so the Senior Physio page can render this as its
  * own big note section at the bottom of the meeting (per the director's
- * sheet), while standard/admin pages keep it up with the rest of the
- * meeting notes.
+ * sheet), while standard/admin pages keep just Action Steps up with the
+ * rest of the meeting notes — Performance Review Goals is senior-only.
  */
 export function ActionStepsCard({
   providerId,
   week,
   initialNotes,
   size = "standard",
+  showGoals = true,
 }: {
   providerId: string;
   week: string;
   initialNotes: ProviderMeetingNotes;
   size?: "standard" | "large";
+  showGoals?: boolean;
 }) {
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
     action_steps: ["", "", "", ""],
@@ -72,14 +74,16 @@ export function ActionStepsCard({
         ))}
       </div>
 
-      <div className="mt-6">
-        <div className="mb-1.5 text-xs font-medium text-muted">Performance Review Goals</div>
-        <Textarea
-          value={notes.performance_review_goals ?? ""}
-          onChange={(e) => updateGoals(e.target.value)}
-          className={large ? "min-h-40 text-base" : undefined}
-        />
-      </div>
+      {showGoals && (
+        <div className="mt-6">
+          <div className="mb-1.5 text-xs font-medium text-muted">Performance Review Goals</div>
+          <Textarea
+            value={notes.performance_review_goals ?? ""}
+            onChange={(e) => updateGoals(e.target.value)}
+            className={large ? "min-h-40 text-base" : undefined}
+          />
+        </div>
+      )}
     </Card>
   );
 }

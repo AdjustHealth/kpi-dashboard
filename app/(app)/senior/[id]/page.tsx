@@ -4,7 +4,7 @@ import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
 import { getClinicHistory } from "@/lib/clinicData";
 import { createClient } from "@/lib/supabase/server";
-import { defaultWeekEnding, weeksBetween } from "@/lib/week";
+import { defaultWeekEnding, weeksBetween, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function SeniorPhysioPage({
   params,
@@ -19,14 +19,17 @@ export default async function SeniorPhysioPage({
 
   // Bonus-tier cumulative turnover must only count weeks since this senior
   // physio actually started the role — peek at that date first so the
-  // history window is wide enough to cover it (a fixed trailing 12 weeks
-  // would silently include pre-promotion weeks, or miss early weeks once
-  // more than 12 weeks have passed since senior_since).
+  // history window is wide enough to cover it even if they were promoted
+  // later than the system-wide tracking start (ProviderDetailView then
+  // filters down to just senior_since for the bonus-tier calc itself).
   const supabase = await createClient();
   const { data: providerRow } = await supabase.from("providers").select("targets").eq("id", id).maybeSingle();
   const seniorSince =
     typeof providerRow?.targets?.senior_since === "string" ? (providerRow.targets.senior_since as string) : null;
-  const historyWeeks = seniorSince ? Math.max(12, weeksBetween(seniorSince, week) + 1) : 12;
+  const historyWeeks = Math.max(
+    trackingHistoryWeeks(week),
+    seniorSince ? weeksBetween(seniorSince, week) + 1 : 0
+  );
 
   const [{ provider, history, currentMeetingNotes }, clinicHistory] = await Promise.all([
     getProviderDetailData(id, week, historyWeeks),

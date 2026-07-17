@@ -73,8 +73,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 32, id: "cva_2_5yr", label: "CVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 33, id: "cva_ep", label: "CVA — EP", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 34, id: "cva_massage", label: "CVA — Massage", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "manual", type: "number", category: "Clinic" },
-  { idx: 36, id: "jbv_sub", label: "JBV Subsequent Consults", source: "manual", type: "number", category: "Clinic" },
+  { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 36, id: "jbv_sub", label: "JBV Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 37, id: "jbv_total", label: "JBV Total", source: "calc", type: "number", category: "Clinic" },
 
   // Admin manual fields (Weekly Input spec)

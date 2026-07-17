@@ -40,7 +40,7 @@ export function ProviderDetailView({
       <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
 
       {variant !== "senior" && (
-        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
       )}
 
       {variant === "senior" && (

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
-import { defaultWeekEnding } from "@/lib/week";
+import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function AdminDetailPage({
   params,
@@ -15,7 +15,7 @@ export default async function AdminDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week);
+  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week, trackingHistoryWeeks(week));
   if (!provider || provider.role !== "admin") notFound();
 
   return (

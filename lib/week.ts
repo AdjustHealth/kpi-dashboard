@@ -43,3 +43,11 @@ export function weeksBetween(from: string, to: string): number {
   const b = new Date(`${to}T00:00:00Z`).getTime();
   return Math.round((b - a) / (7 * 24 * 60 * 60 * 1000));
 }
+
+/** When this KPI system's tracking starts for every provider, admin, and clinic page — nothing before this week is meaningful history. */
+export const TRACKING_START_WEEK = "2026-07-01";
+
+/** How many weeks of history to fetch to cover TRACKING_START_WEEK through `week`, floored at `min`. */
+export function trackingHistoryWeeks(week: string, min = 12): number {
+  return Math.max(min, weeksBetween(TRACKING_START_WEEK, week) + 1);
+}

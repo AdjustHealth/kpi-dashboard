@@ -4,6 +4,11 @@ export interface ActivityReportResult {
   totalRevenue: number | null;
   revenueByProvider: Record<string, number>;
   revenueByPayerCategory: Record<PayerCategory, number>;
+  /** Rows whose Case/Item text contains "JBV" — split by "init(ial)" vs "sub(sequent)" in that same text. */
+  jbvInitialCount: number;
+  jbvSubCount: number;
+  /** Rows matching a keyword, grouped by provider — e.g. Marcio's headache_init/headache_sub specialty counts. Keyed by the keyword passed to parseActivityReport. */
+  keywordCountsByProvider: Record<string, Record<string, number>>;
 }
 
 export interface OccupancyReportResult {

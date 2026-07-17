@@ -16,11 +16,17 @@ export interface ApplyReportResult {
   warning?: string;
 }
 
+interface SpecialtyMetricRow {
+  key: string;
+  label: string;
+}
+
 interface ProviderRow {
   id: string;
   name: string;
   role: string;
   targets: Record<string, unknown> | null;
+  specialty_metrics?: SpecialtyMetricRow[] | null;
 }
 
 function average(values: number[]): number | null {
@@ -61,7 +67,7 @@ export async function applyNookalReport(
   weekEnding: string,
   csvText: string
 ): Promise<ApplyReportResult> {
-  const { data: providersData } = await supabase.from("providers").select("id, name, role, targets");
+  const { data: providersData } = await supabase.from("providers").select("id, name, role, targets, specialty_metrics");
   const providers = (providersData ?? []) as ProviderRow[];
   const providerByName = new Map(providers.map((p) => [p.name.trim().toLowerCase(), p]));
 
@@ -91,7 +97,29 @@ export async function applyNookalReport(
   }
 
   if (reportType === "activity") {
-    const result = parseActivityReport(csvText);
+    // Specialty consult counts (e.g. Marcio's Headache Init/Sub) are
+    // detected from the same Case/Item text as JBV — any provider whose
+    // specialty_metrics has a "<x>_init"/"<x>_sub" pair gets both counted
+    // automatically instead of typed in by hand each week.
+    const keywordPatterns: Record<string, RegExp> = {};
+    const specialtyKeyMap: Record<string, { providerId: string; initKey: string; subKey: string }> = {};
+    for (const p of providers) {
+      const metrics = p.specialty_metrics ?? [];
+      for (const m of metrics) {
+        if (!m.key.endsWith("_init")) continue;
+        const prefix = m.key.slice(0, -"_init".length);
+        const subKey = `${prefix}_sub`;
+        if (!metrics.some((mm) => mm.key === subKey)) continue;
+        const mapKey = `${p.id}:${prefix}`;
+        // Both the specialty word and "init"/"sub" must appear (any order) —
+        // matches text like "Headache Init" or "Headache Subsequent".
+        keywordPatterns[`${mapKey}:init`] = new RegExp(`(?=.*${prefix})(?=.*init)`, "i");
+        keywordPatterns[`${mapKey}:sub`] = new RegExp(`(?=.*${prefix})(?=.*sub)`, "i");
+        specialtyKeyMap[mapKey] = { providerId: p.id, initKey: m.key, subKey };
+      }
+    }
+
+    const result = parseActivityReport(csvText, keywordPatterns);
     rowsFound = Object.keys(result.revenueByProvider).length + (result.totalRevenue !== null ? 1 : 0);
     if (result.totalRevenue !== null) clinicPatch.total_rev = result.totalRevenue;
     clinicPatch.rev_private = result.revenueByPayerCategory.private;
@@ -100,10 +128,22 @@ export async function applyNookalReport(
     clinicPatch.rev_workcover = result.revenueByPayerCategory.workcover;
     clinicPatch.rev_ndis = result.revenueByPayerCategory.ndis;
     clinicPatch.rev_other = result.revenueByPayerCategory.other;
+    clinicPatch.jbv_initial = result.jbvInitialCount;
+    clinicPatch.jbv_sub = result.jbvSubCount;
 
     for (const [name, amount] of Object.entries(result.revenueByProvider)) {
       const p = findProvider(name);
       if (p) await upsertProviderMetrics(p.id, { turnover: amount });
+    }
+
+    for (const [mapKey, { providerId, initKey, subKey }] of Object.entries(specialtyKeyMap)) {
+      const providerName = providers.find((p) => p.id === providerId)?.name;
+      if (!providerName) continue;
+      const initCount = result.keywordCountsByProvider[`${mapKey}:init`]?.[providerName] ?? 0;
+      const subCount = result.keywordCountsByProvider[`${mapKey}:sub`]?.[providerName] ?? 0;
+      if (initCount > 0 || subCount > 0) {
+        await upsertProviderMetrics(providerId, { [initKey]: initCount, [subKey]: subCount });
+      }
     }
   } else if (reportType === "occupancy") {
     const result = parseOccupancyReport(csvText);

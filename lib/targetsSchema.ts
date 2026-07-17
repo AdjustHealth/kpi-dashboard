@@ -10,6 +10,7 @@ export const CLINIC_TARGET_FIELDS: TargetField[] = [
   { key: "annual_revenue_target", label: "Annual Revenue Target", type: "currency" },
   { key: "weekly_revenue_target", label: "Weekly Revenue Target", type: "currency" },
   { key: "weekly_breakeven_target", label: "Weekly Break-Even", type: "currency" },
+  { key: "weekly_gym_revenue_target", label: "Weekly Gym Revenue Target", type: "currency" },
   { key: "clinic_occ_target", label: "Clinic Occupancy Target", type: "percent" },
   { key: "physio_occ_target", label: "Physio Occupancy Target", type: "percent" },
   { key: "massage_occ_target", label: "Massage Occupancy Target", type: "percent" },
