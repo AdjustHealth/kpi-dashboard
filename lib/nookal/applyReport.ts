@@ -241,7 +241,9 @@ export async function applyNookalReport(
     for (const [name, data] of Object.entries(result.byProvider)) {
       totalNewClients += data.newClients;
       const p = findProvider(name);
-      if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClients });
+      // Clinic-wide total includes Pre-Employment screenings; each
+      // provider's own KPI figure doesn't (see PRE_EMPLOYMENT_PATTERN).
+      if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClientsExclPreEmployment });
     }
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {

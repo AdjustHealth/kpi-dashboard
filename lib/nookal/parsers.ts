@@ -134,7 +134,19 @@ export function parseActivityReport(
   };
 }
 
-/** Occupancy Report — per-provider scheduled vs. occupied minutes. */
+/**
+ * Occupancy Report — per-provider scheduled vs. occupied minutes.
+ *
+ * Two real-world quirks, both confirmed against the director's own sheet
+ * (which reports neither raw): a provider who saw zero patients that week
+ * (services = 0 — on leave, block-booked-but-all-cancelled, etc.) gets a
+ * meaningless raw Occupancy figure (Nookal still divides by whatever's on
+ * the roster) — the sheet reports these as blank/not-tracked rather than a
+ * number, so occupancyPct is null here too. A provider who DID see patients
+ * can still read over 100% (occupied minutes exceeding scheduled minutes —
+ * a Nookal roster/scheduling mismatch, not a real >100% occupancy) — the
+ * sheet caps these at 100% instead of showing the inflated figure.
+ */
 export function parseOccupancyReport(text: string): OccupancyReportResult {
   const rows = parseCsvRows(text);
   const section = extractSection(rows, "Summary");
@@ -145,11 +157,15 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
     const r = rowToRecord(section.header, row);
     const provider = r["Provider"];
     if (!provider) continue;
+    const services = parseNumber(r["Services"]);
+    let occupancyPct = parsePercent(r["Occupancy"]);
+    if (!services) occupancyPct = null;
+    else if (occupancyPct !== null && occupancyPct > 1) occupancyPct = 1;
     byProvider[provider] = {
-      occupancyPct: parsePercent(r["Occupancy"]),
+      occupancyPct,
       scheduledMinutes: parseNumber(r["Scheduled Minutes"]),
       occupiedMinutes: parseNumber(r["Occupied"]),
-      services: parseNumber(r["Services"]),
+      services,
     };
   }
   return { byProvider };
@@ -331,6 +347,16 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
   return { byProvider, byAdmin };
 }
 
+// Corporate Pre-Employment screening visits (Village Road Show, Top Golf,
+// etc.) show up as "New Client: Yes" in Nookal like any other new client,
+// but they're one-off screenings, not a real new patient booking — the
+// director's own weekly sheet counts them in the clinic-wide total ("Total
+// new clients incl Pre Employments") but excludes them from every
+// individual provider's "# New Clients" figure. Confirmed against two
+// providers' real weekly numbers (both matched exactly once Pre-Employment
+// cases were excluded, and not before).
+const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
+
 /** Clients and Cases Report — new client / new case counts per provider. */
 export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportResult {
   const rows = parseCsvRows(text);
@@ -342,8 +368,11 @@ export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportR
     const r = rowToRecord(section.header, row);
     const provider = r["Provider"];
     if (!provider) continue;
-    if (!byProvider[provider]) byProvider[provider] = { newClients: 0, newCases: 0 };
-    if (r["New Client"]?.toLowerCase() === "yes") byProvider[provider].newClients += 1;
+    if (!byProvider[provider]) byProvider[provider] = { newClients: 0, newClientsExclPreEmployment: 0, newCases: 0 };
+    if (r["New Client"]?.toLowerCase() === "yes") {
+      byProvider[provider].newClients += 1;
+      if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) byProvider[provider].newClientsExclPreEmployment += 1;
+    }
     if (r["New Case"]?.toLowerCase() === "yes") byProvider[provider].newCases += 1;
   }
   return { byProvider };
