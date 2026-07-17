@@ -6,7 +6,11 @@
 -- script — section 2 corrects names/roles if they're already there.
 --
 -- What this does:
---   1. Adds the pending schema columns (revenue-by-payer, senior CVA).
+--   0. Dedupes any provider that ended up with 2+ rows under the same
+--      name (e.g. from an earlier partial run) — merges any weekly data
+--      into one row before deleting the rest.
+--   1. Adds the pending schema columns (revenue-by-payer, senior CVA,
+--      specialty consult counts).
 --   2. Removes Michael and Anika Woodford (directors, not tracked
 --      providers) and fixes Nick to physio / 2-5yr tier if any were
 --      already added by an earlier run of this script.
@@ -24,6 +28,37 @@
 -- first-name-only — check Settings and correct her spelling to match
 -- your Nookal exports exactly, or CSV auto-fill won't match her.
 -- ============================================================
+
+-- ------------------------------------------------------------
+-- 0. Dedupe any duplicate provider rows (same name + role) — safe to
+--    re-run, no-op once there are no duplicates left. Keeps the row with
+--    the lowest sort_order (or lowest id as a tiebreak), merges any
+--    provider_weekly history from the other row(s) into it, then deletes
+--    the duplicate row(s).
+-- ------------------------------------------------------------
+create temporary table _dup_losers as
+with dups as (
+  select name, role, array_agg(id order by sort_order, id) as ids
+  from providers
+  group by name, role
+  having count(*) > 1
+)
+select unnest(ids[2:array_length(ids, 1)]) as loser_id, ids[1] as keeper_id
+from dups;
+
+insert into provider_weekly (provider_id, week_ending, metrics, kpas, meeting_notes)
+select d.keeper_id, pw.week_ending, pw.metrics, pw.kpas, pw.meeting_notes
+from _dup_losers d
+join provider_weekly pw on pw.provider_id = d.loser_id
+on conflict (provider_id, week_ending) do update
+  set metrics = provider_weekly.metrics || excluded.metrics,
+      kpas = provider_weekly.kpas || excluded.kpas,
+      meeting_notes = provider_weekly.meeting_notes || excluded.meeting_notes;
+
+delete from provider_weekly where provider_id in (select loser_id from _dup_losers);
+delete from providers where id in (select loser_id from _dup_losers);
+
+drop table _dup_losers;
 
 -- ------------------------------------------------------------
 -- 1. Pending columns + the Providers & Practice upload fix
@@ -49,12 +84,12 @@ alter table nookal_uploads add constraint nookal_uploads_report_type_check check
 -- ------------------------------------------------------------
 delete from providers where lower(name) in ('michael', 'anika', 'anika woodford');
 
--- "Samantha" was a guessed placeholder for a team member I didn't have a
--- real name for yet. The real Nookal provider list has no separate
--- Samantha — she doesn't exist, so if this placeholder row was ever
--- inserted, remove it rather than merge it into Sam Johnston (who is a
--- different, already-seeded senior physio).
-delete from providers where lower(name) = 'samantha';
+-- CORRECTION: an earlier version of this script deleted "Samantha" on the
+-- assumption she was a guessed placeholder duplicate of Sam Johnston. She
+-- is not — the director's own KPI source-tracking sheet confirms "Samantha
+-- Delohery" is a real, separate 2-5yr physio. If she was deleted by an
+-- earlier run of this script, this re-adds her (section 4 below).
+update providers set name = 'Samantha Delohery' where lower(name) = 'samantha';
 
 update providers
 set role = 'physio', targets = targets || '{"experience_tier":"2_5yr"}'::jsonb
@@ -133,6 +168,10 @@ where not exists (select 1 from providers where lower(name) in ('wilson', 'wilso
 insert into providers (name, role, targets, sort_order)
 select 'Dean Walker', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 18
 where not exists (select 1 from providers where lower(name) in ('dean', 'dean walker'));
+
+insert into providers (name, role, targets, sort_order)
+select 'Samantha Delohery', 'physio', '{"experience_tier":"2_5yr","fba":2,"occupancy_pct":0.80,"new_pt_booking_rate":5,"voxers_completed_pct":1.00,"dnas":2,"cancellations":20,"not_rebooked":5}'::jsonb, 15
+where not exists (select 1 from providers where lower(name) in ('samantha', 'samantha delohery'));
 
 -- EP
 insert into providers (name, role, targets, sort_order)

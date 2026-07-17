@@ -29,6 +29,8 @@ export interface ProviderField {
   label: string;
   type: ProviderFieldType;
   decimals?: number;
+  /** For conditional red/green formatting against a target — omit for fields with no meaningful direction (e.g. raw counts with no target). */
+  betterWhen?: "higher" | "lower";
 }
 
 export const KPA_RATINGS = ["not_met", "demonstrated", "above_and_beyond"] as const;
@@ -51,20 +53,20 @@ export interface SpecialtyMetric extends ProviderField {
  * admin-tracked, not per-physio, so they're not here.
  */
 export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
-  { key: "turnover", label: "Turnover", type: "currency" },
-  { key: "personal_cva", label: "Personal CVA", type: "decimal", decimals: 2 },
-  { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 2 },
-  { key: "occupancy_pct", label: "Occupancy", type: "percent" },
+  { key: "turnover", label: "Turnover", type: "currency", betterWhen: "higher" },
+  { key: "personal_cva", label: "Personal CVA", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: "higher" },
   { key: "completed_consults", label: "Completed Consults", type: "number" },
   { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
   { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
-  { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2 },
-  { key: "ucva", label: "UCVA", type: "decimal", decimals: 2 },
-  { key: "ncva", label: "NCVA", type: "decimal", decimals: 2 },
-  { key: "dnas", label: "Number of DNAs", type: "number" },
-  { key: "cancellations", label: "Number of Cancellations", type: "number" },
-  { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
+  { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "ucva", label: "UCVA", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "ncva", label: "NCVA", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
+  { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
+  { key: "not_rebooked", label: "Number Not Rebooked", type: "number", betterWhen: "lower" },
+  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
 ];
 
 /** Extra KPI Scorecard fields for senior physios only — not regular physio/massage/EP. */
@@ -88,18 +90,18 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
  * and Answered Calls aren't in any Nookal report, so they stay manual.
  */
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
-  { key: "diary_management_pct", label: "Diary Management", type: "percent" },
+  { key: "diary_management_pct", label: "Diary Management", type: "percent", betterWhen: "higher" },
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
   { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
-  { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
-  { key: "cancellations_not_rebooked_pct", label: "Cancellations Not Rebooked %", type: "percent" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
-  { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent" },
-  { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1 },
-  { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent" },
-  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number" },
-  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent" },
-  { key: "answered_calls_pct", label: "Answered Calls", type: "percent" },
+  { key: "not_rebooked", label: "Number Not Rebooked", type: "number", betterWhen: "lower" },
+  { key: "cancellations_not_rebooked_pct", label: "Cancellations Not Rebooked %", type: "percent", betterWhen: "lower" },
+  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
+  { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
+  { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
+  { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher" },
+  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower" },
+  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher" },
+  { key: "answered_calls_pct", label: "Answered Calls", type: "percent", betterWhen: "higher" },
 ];
 
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
@@ -116,7 +118,7 @@ export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
  * declared `type`, so a percent field works fine alongside the booleans.
  */
 export const COMPLIANCE_FIELDS: ProviderField[] = [
-  { key: "voxers_completed_pct", label: "Voxers Completed", type: "percent" },
+  { key: "voxers_completed_pct", label: "Voxers Completed", type: "percent", betterWhen: "higher" },
   { key: "cancellation_management", label: "Cancellation Management", type: "boolean" },
   { key: "clinical_notes_completed", label: "Clinical Notes Completed", type: "boolean" },
   { key: "clinical_correspondence", label: "Clinical Correspondence Completed", type: "boolean" },
@@ -190,15 +192,15 @@ export function kpaFieldsForRole(role: ProviderRole): ProviderField[] {
 
 /**
  * Performance Review Goals for regular (non-senior) providers — 3 fixed
- * short-term goal slots, rated per week the same way as the KPA Scorecard
- * (per the real KPA Scorecard screenshot's "PERFORMANCE REVIEW GOALS"
- * section). Senior physios instead get a free-text goals section at the
- * bottom of their page (ActionStepsCard) — different structure, not this.
+ * short-term goal slots, scored per week as achieved / not achieved (a
+ * goal either was hit or it wasn't — not a 3-tier KPA rating). Senior
+ * physios instead get a free-text goals section at the bottom of their
+ * page (ActionStepsCard) — different structure, not this.
  */
 export const PROVIDER_GOAL_FIELDS: ProviderField[] = [
-  { key: "short_term_1", label: "Short Term 1", type: "rating" },
-  { key: "short_term_2", label: "Short Term 2", type: "rating" },
-  { key: "short_term_3", label: "Short Term 3", type: "rating" },
+  { key: "short_term_1", label: "Short Term 1 — Achieved?", type: "boolean" },
+  { key: "short_term_2", label: "Short Term 2 — Achieved?", type: "boolean" },
+  { key: "short_term_3", label: "Short Term 3 — Achieved?", type: "boolean" },
 ];
 
 export const ROLE_LABELS: Record<ProviderRole, string> = {

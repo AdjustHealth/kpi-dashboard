@@ -162,14 +162,17 @@ export function WeeklyInputForm({
             <ClinicFieldGrid fields={getClinicFieldsByCategory("CX")} values={weekly} onChange={onChange} />
           </Card>
 
-          <Card title="Clinic — CVA &amp; JBV">
+          <Card title="Clinic — CVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
-              All 5 CVA tiers auto-fill from the Providers &amp; Practice report, using each physio&apos;s
-              experience tier (set on the Settings page). JBV Initial/Subsequent auto-fill from the Activity
-              Report by counting rows whose service item contains &quot;JBV&quot;.
+              CVA by tier is entered manually (needs the Business Performance Report — not yet auto-filled).
+              JBV and Vestibular/Headaches/Paeds Initial/Subsequent auto-fill from the Activity Report by
+              counting rows whose service item matches each keyword. Women&apos;s Health has no report source,
+              so it stays manual.
             </p>
             <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("Clinic").filter((f) => f.id !== "jbv_total")}
+              fields={getClinicFieldsByCategory("Clinic").filter(
+                (f) => !["jbv_total", "specialty_vestibular_total", "specialty_headaches_total", "specialty_paeds_total"].includes(f.id)
+              )}
               values={weekly}
               onChange={onChange}
             />

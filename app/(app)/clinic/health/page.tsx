@@ -2,9 +2,10 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { NotTrackedPanel } from "@/components/dashboard/NotTrackedPanel";
 import { getClinicHistory } from "@/lib/clinicData";
-import { clinicStatTile } from "@/components/dashboard/statHelpers";
+import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function ClinicHealthPage({
@@ -33,13 +34,6 @@ export default async function ClinicHealthPage({
     EP: h.cva_ep ?? null,
   }));
 
-  const cancellationData = history.map((h) => ({
-    label: formatWeekLabel(h.week_ending),
-    "Cancellation %": h.cx_pct ?? null,
-    "Reschedule Rate": h.cx_rsx_pct ?? null,
-    "Not Rebooked %": h.cx_nr_pct ?? null,
-    "Booked Within 7 Days %": h.cx_in7_pct ?? null,
-  }));
 
   const onlineBookingsData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
@@ -121,14 +115,12 @@ export default async function ClinicHealthPage({
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
             <StatTile {...clinicStatTile(history, "cx_rsx_pct")} label="Reschedule Rate" />
           </div>
-          <div className="mt-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card title="Cancellations Trend">
-              <MultiLineChart
-                title="Cancellation % / Reschedule Rate / Not Rebooked % / Booked Within 7 Days %"
-                data={cancellationData}
-                seriesKeys={["Cancellation %", "Reschedule Rate", "Not Rebooked %", "Booked Within 7 Days %"]}
-                format="percent"
-              />
+              <LineTrendChart title="Number of Cancellations" data={toTrendSeries(history, "cx_cancels")} format="number" colorIndex={3} />
+            </Card>
+            <Card title="Reschedule Rate Trend">
+              <LineTrendChart title="Reschedule Rate" data={toTrendSeries(history, "cx_rsx_pct")} format="percent" colorIndex={1} />
             </Card>
           </div>
         </div>

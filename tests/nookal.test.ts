@@ -281,6 +281,31 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(result.jbvSubCount).toBe(2);
   });
 
+  it("detects clinic-wide specialty consult counts (Vestibular/Headaches/Paeds) independent of provider", () => {
+    const SPECIALTY_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,400.00,0,400.00
+Total,400.00,0,400.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Test Client One,Service - Vestibular Initial,Vestibular Initial,Service,2001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,2001
+02/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Two,Service - Headache Subsequent,Headache Subsequent,Service,2002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,2002
+03/07/2026,Alex Example,Adjust Physiotherapy,Test Client Three,Service - TMJ Subsequent,TMJ Subsequent,Service,2003,03/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,2003
+04/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Four,Service - Paeds Initial,Paeds Initial,Service,2004,04/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,2004
+
+`;
+    const result = parseActivityReport(SPECIALTY_CSV);
+    expect(result.specialtyCounts.vestibular).toEqual({ total: 1, initial: 1, sub: 0 });
+    expect(result.specialtyCounts.headaches).toEqual({ total: 2, initial: 0, sub: 2 }); // Headache + TMJ both match
+    expect(result.specialtyCounts.paeds).toEqual({ total: 1, initial: 1, sub: 0 });
+  });
+
   it("counts per-provider keyword matches (e.g. a specialty init/sub pair)", () => {
     const HEADACHE_CSV = `Activity Report
 

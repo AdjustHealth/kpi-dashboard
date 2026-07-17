@@ -9,6 +9,13 @@ export interface ActivityReportResult {
   jbvSubCount: number;
   /** Rows matching a keyword, grouped by provider — e.g. Marcio's headache_init/headache_sub specialty counts. Keyed by the keyword passed to parseActivityReport. */
   keywordCountsByProvider: Record<string, Record<string, number>>;
+  /**
+   * Clinic-wide specialty consult counts — vestibular/headaches/paeds are
+   * whole-clinic totals (not tied to any one provider), matching the
+   * director's own "SPECIALTY SERVICES CONSULTATIONS" tracker. Keyed by
+   * SPECIALTY_CATEGORY_PATTERNS' keys in parsers.ts.
+   */
+  specialtyCounts: Record<string, { total: number; initial: number; sub: number }>;
 }
 
 export interface OccupancyReportResult {

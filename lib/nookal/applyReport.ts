@@ -35,21 +35,6 @@ function average(values: number[]): number | null {
 }
 
 /**
- * A "physio" role provider's finer New Grad / 2-5yr experience tier isn't
- * a role of its own (see ProviderRole) — it's stored as
- * providers.targets.experience_tier ("new_grad" | "2_5yr"), set on the
- * Settings page, so adding it didn't need a migration.
- */
-function cvaTierBucket(p: ProviderRow): "senior_physio" | "massage" | "ep" | "new_grad" | "2_5yr" | null {
-  if (p.role === "senior_physio" || p.role === "massage" || p.role === "ep") return p.role;
-  if (p.role === "physio") {
-    const tier = p.targets?.experience_tier;
-    if (tier === "new_grad" || tier === "2_5yr") return tier;
-  }
-  return null;
-}
-
-/**
  * Parses an uploaded Nookal report and writes whatever KPIs it maps to —
  * clinic-wide weekly_kpis fields and/or each matched provider's
  * provider_weekly.metrics. Matching a CSV row's provider name to a
@@ -130,6 +115,12 @@ export async function applyNookalReport(
     clinicPatch.rev_other = result.revenueByPayerCategory.other;
     clinicPatch.jbv_initial = result.jbvInitialCount;
     clinicPatch.jbv_sub = result.jbvSubCount;
+    clinicPatch.specialty_vestibular_initial = result.specialtyCounts.vestibular.initial;
+    clinicPatch.specialty_vestibular_sub = result.specialtyCounts.vestibular.sub;
+    clinicPatch.specialty_headaches_initial = result.specialtyCounts.headaches.initial;
+    clinicPatch.specialty_headaches_sub = result.specialtyCounts.headaches.sub;
+    clinicPatch.specialty_paeds_initial = result.specialtyCounts.paeds.initial;
+    clinicPatch.specialty_paeds_sub = result.specialtyCounts.paeds.sub;
 
     for (const [name, amount] of Object.entries(result.revenueByProvider)) {
       const p = findProvider(name);
@@ -236,11 +227,16 @@ export async function applyNookalReport(
     }
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {
-    // Nookal's "Client Visit Average" (Services / Unique Clients) is the
-    // per-provider CVA figure the paper meeting template calls UCVA.
+    // NOTE: Nookal's "Client Visit Average" in this report is NOT the same
+    // metric as "UCVA" on the KPI Scorecard/Clinic Analysis — the director's
+    // own "where the data comes from" sheet confirms UCVA/NCVA/TPR are a
+    // rolling-12-month figure from the Business Performance Report (with
+    // payer/provider exclusions), which we don't parse. Do not write this
+    // report's "Client Visit Average" into `ucva` — that was silently wrong
+    // (writing a single week's Providers & Practice ratio, sometimes 1.0 for
+    // low-volume providers, into a field labelled as a 12-month figure).
     const result = parseProvidersAndPracticeReport(csvText);
     rowsFound = Object.keys(result.byProvider).length;
-    const ucvaByTier: Record<string, number[]> = { senior_physio: [], massage: [], ep: [], new_grad: [], "2_5yr": [] };
     let totalCompletedConsults = 0;
 
     for (const [name, data] of Object.entries(result.byProvider)) {
@@ -249,26 +245,17 @@ export async function applyNookalReport(
       const p = findProvider(name);
       if (!p) continue;
       const patch: Record<string, unknown> = {};
-      if (data.cva !== null) patch.ucva = data.cva;
       if (data.completedConsults !== null) patch.completed_consults = data.completedConsults;
       if (data.forwardBookingAverage !== null) patch.fba = data.forwardBookingAverage;
       if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
-
-      const tier = cvaTierBucket(p);
-      if (data.cva !== null && tier) ucvaByTier[tier].push(data.cva);
     }
 
     if (totalCompletedConsults > 0) clinicPatch.total_consults = totalCompletedConsults;
-    const seniorAvg = average(ucvaByTier.senior_physio);
-    const massageAvg = average(ucvaByTier.massage);
-    const epAvg = average(ucvaByTier.ep);
-    const newGradAvg = average(ucvaByTier.new_grad);
-    const tier25Avg = average(ucvaByTier["2_5yr"]);
-    if (seniorAvg !== null) clinicPatch.cva_senior = seniorAvg;
-    if (massageAvg !== null) clinicPatch.cva_massage = massageAvg;
-    if (epAvg !== null) clinicPatch.cva_ep = epAvg;
-    if (newGradAvg !== null) clinicPatch.cva_new_grads = newGradAvg;
-    if (tier25Avg !== null) clinicPatch.cva_2_5yr = tier25Avg;
+    // CVA-by-tier (Clinic Analysis: New Grads/2-5yr/Massage/EP/Senior) is
+    // NOT auto-filled here — same "Business Performance Report, rolling
+    // 12mo" sourcing note as UCVA above. It was previously computed from
+    // this report's per-week "Client Visit Average", which is a different,
+    // mismatched metric. Stays manual until we can parse the right report.
   }
 
   if (Object.keys(clinicPatch).length > 0) {

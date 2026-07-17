@@ -69,8 +69,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 30, id: "online_bookings_new", label: "Online Bookings New", source: "manual", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
-  { idx: 31, id: "cva_new_grads", label: "CVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 32, id: "cva_2_5yr", label: "CVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 31, id: "cva_new_grads", label: "CVA — New Grads", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 32, id: "cva_2_5yr", label: "CVA — 2-5yr", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 33, id: "cva_ep", label: "CVA — EP", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 34, id: "cva_massage", label: "CVA — Massage", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "calc", type: "number", category: "Clinic" },
@@ -93,6 +93,20 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 48, id: "rev_other", label: "Revenue — Other", source: "calc", type: "currency", category: "Payer" },
 
   { idx: 49, id: "cva_senior", label: "CVA — Senior (6+ yrs)", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
+
+  // Clinic-wide specialty consult counts (from the director's "SPECIALTY SERVICES CONSULTATIONS" tracker).
+  // Vestibular/Headaches/Paeds auto-fill from the Activity Report the same way JBV does; Women's Health has
+  // no CSV source on the director's own sheet, so it stays manual.
+  { idx: 50, id: "specialty_vestibular_initial", label: "Vestibular Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 51, id: "specialty_vestibular_sub", label: "Vestibular Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 52, id: "specialty_vestibular_total", label: "Vestibular Total Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 53, id: "specialty_headaches_initial", label: "Headaches Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 54, id: "specialty_headaches_sub", label: "Headaches Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 55, id: "specialty_headaches_total", label: "Headaches Total Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 56, id: "specialty_paeds_initial", label: "Paeds Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 57, id: "specialty_paeds_sub", label: "Paeds Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 58, id: "specialty_paeds_total", label: "Paeds Total Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 59, id: "specialty_womens_health_total", label: "Women's Health Total Consults", source: "manual", type: "number", category: "Clinic" },
 ];
 
 export function getClinicHeaders(): string[] {
@@ -120,6 +134,9 @@ export const GENERATED_CLINIC_FIELD_IDS = [
   "total_adjust_pod_rev",
   "diary_mgmt_pct",
   "jbv_total",
+  "specialty_vestibular_total",
+  "specialty_headaches_total",
+  "specialty_paeds_total",
 ] as const;
 
 /**

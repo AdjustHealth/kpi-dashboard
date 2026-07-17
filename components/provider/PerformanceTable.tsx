@@ -15,6 +15,13 @@ const RATING_COLOR: Record<KpaRating, string> = {
   not_met: STATUS.critical,
 };
 
+/** Red/green vs the field's target — only when both a numeric value and a numeric target exist. */
+function targetColor(value: unknown, target: unknown, betterWhen: ProviderField["betterWhen"]): string | undefined {
+  if (!betterWhen || typeof value !== "number" || typeof target !== "number") return undefined;
+  const met = betterWhen === "higher" ? value >= target : value <= target;
+  return met ? STATUS.good : STATUS.critical;
+}
+
 export interface WeekMetrics {
   week_ending: string;
   metrics: Record<string, unknown>;
@@ -112,6 +119,7 @@ export function WeeklyScorecardTable({
                   {history.map((w, i) => {
                     const isCurrent = i === currentIndex;
                     const value = isCurrent ? current[field.key] : w[section][field.key];
+                    const color = targetColor(value, target, field.betterWhen);
                     return (
                       <td key={w.week_ending} className="py-2 px-3 whitespace-nowrap">
                         {isCurrent ? (
@@ -155,7 +163,12 @@ export function WeeklyScorecardTable({
                                     : (value as number)
                               }
                               onChange={(e) => updateNumber(field.key, e.target.value, field.type)}
-                              className="w-20 rounded-md border border-border bg-surface-raised px-2 py-1 text-sm text-foreground outline-none focus:border-accent"
+                              className="w-20 rounded-md border px-2 py-1 text-sm outline-none focus:border-accent"
+                              style={
+                                color
+                                  ? { borderColor: color, backgroundColor: `${color}1a`, color }
+                                  : { borderColor: "var(--color-border)", backgroundColor: "var(--color-surface-raised)" }
+                              }
                             />
                           )
                         ) : field.type === "boolean" ? (
@@ -175,7 +188,9 @@ export function WeeklyScorecardTable({
                             <span className="text-muted">—</span>
                           )
                         ) : (
-                          <span className="text-muted">{formatValue(value as number | null, field.type, field.decimals)}</span>
+                          <span className={color ? "font-medium" : "text-muted"} style={color ? { color } : undefined}>
+                            {formatValue(value as number | null, field.type, field.decimals)}
+                          </span>
                         )}
                       </td>
                     );

@@ -210,7 +210,7 @@ Total,120,30,,0,0,
 
 `;
 
-  it("providers_and_practice: sets ucva/fba/completed_consults per provider, sums clinic total_consults, and averages CVA by role", async () => {
+  it("providers_and_practice: sets fba/completed_consults per provider and sums clinic total_consults (NOT ucva/cva-by-tier — those need the Business Performance Report, not this one)", async () => {
     const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
       { id: "p1", name: "Senior One", role: "senior_physio" },
       { id: "p2", name: "Massage One", role: "massage" },
@@ -218,50 +218,16 @@ Total,120,30,,0,0,
 
     const result = await applyNookalReport(client as never, "providers_and_practice", "2026-07-05", PROVIDERS_AND_PRACTICE_CSV);
 
-    expect(providerWeekly["p1:2026-07-05"].ucva).toBeCloseTo(2, 2);
     expect(providerWeekly["p1:2026-07-05"].completed_consults).toBe(40);
     expect(providerWeekly["p1:2026-07-05"].fba).toBeCloseTo(4, 2);
-    expect(providerWeekly["p2:2026-07-05"].ucva).toBeCloseTo(2, 2);
+    expect(providerWeekly["p1:2026-07-05"].ucva).toBeUndefined();
+    expect(providerWeekly["p2:2026-07-05"].ucva).toBeUndefined();
 
     expect(weeklyKpis["2026-07-05"].total_consults).toBe(60);
-    expect(weeklyKpis["2026-07-05"].cva_senior).toBeCloseTo(2, 2);
-    expect(weeklyKpis["2026-07-05"].cva_massage).toBeCloseTo(2, 2);
+    expect(weeklyKpis["2026-07-05"].cva_senior).toBeUndefined();
+    expect(weeklyKpis["2026-07-05"].cva_massage).toBeUndefined();
     expect(weeklyKpis["2026-07-05"].cva_ep).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Senior One"]);
-  });
-
-  it("providers_and_practice: averages CVA by physio experience tier (providers.targets.experience_tier)", async () => {
-    const NEW_GRAD_CSV = `Providers and Practice Report
-
-Parameters
-Dates,29/06/2026 - 05/07/2026
-
-Provider Stats
-Provider,Services,Completed Consults,Unique Clients,New Clients,New Cases,Client Visit Average,Case Visit Average,Classes,Participants,Completed Classes
-Grad One,20,20,10,1,1,2.00,2.00,0,0,0
-Grad Two,30,30,10,1,1,3.00,3.00,0,0,0
-Mid One,40,40,10,1,1,4.00,4.00,0,0,0
-Total,90,90,30,3,3,,,0,0,0
-
-Forward Booking Averages
-Provider,Total Appointments,Total Clients,Booking Average,Total Classes,Total Class Clients,Class Booking Average
-Grad One,20,10,2.00,0,0,0.00
-Grad Two,30,10,3.00,0,0,0.00
-Mid One,40,10,4.00,0,0,0.00
-Total,90,30,,0,0,
-
-`;
-    const { client, weeklyKpis } = createFakeSupabase([
-      { id: "p1", name: "Grad One", role: "physio", targets: { experience_tier: "new_grad" } },
-      { id: "p2", name: "Grad Two", role: "physio", targets: { experience_tier: "new_grad" } },
-      { id: "p3", name: "Mid One", role: "physio", targets: { experience_tier: "2_5yr" } },
-    ]);
-
-    await applyNookalReport(client as never, "providers_and_practice", "2026-07-05", NEW_GRAD_CSV);
-
-    expect(weeklyKpis["2026-07-05"].cva_new_grads).toBeCloseTo(2.5, 2); // avg(2, 3)
-    expect(weeklyKpis["2026-07-05"].cva_2_5yr).toBeCloseTo(4, 2);
-    expect(weeklyKpis["2026-07-05"].cva_senior).toBeUndefined();
   });
 
   it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled", async () => {

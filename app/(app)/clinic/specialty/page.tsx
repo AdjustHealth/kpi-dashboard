@@ -1,23 +1,26 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
-import { SpecialtyServiceCard } from "@/components/dashboard/SpecialtyServiceCard";
-import { createClient } from "@/lib/supabase/server";
 import { getClinicHistory } from "@/lib/clinicData";
 import { toTrendSeries } from "@/components/dashboard/statHelpers";
 import { compoundingTrendSeries } from "@/lib/providerCalc";
-import { recentWeeks, defaultWeekEnding, formatWeekLabel, trackingHistoryWeeks } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { StatTile } from "@/components/ui/StatTile";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
-import { Provider, ProviderWeekly } from "@/lib/types";
-import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
-const SPECIALTIES: { name: string; keyword: RegExp }[] = [
-  { name: "Vestibular", keyword: /vestib/i },
-  { name: "Headaches / TMJ", keyword: /headache|tmj/i },
-  { name: "Paediatrics", keyword: /paed|pediatric/i },
-  { name: "Women's Health", keyword: /women/i },
-  { name: "Hydrotherapy", keyword: /hydro/i },
+/**
+ * Clinic-wide specialty consult categories, from the director's own
+ * "SPECIALTY SERVICES CONSULTATIONS" tracker — Vestibular/Headaches/Paeds
+ * auto-fill from the Activity Report the same way JBV does (see
+ * lib/nookal/parsers.ts SPECIALTY_CATEGORY_PATTERNS). These are whole-clinic
+ * totals, not tied to any one provider's specialty_metrics — a provider's
+ * *personal* specialty KPI (e.g. Marcio's Headache Init/Sub target) is a
+ * separate, provider-scoped number shown on their own meeting page.
+ */
+const SPECIALTIES: { name: string; key: string }[] = [
+  { name: "Vestibular", key: "specialty_vestibular" },
+  { name: "Headaches / TMJ", key: "specialty_headaches" },
+  { name: "Paediatrics", key: "specialty_paeds" },
 ];
 
 export default async function SpecialtyServicesPage({
@@ -28,28 +31,7 @@ export default async function SpecialtyServicesPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
   const historyWeeks = trackingHistoryWeeks(week);
-  const weeks = recentWeeks(week, historyWeeks);
-
-  const supabase = await createClient();
-  const [providersResult, allWeeklyResult, clinicHistory] = await Promise.all([
-    supabase.from("providers").select("*").eq("active", true),
-    supabase.from("provider_weekly").select("*").in("week_ending", weeks),
-    getClinicHistory(week, historyWeeks),
-  ]);
-
-  const providers = (providersResult.data ?? []) as Provider[];
-  const allWeekly = (allWeeklyResult.data ?? []) as ProviderWeekly[];
-
-  function historyFor(providerId: string): WeekMetrics[] {
-    const byWeek = new Map(allWeekly.filter((r) => r.provider_id === providerId).map((r) => [r.week_ending, r]));
-    return weeks.map((w) => ({ week_ending: w, metrics: byWeek.get(w)?.metrics ?? {}, kpas: byWeek.get(w)?.kpas ?? {} }));
-  }
-
-  function findProvider(keyword: RegExp) {
-    return (
-      providers.find((p) => p.specialty_metrics.some((m) => keyword.test(m.key) || keyword.test(m.label))) ?? null
-    );
-  }
+  const clinicHistory = await getClinicHistory(week, historyWeeks);
 
   // Verified against the real senior-physio sheet's JBV Trend column
   // (17.00 -> 17.51 -> 18.04 -> 18.58 compounds at 3%/week, not 5%).
@@ -59,37 +41,37 @@ export default async function SpecialtyServicesPage({
 
   return (
     <>
-      <PageHeader title="Specialty Services" subtitle="Consults, revenue, and growth by specialty." />
+      <PageHeader title="Specialty Services" subtitle="Consults by specialty, clinic-wide." />
       <div className="flex flex-col gap-6 p-8">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {SPECIALTIES.map((s) => {
-            const provider = findProvider(s.keyword);
-            if (!provider) {
-              return (
-                <SpecialtyServiceCard
-                  key={s.name}
-                  name={s.name}
-                  provider={null}
-                  history={[]}
-                  initialKey=""
-                  totalKey=""
-                />
-              );
-            }
-            const metrics = provider.specialty_metrics;
-            const totalMetric = metrics.find((m) => m.source === "calc") ?? metrics.find((m) => /total/.test(m.key));
-            const initialMetric = metrics.find((m) => /init/.test(m.key)) ?? metrics[0];
-            return (
-              <SpecialtyServiceCard
-                key={s.name}
-                name={s.name}
-                provider={provider}
-                history={historyFor(provider.id)}
-                initialKey={initialMetric?.key ?? ""}
-                totalKey={totalMetric?.key ?? initialMetric?.key ?? ""}
+          {SPECIALTIES.map((s) => (
+            <Card key={s.key} title={s.name}>
+              <div className="mb-3 flex flex-wrap gap-6">
+                <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
+                <StatTile {...clinicStatTile(clinicHistory, `${s.key}_total`)} label="Total Consults" />
+              </div>
+              <LineTrendChart
+                title={`${s.name} — Total Consults`}
+                data={toTrendSeries(clinicHistory, `${s.key}_total`)}
+                format="number"
               />
-            );
-          })}
+            </Card>
+          ))}
+
+          <Card title="Women's Health">
+            <p className="mb-3 text-xs text-muted">
+              No Nookal report source for this category on the director&apos;s sheet — entered manually on
+              Weekly Input.
+            </p>
+            <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_total")} label="Total Consults" />
+            <div className="mt-3">
+              <LineTrendChart
+                title="Women's Health — Total Consults"
+                data={toTrendSeries(clinicHistory, "specialty_womens_health_total")}
+                format="number"
+              />
+            </div>
+          </Card>
         </div>
 
         <Card title="Joint Business Ventures">
@@ -100,7 +82,7 @@ export default async function SpecialtyServicesPage({
           </div>
           <p className="mb-3 text-[11px] text-muted">Target growth: 3% per week.</p>
           <LineTrendChart
-            title="JBV Total vs 5% Growth Target"
+            title="JBV Total vs 3% Growth Target"
             data={toTrendSeries(clinicHistory, "jbv_total")}
             format="number"
             colorIndex={6}

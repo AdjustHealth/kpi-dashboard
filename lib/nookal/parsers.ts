@@ -30,6 +30,19 @@ const JBV_SUB_PATTERN = /sub/i;
 const JBV_INIT_PATTERN = /init/i;
 
 /**
+ * Clinic-wide specialty consult categories from the director's own
+ * "SPECIALTY SERVICES CONSULTATIONS" tracker — matched against the same
+ * Case/Item text as JBV, independent of which provider saw the client.
+ * Women's Health has no CSV source on the director's sheet (tracked
+ * manually), so it isn't here.
+ */
+const SPECIALTY_CATEGORY_PATTERNS: Record<string, RegExp> = {
+  vestibular: /vestib/i,
+  headaches: /headache|tmj/i,
+  paeds: /paed|pediatric/i,
+};
+
+/**
  * Activity Report — revenue detail, one row per invoiced line item.
  *
  * Quirk: the Details section only lists "Service" line items — Classes,
@@ -60,6 +73,9 @@ export function parseActivityReport(
     jbvInitialCount: 0,
     jbvSubCount: 0,
     keywordCountsByProvider: {},
+    specialtyCounts: Object.fromEntries(
+      Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
+    ),
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -70,6 +86,9 @@ export function parseActivityReport(
   let jbvSubCount = 0;
   const keywordCountsByProvider: Record<string, Record<string, number>> = {};
   for (const name of Object.keys(keywordPatterns)) keywordCountsByProvider[name] = {};
+  const specialtyCounts: Record<string, { total: number; initial: number; sub: number }> = Object.fromEntries(
+    Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
+  );
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -87,6 +106,13 @@ export function parseActivityReport(
       else if (JBV_INIT_PATTERN.test(itemText)) jbvInitialCount += 1;
     }
 
+    for (const [key, pattern] of Object.entries(SPECIALTY_CATEGORY_PATTERNS)) {
+      if (!pattern.test(itemText)) continue;
+      specialtyCounts[key].total += 1;
+      if (JBV_SUB_PATTERN.test(itemText)) specialtyCounts[key].sub += 1;
+      else if (JBV_INIT_PATTERN.test(itemText)) specialtyCounts[key].initial += 1;
+    }
+
     if (provider) {
       for (const [name, pattern] of Object.entries(keywordPatterns)) {
         if (pattern.test(itemText)) {
@@ -96,7 +122,15 @@ export function parseActivityReport(
     }
   }
 
-  return { totalRevenue, revenueByProvider, revenueByPayerCategory, jbvInitialCount, jbvSubCount, keywordCountsByProvider };
+  return {
+    totalRevenue,
+    revenueByProvider,
+    revenueByPayerCategory,
+    jbvInitialCount,
+    jbvSubCount,
+    keywordCountsByProvider,
+    specialtyCounts,
+  };
 }
 
 /** Occupancy Report — per-provider scheduled vs. occupied minutes. */
