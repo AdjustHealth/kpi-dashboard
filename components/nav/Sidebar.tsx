@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { NAV } from "@/lib/nav";
 
 function isActive(pathname: string, href: string) {
@@ -10,6 +10,9 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const week = searchParams.get("week");
+  const withWeek = (href: string) => (week ? `${href}?week=${week}` : href);
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -36,7 +39,7 @@ export function Sidebar() {
                     return (
                       <li key={item.href}>
                         <Link
-                          href={item.href}
+                          href={withWeek(item.href)}
                           className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
                             active
                               ? "border-accent/40 bg-accent/15 font-semibold text-accent shadow-sm"

@@ -47,7 +47,24 @@ export function weeksBetween(from: string, to: string): number {
 /** When this KPI system's tracking starts for every provider, admin, and clinic page — nothing before this week is meaningful history. */
 export const TRACKING_START_WEEK = "2026-07-01";
 
-/** How many weeks of history to fetch to cover TRACKING_START_WEEK through `week`, floored at `min`. */
-export function trackingHistoryWeeks(week: string, min = 12): number {
-  return Math.max(min, weeksBetween(TRACKING_START_WEEK, week) + 1);
+/**
+ * First week-ending (Sunday) on or after TRACKING_START_WEEK. TRACKING_START_WEEK
+ * itself isn't necessarily a Sunday, so this is the actual earliest week-ending
+ * value that should ever appear in history — everything is keyed by week-ending.
+ */
+export const TRACKING_START_WEEK_ENDING = (() => {
+  const d = new Date(`${TRACKING_START_WEEK}T00:00:00Z`);
+  const day = d.getUTCDay(); // 0 = Sunday
+  if (day !== 0) d.setUTCDate(d.getUTCDate() + (7 - day));
+  return toDateKey(d);
+})();
+
+/**
+ * How many weeks of history to fetch to cover TRACKING_START_WEEK_ENDING through `week`.
+ * Never goes earlier than TRACKING_START_WEEK_ENDING (this system's rollout date) —
+ * capped at `max` so a far-future week doesn't trigger an unbounded query. Both
+ * dates are Sundays, so weeksBetween is exact here (no rounding drift).
+ */
+export function trackingHistoryWeeks(week: string, max = 52): number {
+  return Math.min(max, Math.max(1, weeksBetween(TRACKING_START_WEEK_ENDING, week) + 1));
 }

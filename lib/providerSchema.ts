@@ -224,13 +224,24 @@ export const MULTI_DISC_LABELS: Record<keyof MultiDiscUtilisation, string> = {
   gym: "Gym",
 };
 
+/** Senior physio "Action Plan" categories — from the real Senior Physio Worksheet's Action Plan tab. */
+export const ACTION_PLAN_CATEGORIES: { key: string; label: string }[] = [
+  { key: "turnover", label: "Turnover" },
+  { key: "gym_memberships", label: "Gym / Memberships" },
+  { key: "junior_team_performance", label: "Junior Team Performance" },
+  { key: "marketing", label: "Marketing" },
+  { key: "culture", label: "Culture" },
+];
+
 export interface ProviderMeetingNotes {
   agenda_items?: string;
   review_previous_actions?: string;
   wins?: string[];
   things_to_work_on?: string[];
   multi_disc_utilisation?: MultiDiscUtilisation;
-  /** Up to 4 numbered action steps/agreements for this week. */
+  /** Up to 4 numbered action steps/agreements for this week — standard/admin providers. */
   action_steps?: string[];
+  /** Senior physio only: one note per ACTION_PLAN_CATEGORIES key, matching the real worksheet's Action Plan tab. */
+  action_plan?: Record<string, string>;
   performance_review_goals?: string;
 }

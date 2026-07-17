@@ -117,7 +117,7 @@ export function ProviderDetailView({
       {variant !== "admin" && <ProviderCharts history={history} />}
 
       {variant === "senior" && (
-        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" />
+        <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" categorized />
       )}
     </div>
   );
