@@ -223,6 +223,7 @@ Total,120,30,,0,0,
 
     expect(providerWeekly["p1:2026-07-05"].completed_consults).toBe(40);
     expect(providerWeekly["p1:2026-07-05"].fba).toBeCloseTo(4, 2);
+    expect(providerWeekly["p1:2026-07-05"].personal_cva).toBeCloseTo(2, 2);
     expect(providerWeekly["p1:2026-07-05"].ucva).toBeUndefined();
     expect(providerWeekly["p2:2026-07-05"].ucva).toBeUndefined();
 
@@ -231,6 +232,32 @@ Total,120,30,,0,0,
     expect(weeklyKpis["2026-07-05"].cva_massage).toBeUndefined();
     expect(weeklyKpis["2026-07-05"].cva_ep).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Senior One"]);
+  });
+
+  it("clients_and_cases: computes New Patient Booking Rate from each new client's own Bookings 'Total' count, excluding Pre-Employment", async () => {
+    const CLIENTS_AND_CASES_CSV = `Clients and Cases Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Details
+Client,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provider,Next,Bookings,Email,Receive Email,Mobile,Receive SMS,Followed-up,Client ID
+Bob,Private - Physio,Private,Adjust Physiotherapy,Yes,Yes,No,29/06/2026,Alex Example,15/07/2026,2 Complete / 7 Total,bob@example.com,No,0400 000 001,Yes,No,1001
+Cara,Medicare 2026,Medicare,Adjust Physiotherapy,Yes,Yes,No,30/06/2026,Alex Example,,1 Complete / 3 Total,cara@example.com,No,0400 000 002,Yes,No,1002
+Dana,Existing case,Private,Adjust Physiotherapy,No,Yes,No,30/06/2026,Alex Example,,4 Complete / 4 Total,dana@example.com,No,0400 000 003,Yes,No,1003
+Evan,Village - Pre-Employment,Village Road Show Theme Parks Pty Ltd,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Alex Example,,1 Complete / 1 Total,evan@example.com,No,0400 000 004,Yes,No,1004
+
+`;
+    const { client, providerWeekly, weeklyKpis } = createFakeSupabase([{ id: "p1", name: "Alex Example", role: "physio" }]);
+    await applyNookalReport(client as never, "clients_and_cases", "2026-07-05", CLIENTS_AND_CASES_CSV);
+
+    // Bob (7) + Cara (3) = 10 recommendations across 2 new clients (excl.
+    // Pre-Employment Evan, and excl. Dana who isn't a New Client at all).
+    expect(providerWeekly["p1:2026-07-05"].new_patients).toBe(2);
+    expect(providerWeekly["p1:2026-07-05"].npbr_recommendations).toBe(10);
+    expect(providerWeekly["p1:2026-07-05"].new_pt_booking_rate).toBeCloseTo(5, 2);
+    // Clinic-wide new-client total still includes Pre-Employment (Evan).
+    expect(weeklyKpis["2026-07-05"].total_nc).toBe(3);
   });
 
   const BUSINESS_PERFORMANCE_CSV = `Business Performance Report

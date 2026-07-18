@@ -73,6 +73,16 @@ export interface ClientsAndCasesReportResult {
       /** New clients excluding Pre-Employment screening cases — the real per-provider "# New Clients" figure the director's sheet tracks (confirmed: a Pre-Employment case inflates the raw count but isn't counted per-provider). */
       newClientsExclPreEmployment: number;
       newCases: number;
+      /**
+       * Sum, across this provider's new clients (excl. Pre-Employment), of the
+       * "Total" half of each client's "Bookings" cell (e.g. "2 Complete / 7
+       * Total" contributes 7) — the KPI Scorecard's "NPBR calc — total
+       * recommendations for new patients". Divide by newClientsExclPreEmployment
+       * for New Patient Booking Rate, matching the real Accountability Meeting
+       * template (a new client's own total recommended booking count, averaged
+       * across all of a provider's new clients that week).
+       */
+      npbrRecommendationsTotal: number;
     }
   >;
 }

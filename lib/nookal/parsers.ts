@@ -394,6 +394,11 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
 // cases were excluded, and not before).
 const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
 
+// "Bookings" cells read like "2 Complete / 7 Total" — the second number is
+// this client's total recommended/scheduled appointment count, the input to
+// New Patient Booking Rate (see ClientsAndCasesReportResult.npbrRecommendationsTotal).
+const BOOKINGS_TOTAL_PATTERN = /\/\s*(\d+)\s*Total/i;
+
 /** Clients and Cases Report — new client / new case counts per provider. */
 export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportResult {
   const rows = parseCsvRows(text);
@@ -405,10 +410,16 @@ export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportR
     const r = rowToRecord(section.header, row);
     const provider = r["Provider"];
     if (!provider) continue;
-    if (!byProvider[provider]) byProvider[provider] = { newClients: 0, newClientsExclPreEmployment: 0, newCases: 0 };
+    if (!byProvider[provider]) {
+      byProvider[provider] = { newClients: 0, newClientsExclPreEmployment: 0, newCases: 0, npbrRecommendationsTotal: 0 };
+    }
     if (r["New Client"]?.toLowerCase() === "yes") {
       byProvider[provider].newClients += 1;
-      if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) byProvider[provider].newClientsExclPreEmployment += 1;
+      if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) {
+        byProvider[provider].newClientsExclPreEmployment += 1;
+        const bookingsMatch = BOOKINGS_TOTAL_PATTERN.exec(r["Bookings"] ?? "");
+        if (bookingsMatch) byProvider[provider].npbrRecommendationsTotal += Number(bookingsMatch[1]);
+      }
     }
     if (r["New Case"]?.toLowerCase() === "yes") byProvider[provider].newCases += 1;
   }

@@ -241,9 +241,18 @@ export async function applyNookalReport(
     for (const [name, data] of Object.entries(result.byProvider)) {
       totalNewClients += data.newClients;
       const p = findProvider(name);
+      if (!p) continue;
       // Clinic-wide total includes Pre-Employment screenings; each
       // provider's own KPI figure doesn't (see PRE_EMPLOYMENT_PATTERN).
-      if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClientsExclPreEmployment });
+      const patch: Record<string, unknown> = { new_patients: data.newClientsExclPreEmployment };
+      // New Patient Booking Rate: each new client's own "X Complete / Y Total"
+      // Bookings count, averaged across all of this provider's new clients
+      // that week (see parseClientsAndCasesReport's npbrRecommendationsTotal).
+      if (data.newClientsExclPreEmployment > 0) {
+        patch.npbr_recommendations = data.npbrRecommendationsTotal;
+        patch.new_pt_booking_rate = data.npbrRecommendationsTotal / data.newClientsExclPreEmployment;
+      }
+      await upsertProviderMetrics(p.id, patch);
     }
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {
@@ -255,6 +264,8 @@ export async function applyNookalReport(
     // report's "Client Visit Average" into `ucva` — that was silently wrong
     // (writing a single week's Providers & Practice ratio, sometimes 1.0 for
     // low-volume providers, into a field labelled as a 12-month figure).
+    // It IS this week's real "Personal CVA" scorecard row, though — a
+    // different, single-week metric the KPI Scorecard tracks alongside UCVA.
     const result = parseProvidersAndPracticeReport(csvText);
     rowsFound = Object.keys(result.byProvider).length;
     let totalCompletedConsults = 0;
@@ -267,6 +278,7 @@ export async function applyNookalReport(
       const patch: Record<string, unknown> = {};
       if (data.completedConsults !== null) patch.completed_consults = data.completedConsults;
       if (data.forwardBookingAverage !== null) patch.fba = data.forwardBookingAverage;
+      if (data.cva !== null) patch.personal_cva = data.cva;
       if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
     }
 

@@ -292,6 +292,15 @@ describe("parseClientsAndCasesReport", () => {
     expect(result.byProvider["Alex Example"].newClientsExclPreEmployment).toBe(1);
     expect(result.byProvider["Jamie Sample"].newClientsExclPreEmployment).toBe(1);
   });
+
+  it("sums each new client's Bookings 'Total' count for New Patient Booking Rate, excluding Pre-Employment rows", () => {
+    // Test Client One: new, non-Pre-Employment, "1 Complete / 2 Total" -> +2.
+    // Test Client Two: not a new client -> excluded entirely.
+    // Test Client Four: new, but Pre-Employment -> excluded from the sum too.
+    const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
+    expect(result.byProvider["Alex Example"].npbrRecommendationsTotal).toBe(2);
+    expect(result.byProvider["Jamie Sample"].npbrRecommendationsTotal).toBe(1);
+  });
 });
 
 describe("parseActivityReport", () => {
