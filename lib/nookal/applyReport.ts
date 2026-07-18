@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { NookalReportType } from "@/lib/schema";
+import { cvaTierBucket } from "@/lib/cvaTier";
 import {
   parseActivityReport,
   parseAgedDebtorsReport,
@@ -36,23 +37,6 @@ function average(values: number[]): number | null {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-/**
- * CVA-by-tier bucket for the Clinic Analysis box's UCVA averages — grouped
- * by experience, not by ProviderRole. role:"senior_physio" always buckets
- * as "senior"; a role:"physio" provider buckets by
- * providers.targets.experience_tier ("new_grad" | "2_5yr" | "senior") — the
- * latter covers experienced physios who aren't on the Senior Physio tab
- * (e.g. Michael, Nick) but are still in the "Senior (6+yr)" UCVA group.
- */
-function cvaTierBucket(p: ProviderRow): "senior" | "massage" | "ep" | "new_grad" | "2_5yr" | null {
-  if (p.role === "senior_physio") return "senior";
-  if (p.role === "massage" || p.role === "ep") return p.role;
-  if (p.role === "physio") {
-    const tier = p.targets?.experience_tier;
-    if (tier === "new_grad" || tier === "2_5yr" || tier === "senior") return tier;
-  }
-  return null;
-}
 
 /**
  * Parses an uploaded Nookal report and writes whatever KPIs it maps to —

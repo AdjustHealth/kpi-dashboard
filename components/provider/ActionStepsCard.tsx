@@ -7,7 +7,7 @@ import { Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { ProviderMeetingNotes, ACTION_PLAN_CATEGORIES } from "@/lib/providerSchema";
 
-const ACTION_STEP_COUNT = 4;
+const ACTION_STEP_COUNT = 3;
 
 /**
  * Action Steps & Agreements + Performance Review Goals — kept separate
@@ -18,7 +18,7 @@ const ACTION_STEP_COUNT = 4;
  *
  * Senior physios use `categorized` mode: one note per Action Plan
  * category (Turnover / Gym / Junior Team / Marketing / Culture), matching
- * the real Senior Physio Worksheet's Action Plan tab, instead of 4 free
+ * the real Senior Physio Worksheet's Action Plan tab, instead of 3 free
  * numbered slots.
  */
 export function ActionStepsCard({
@@ -37,7 +37,7 @@ export function ActionStepsCard({
   categorized?: boolean;
 }) {
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
-    action_steps: ["", "", "", ""],
+    action_steps: Array(ACTION_STEP_COUNT).fill(""),
     action_plan: {},
     performance_review_goals: "",
     ...initialNotes,

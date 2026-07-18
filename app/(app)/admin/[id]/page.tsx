@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
+import { getClinicHistory } from "@/lib/clinicData";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 
 export default async function AdminDetailPage({
@@ -14,8 +15,12 @@ export default async function AdminDetailPage({
   const { id } = await params;
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
+  const historyWeeks = trackingHistoryWeeks(week);
 
-  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week, trackingHistoryWeeks(week));
+  const [{ provider, history, currentMeetingNotes }, clinicHistory] = await Promise.all([
+    getProviderDetailData(id, week, historyWeeks),
+    getClinicHistory(week, historyWeeks),
+  ]);
   if (!provider || provider.role !== "admin") notFound();
 
   return (
@@ -26,6 +31,7 @@ export default async function AdminDetailPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
+        clinicHistory={clinicHistory}
         variant="admin"
       />
     </>

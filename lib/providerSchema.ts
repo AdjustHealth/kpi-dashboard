@@ -54,20 +54,20 @@ export interface SpecialtyMetric extends ProviderField {
  */
 export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "turnover", label: "Turnover", type: "currency", betterWhen: "higher" },
-  { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: "higher" },
-  { key: "completed_consults", label: "Completed Consults", type: "number" },
+  { key: "completed_consults", label: "Completed Consults", type: "number", betterWhen: "higher" },
   { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
   { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
-  { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 1, betterWhen: "higher" },
   // Labelled "CVA" (not "UCVA") per the director — this Business Performance
   // Report figure IS the client-visit-average metric she tracks; there's no
   // separate lower-value "weekly ratio" CVA in her real methodology, and
   // showing one (as this app briefly did, sourced from the Providers &
   // Practice Report's very different "Client Visit Average" column) read as
   // a second, much-lower, wrong number next to this one.
-  { key: "ucva", label: "CVA", type: "decimal", decimals: 2, betterWhen: "higher" },
-  { key: "ncva", label: "NCVA", type: "decimal", decimals: 2, betterWhen: "higher" },
+  { key: "ucva", label: "CVA", type: "decimal", decimals: 1, betterWhen: "higher" },
+  { key: "ncva", label: "NCVA", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
@@ -82,21 +82,15 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
 ];
 
 /**
- * Admin staff use the same page template with this field set instead —
- * taken from the director's actual admin KPI scorecard (Diary Management /
- * Reschedule Rate / Cancellations % of Total Clinic / Cancellations Not
- * Rebooked / Cancellations Booked Within 7 Days / Avg Days to Next Booking /
- * Follow Up Phone Calls / OBV Number Not Sent / Rx Notes Made / Answered
- * Calls), replacing the earlier unconfirmed Communication/Phone placeholders.
- * cancellations_handled, pct_of_total_clinic_cx, not_rebooked,
- * reschedule_rate_pct, cancellations_not_rebooked_pct,
- * booked_within_7_days_pct, and avg_days_to_next_booking auto-fill from the
- * Cancellations report (grouped by "Modified User" — the admin who
- * actioned it). Follow Up Phone Calls, OBV Number Not Sent, Rx Notes Made,
- * and Answered Calls aren't in any Nookal report, so they stay manual.
+ * Admin staff's KPI Scorecard — just the per-admin cancellation-handling
+ * stats that genuinely differ by person, auto-filled from the Cancellations
+ * report grouped by "Modified User" (the admin who actioned it). The
+ * clinic-wide admin fields every admin shares identically (Diary
+ * Management, Follow Up Phone Calls, OBV Number Not Sent, Rx Notes Made,
+ * Answered Calls) live in ADMIN_SHARED_COMPLIANCE_FIELDS instead — typed
+ * once on Weekly Input, not tracked per-person.
  */
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
-  { key: "diary_management_pct", label: "Diary Management", type: "percent", betterWhen: "higher" },
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
   { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
   { key: "not_rebooked", label: "Number Not Rebooked", type: "number", betterWhen: "lower" },
@@ -104,10 +98,25 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
   { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
-  { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher" },
-  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower" },
-  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher" },
-  { key: "answered_calls_pct", label: "Answered Calls", type: "percent", betterWhen: "higher" },
+];
+
+export interface AdminSharedField extends ProviderField {
+  /** The lib/schema.ts CLINIC_SCHEMA field id this reads its (shared, clinic-wide) value from. */
+  clinicFieldId: string;
+}
+
+/**
+ * Admin "Compliance" — entered once on Weekly Input's Admin Meeting Prep
+ * section and shown identically on every admin staff member's page (they're
+ * clinic/admin-team-level numbers, not each person's own individual figure).
+ * Read-only here; edit on Weekly Input.
+ */
+export const ADMIN_SHARED_COMPLIANCE_FIELDS: AdminSharedField[] = [
+  { key: "diary_management_pct", label: "Diary Management", type: "percent", betterWhen: "higher", clinicFieldId: "diary_mgmt_pct" },
+  { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher", clinicFieldId: "admin_followup_calls" },
+  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower", clinicFieldId: "admin_obv_not_sent" },
+  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher", clinicFieldId: "admin_rx_notes_pct" },
+  { key: "answered_calls_pct", label: "Answered Calls", type: "percent", betterWhen: "higher", clinicFieldId: "admin_answered_calls_pct" },
 ];
 
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
@@ -150,11 +159,11 @@ export const SENIOR_KPA_FIELDS: ProviderField[] = [
 ];
 
 /**
- * Regular (non-senior) providers use this longer, more granular KPA set —
- * 7 core values plus 12 specific behavioural standards, taken directly
- * from the real KPA Scorecard screenshot.
+ * The 7 Adjust core values — kept as their own group, visually separate
+ * from task-style KPAs (per the director), and shared by both regular
+ * providers and admin staff.
  */
-export const PROVIDER_KPA_FIELDS: ProviderField[] = [
+export const CORE_VALUES_KPA_FIELDS: ProviderField[] = [
   { key: "courage", label: "Courage", type: "rating" },
   { key: "teamwork", label: "Teamwork", type: "rating" },
   { key: "accountability", label: "Accountability", type: "rating" },
@@ -162,6 +171,14 @@ export const PROVIDER_KPA_FIELDS: ProviderField[] = [
   { key: "compassion", label: "Compassion", type: "rating" },
   { key: "integrity", label: "Integrity", type: "rating" },
   { key: "excellence", label: "Excellence", type: "rating" },
+];
+
+/**
+ * Regular (non-senior, non-admin) providers' 12 specific behavioural
+ * standards, taken directly from the real KPA Scorecard screenshot — shown
+ * as its own group, separate from Core Values.
+ */
+export const PROVIDER_TASK_KPA_FIELDS: ProviderField[] = [
   { key: "greet_walk_client", label: "Greeting and walking client to and from front desk", type: "rating" },
   { key: "adjust_consultation", label: "Utilisation of the Adjust Client-Centered Consultation for all new clients", type: "rating" },
   { key: "treatment_plan", label: "Develop & carry out a detailed treatment plan for all clients", type: "rating" },
@@ -192,8 +209,53 @@ export const PROVIDER_KPA_FIELDS: ProviderField[] = [
   },
 ];
 
-export function kpaFieldsForRole(role: ProviderRole): ProviderField[] {
-  return role === "senior_physio" ? SENIOR_KPA_FIELDS : PROVIDER_KPA_FIELDS;
+/**
+ * Admin staff's Customer Service KPA group, from the director's own
+ * Customer Service KPA sheet — 3 categories, each covering several
+ * behaviours scored together as one rating.
+ */
+export const CUSTOMER_SERVICE_KPA_FIELDS: ProviderField[] = [
+  {
+    key: "set_the_stage",
+    label:
+      "Set the Stage — 7 seconds to make a first impression / acknowledge and greet client when they enter / introduce yourself to new clients / no bitching, moaning or negative personal talk on the front desk / positive body language, posture & tone / be mindful of how the waiting room looks",
+    type: "rating",
+  },
+  {
+    key: "interaction_connection",
+    label:
+      "Interaction & Connection — Power of familiarity: introduce, use client names where possible, say \"thank you\" / Embracing Vulnerability: being who you are, giving yourself permission to be you / creating a safe space for others to be who they are, letting your wall or guard down",
+    type: "rating",
+  },
+  {
+    key: "solutions_focused",
+    label:
+      "Solutions Focused — Being solutions focused / using your initiative / understanding what people are going through / following things right through to the end",
+    type: "rating",
+  },
+];
+
+export interface KpaGroup {
+  title: string;
+  fields: ProviderField[];
+}
+
+/**
+ * KPA sections for a role, in display order — always split Core Values out
+ * as its own titled group rather than one long merged list.
+ */
+export function kpaGroupsForRole(role: ProviderRole): KpaGroup[] {
+  if (role === "senior_physio") return [{ title: "KPA Scorecard", fields: SENIOR_KPA_FIELDS }];
+  if (role === "admin") {
+    return [
+      { title: "Customer Service", fields: CUSTOMER_SERVICE_KPA_FIELDS },
+      { title: "Culture / Core Values", fields: CORE_VALUES_KPA_FIELDS },
+    ];
+  }
+  return [
+    { title: "Core Values", fields: CORE_VALUES_KPA_FIELDS },
+    { title: "KPA Scorecard", fields: PROVIDER_TASK_KPA_FIELDS },
+  ];
 }
 
 /**
