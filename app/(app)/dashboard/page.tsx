@@ -27,7 +27,7 @@ export default async function DashboardPage({
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Adjust Health at a glance." />
+      <PageHeader title="Dashboard" subtitle="Adjust Health at a glance." showBack={false} />
       <div className="flex flex-col gap-6 p-8">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Revenue</h2>

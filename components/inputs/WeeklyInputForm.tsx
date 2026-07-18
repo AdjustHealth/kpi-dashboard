@@ -104,18 +104,15 @@ export function WeeklyInputForm({
             />
           </Card>
 
-          <Card title="Ageing Debts">
+          <Card title="Ageing Debts — still manual">
             <p className="mb-4 text-xs text-muted">
-              Off the Aged Debtors report. Typed manually — Nookal exports this combined across
-              locations and grouped by payer type, so it can&apos;t reliably split Adjust from
-              Podiatry or separate true Private balances from NDIS clients invoiced as Private.
+              Off the Aged Debtors report. The Adjust-side totals now auto-fill from the upload above
+              (see Auto-Filled section below) — these two can&apos;t: Nookal has no way to tell a true
+              Private balance from an NDIS client invoiced as Private, and no location column to split
+              Adjust from Podiatry.
             </p>
             <p className="mb-2 text-xs font-medium text-foreground">Adjust Physiotherapy</p>
-            <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => !f.id.startsWith("ad_pod_"))}
-              values={weekly}
-              onChange={onChange}
-            />
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id === "ad_actual_private")} values={weekly} onChange={onChange} />
             <p className="mb-2 mt-4 text-xs font-medium text-foreground">Podiatry</p>
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id.startsWith("ad_pod_"))}
@@ -132,12 +129,8 @@ export function WeeklyInputForm({
             />
           </Card>
 
-          <Card title="Admin Manual Fields">
-            <ClinicFieldGrid fields={getClinicFieldsByCategory("Admin")} values={weekly} onChange={onChange} />
-          </Card>
-
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-foreground">Provider Compliance — every clinician (not admin)</h3>
+            <h3 className="text-sm font-semibold text-foreground">Provider Meeting Prep</h3>
             {providers.filter((p) => p.role !== "admin").length === 0 && (
               <p className="text-sm text-muted">
                 No active clinicians yet — add them on the Settings page.
@@ -153,6 +146,16 @@ export function WeeklyInputForm({
                 initialValues={kpasByProvider.get(provider.id) ?? {}}
               />
             ))}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-foreground">Admin Meeting Prep</h3>
+            <p className="text-xs text-muted">
+              Entered once, shown identically on every admin staff member&apos;s page.
+            </p>
+            <Card title="Admin">
+              <ClinicFieldGrid fields={getClinicFieldsByCategory("Admin")} values={weekly} onChange={onChange} />
+            </Card>
           </div>
         </div>
       </div>
@@ -182,16 +185,34 @@ export function WeeklyInputForm({
             <ClinicFieldGrid fields={getClinicFieldsByCategory("CX")} values={weekly} onChange={onChange} />
           </Card>
 
+          <Card title="Ageing Debts — Adjust (Auto)">
+            <p className="mb-4 text-xs text-muted">
+              Bucketed from the Aged Debtors report by payer (Private / NDIS / 3rd Party / Medicare-DVA), same
+              categorization as Revenue by Payer above.
+            </p>
+            <ClinicFieldGrid
+              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id !== "ad_actual_private" && !f.id.startsWith("ad_pod_"))}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
+
           <Card title="Clinic — CVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
               CVA by tier is entered manually (needs the Business Performance Report — not yet auto-filled).
-              JBV and Vestibular/Headaches/Paeds Initial/Subsequent auto-fill from the Activity Report by
-              counting rows whose service item matches each keyword. Women&apos;s Health has no report source,
-              so it stays manual.
+              JBV and Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent all auto-fill from the
+              Activity Report by counting rows whose service item matches each keyword.
             </p>
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Clinic").filter(
-                (f) => !["jbv_total", "specialty_vestibular_total", "specialty_headaches_total", "specialty_paeds_total"].includes(f.id)
+                (f) =>
+                  ![
+                    "jbv_total",
+                    "specialty_vestibular_total",
+                    "specialty_headaches_total",
+                    "specialty_paeds_total",
+                    "specialty_womens_health_total",
+                  ].includes(f.id)
               )}
               values={weekly}
               onChange={onChange}
