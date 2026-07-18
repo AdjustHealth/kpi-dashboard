@@ -9,6 +9,7 @@ const PARSEABLE_REPORT_TYPES: readonly NookalReportType[] = [
   "cancellations",
   "clients_and_cases",
   "providers_and_practice",
+  "business_performance",
 ];
 
 export async function GET(request: NextRequest) {

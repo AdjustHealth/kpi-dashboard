@@ -62,8 +62,8 @@ function cvaTierBucket(p: ProviderRow): "senior" | "massage" | "ep" | "new_grad"
  * data (e.g. if a provider's name in Nookal doesn't exactly match the name
  * on the Providers/Settings page).
  *
- * "business_performance" and "aged_debtors" are stored (by the caller) but
- * not parsed here — see lib/nookal/parsers.ts for why.
+ * "aged_debtors" is stored (by the caller) but not parsed here — see
+ * lib/nookal/parsers.ts for why. "business_performance" IS parsed below.
  */
 export async function applyNookalReport(
   supabase: SupabaseClient,
