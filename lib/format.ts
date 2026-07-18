@@ -27,6 +27,24 @@ export function formatValue(
   }
 }
 
+/**
+ * Short axis-tick label — full formatValue() output is too wide for a
+ * narrow chart Y-axis (e.g. "$40,000" clips inside a ~40px-wide axis).
+ * Abbreviates currency/number into k/m; percent and decimal stay as-is,
+ * they're already short.
+ */
+export function formatAxisTick(value: number, type: ClinicFieldType | ProviderFieldType, decimals?: number): string {
+  if (type === "currency" || type === "number") {
+    const abs = Math.abs(value);
+    const prefix = type === "currency" ? "$" : "";
+    const sign = value < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}${prefix}${(abs / 1_000_000).toFixed(1)}m`;
+    if (abs >= 1_000) return `${sign}${prefix}${(abs / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}k`;
+    return `${sign}${prefix}${abs}`;
+  }
+  return formatValue(value, type, decimals);
+}
+
 /** Percentage change from `previous` to `current`, or null if not computable. */
 export function pctChange(current: number | null, previous: number | null): number | null {
   if (current === null || previous === null || previous === 0) return null;

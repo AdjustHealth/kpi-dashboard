@@ -82,8 +82,12 @@ export interface ProviderCvaSeries {
   points: { week_ending: string; value: number | null }[];
 }
 
-/** Each active clinician's own CVA (ucva) over time, for a per-provider comparison chart. */
-export async function getProviderCvaHistory(week: string, historyWeeks: number): Promise<ProviderCvaSeries[]> {
+/** Each active clinician's own value for a given provider_weekly.metrics key over time, for a per-provider comparison chart. */
+export async function getProviderMetricHistory(
+  week: string,
+  historyWeeks: number,
+  metricKey: string
+): Promise<ProviderCvaSeries[]> {
   const supabase = await createClient();
   const weeks = recentWeeks(week, historyWeeks);
   const [providersResult, weeklyResult] = await Promise.all([
@@ -100,7 +104,7 @@ export async function getProviderCvaHistory(week: string, historyWeeks: number):
       providerName: p.name,
       role: p.role,
       points: weeks.map((w) => {
-        const v = byProviderWeek.get(`${p.id}:${w}`)?.ucva;
+        const v = byProviderWeek.get(`${p.id}:${w}`)?.[metricKey];
         return { week_ending: w, value: typeof v === "number" ? v : null };
       }),
     }))

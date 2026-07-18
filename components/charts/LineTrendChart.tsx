@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
 import { formatWeekLabel } from "@/lib/week";
-import { formatValue } from "@/lib/format";
+import { formatValue, formatAxisTick } from "@/lib/format";
 
 export interface TrendPoint {
   week_ending: string;
@@ -76,7 +76,8 @@ export function LineTrendChart({
               tick={{ fill: CHART_CHROME.mutedInk, fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={36}
+              width={40}
+              tickFormatter={(v) => formatAxisTick(Number(v), format, decimals)}
             />
             <Tooltip
               content={<TooltipContent format={format} decimals={decimals} />}

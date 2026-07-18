@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
-import { formatValue } from "@/lib/format";
+import { formatValue, formatAxisTick } from "@/lib/format";
 import { ChartFormat } from "@/components/charts/LineTrendChart";
 
 /** ≥2 series on one axis — never dual-axis. Legend always present for 2+ series. */
@@ -45,7 +45,13 @@ export function MultiLineChart({
               tickLine={false}
               minTickGap={24}
             />
-            <YAxis tick={{ fill: CHART_CHROME.mutedInk, fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+            <YAxis
+              tick={{ fill: CHART_CHROME.mutedInk, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              width={44}
+              tickFormatter={(v) => formatAxisTick(Number(v), format, decimals)}
+            />
             <Tooltip
               contentStyle={{
                 background: "var(--surface-raised)",

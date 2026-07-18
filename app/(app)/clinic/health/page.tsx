@@ -1,17 +1,17 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { OccupancyBars } from "@/components/charts/OccupancyBars";
-import { ProviderSmallMultiples } from "@/components/charts/ProviderSmallMultiples";
 import {
   getClinicHistory,
   getClinicTargets,
   getClinicWideCvaRollup,
   getNewClientsByProvider,
-  getProviderCvaHistory,
+  getProviderMetricHistory,
 } from "@/lib/clinicData";
-import { clinicStatTile } from "@/components/dashboard/statHelpers";
+import { clinicStatTile, toTrendSeries, providerSeriesToWideRows } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
 
@@ -32,14 +32,17 @@ export default async function ClinicHealthPage({
   // so the clinic-wide history and the per-provider CVA history intentionally
   // use two different windows.
   const historyWeeks = clinicHistoryWeeks(week);
-  const providerHistoryWeeks = trackingHistoryWeeks(week);
-  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory] = await Promise.all([
+  const providerHistoryWeeks = Math.min(trackingHistoryWeeks(week), 8);
+  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory, providerNcvaHistory] = await Promise.all([
     getClinicHistory(week, historyWeeks),
     getClinicTargets(),
     getClinicWideCvaRollup(week),
     getNewClientsByProvider(week),
-    getProviderCvaHistory(week, Math.min(providerHistoryWeeks, 8)),
+    getProviderMetricHistory(week, providerHistoryWeeks, "ucva"),
+    getProviderMetricHistory(week, providerHistoryWeeks, "ncva"),
   ]);
+  const providerCvaWide = providerSeriesToWideRows(providerCvaHistory);
+  const providerNcvaWide = providerSeriesToWideRows(providerNcvaHistory);
 
   const latest = history[history.length - 1];
   const prior = history[history.length - 2];
@@ -93,15 +96,17 @@ export default async function ClinicHealthPage({
 
         <Card title="Weekly Activity">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <MultiLineChart
-              title="Total Appointments vs New Patients"
-              data={history.map((h) => ({
-                label: formatWeekLabel(h.week_ending),
-                "Completed Appointments": h.total_consults ?? null,
-                "New Patients": h.total_nc ?? null,
-              }))}
-              seriesKeys={["Completed Appointments", "New Patients"]}
+            <LineTrendChart
+              title="Completed Appointments"
+              data={toTrendSeries(history, "total_consults")}
               format="number"
+              colorIndex={0}
+            />
+            <LineTrendChart
+              title="New Patients"
+              data={toTrendSeries(history, "total_nc")}
+              format="number"
+              colorIndex={1}
             />
             <MultiLineChart
               title="New Clients — Online vs. Phone / In-Person"
@@ -152,11 +157,19 @@ export default async function ClinicHealthPage({
               />
             </Card>
           </div>
-          {providerCvaHistory.length > 0 && (
+          {providerCvaWide.rows.length > 0 && (
             <div className="mt-4">
               <Card title="CVA by Individual Provider">
-                <p className="mb-3 text-xs text-muted">Same CVA figure, one mini chart per clinician — colored by tier (blue = senior, violet = physio, magenta = massage, orange = EP).</p>
-                <ProviderSmallMultiples series={providerCvaHistory} format="decimal" decimals={1} />
+                <p className="mb-3 text-xs text-muted">Every clinician&apos;s CVA on one chart, to compare them directly against each other.</p>
+                <MultiLineChart title="CVA by Provider" data={providerCvaWide.rows} seriesKeys={providerCvaWide.keys} format="decimal" decimals={1} height={280} />
+              </Card>
+            </div>
+          )}
+          {providerNcvaWide.rows.length > 0 && (
+            <div className="mt-4">
+              <Card title="NCVA by Individual Provider">
+                <p className="mb-3 text-xs text-muted">Every clinician&apos;s NCVA on one chart, to compare them directly against each other.</p>
+                <MultiLineChart title="NCVA by Provider" data={providerNcvaWide.rows} seriesKeys={providerNcvaWide.keys} format="decimal" decimals={1} height={280} />
               </Card>
             </div>
           )}
