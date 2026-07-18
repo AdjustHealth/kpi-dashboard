@@ -9,6 +9,7 @@ import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/we
 import { StatTile } from "@/components/ui/StatTile";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { JBV_PARTNERS } from "@/lib/jbvPartners";
+import { JbvPartnerGrid } from "@/components/dashboard/JbvPartnerGrid";
 import { STATUS } from "@/components/charts/palette";
 
 /**
@@ -126,12 +127,8 @@ export default async function SpecialtyServicesPage({
           />
 
           <div className="mt-5 border-t border-border pt-4">
-            <p className="mb-2 text-xs font-medium text-muted">JBV Partners ({JBV_PARTNERS.length})</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground">
-              {JBV_PARTNERS.map((name) => (
-                <span key={name}>{name}</span>
-              ))}
-            </div>
+            <p className="mb-3 text-xs font-medium text-muted">JBV Partners ({JBV_PARTNERS.length})</p>
+            <JbvPartnerGrid partners={JBV_PARTNERS} />
           </div>
         </Card>
       </div>

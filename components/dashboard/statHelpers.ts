@@ -3,6 +3,8 @@ import { formatValue } from "@/lib/format";
 import { periodOverPeriodChange } from "@/lib/calc";
 import { ClinicWeekRow, ProviderCvaSeries } from "@/lib/clinicData";
 import { formatWeekLabel } from "@/lib/week";
+import { CATEGORICAL } from "@/components/charts/palette";
+import { CvaTier } from "@/lib/cvaTier";
 
 export function clinicStatTile(
   history: ClinicWeekRow[],
@@ -33,14 +35,29 @@ export function toTrendSeries(history: ClinicWeekRow[], fieldId: string) {
   }));
 }
 
-/** Pivots one series per provider into MultiLineChart's wide row shape — every provider as its own line on one chart, to compare them directly. */
-export function providerSeriesToWideRows(series: ProviderCvaSeries[]): { rows: Record<string, unknown>[]; keys: string[] } {
-  if (series.length === 0) return { rows: [], keys: [] };
+/** Groups every provider's line by CVA tier (New Grad / 2-5yr / Senior / Massage / EP) instead of one colour per person — same tier, same colour. */
+const TIER_COLOR_INDEX: Record<CvaTier, number> = {
+  new_grad: 1, // green
+  "2_5yr": 6, // violet
+  senior: 0, // blue
+  massage: 2, // magenta
+  ep: 5, // orange
+};
+const FALLBACK_COLOR_INDEX = 7; // red — only hit if a provider has no tier set yet
+
+/** Pivots one series per provider into MultiLineChart's wide row shape — every provider as its own line on one chart, to compare them directly. Colour is grouped by tier, not one hue per person. */
+export function providerSeriesToWideRows(series: ProviderCvaSeries[]): {
+  rows: Record<string, unknown>[];
+  keys: string[];
+  colors: string[];
+} {
+  if (series.length === 0) return { rows: [], keys: [], colors: [] };
   const weeks = series[0].points.map((p) => p.week_ending);
   const rows = weeks.map((w, i) => {
     const row: Record<string, unknown> = { label: formatWeekLabel(w) };
     for (const s of series) row[s.providerName] = s.points[i]?.value ?? null;
     return row;
   });
-  return { rows, keys: series.map((s) => s.providerName) };
+  const colors = series.map((s) => CATEGORICAL[(s.tier ? TIER_COLOR_INDEX[s.tier] : FALLBACK_COLOR_INDEX) % CATEGORICAL.length]);
+  return { rows, keys: series.map((s) => s.providerName), colors };
 }

@@ -57,8 +57,42 @@ export function KpaScorecardTable({
     setOpenKey(null);
   }
 
+  // Most weeks' ratings repeat the week before almost exactly — copy every
+  // field's previous rating into the current (editable) week in one go
+  // instead of re-clicking through each one.
+  const previous = currentIndex > 0 ? history[currentIndex - 1]?.[section] : undefined;
+  function copyLastWeek() {
+    if (!previous) return;
+    const copied: Record<string, unknown> = {};
+    for (const field of fields) {
+      const prevValue = previous[field.key];
+      if (KPA_RATINGS.includes(prevValue as KpaRating)) {
+        copied[field.key] = prevValue;
+        set(field.key, prevValue);
+      }
+    }
+    setCurrent((prev) => ({ ...prev, ...copied }));
+  }
+
   return (
-    <Card title={title} action={<SaveIndicator status={status} />}>
+    <Card
+      title={title}
+      action={
+        <div className="flex items-center gap-3">
+          {previous && (
+            <button
+              type="button"
+              onClick={copyLastWeek}
+              className="text-xs font-medium text-accent hover:underline"
+              title="Copy every rating from the previous week into this week"
+            >
+              Copy last week
+            </button>
+          )}
+          <SaveIndicator status={status} />
+        </div>
+      }
+    >
       <div className="flex flex-col divide-y divide-border/60">
         {fields.map((field) => (
           <div key={field.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

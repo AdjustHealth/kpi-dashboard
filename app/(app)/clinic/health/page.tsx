@@ -160,16 +160,37 @@ export default async function ClinicHealthPage({
           {providerCvaWide.rows.length > 0 && (
             <div className="mt-4">
               <Card title="CVA by Individual Provider">
-                <p className="mb-3 text-xs text-muted">Every clinician&apos;s CVA on one chart, to compare them directly against each other.</p>
-                <MultiLineChart title="CVA by Provider" data={providerCvaWide.rows} seriesKeys={providerCvaWide.keys} format="decimal" decimals={1} height={280} />
+                <p className="mb-3 text-xs text-muted">
+                  Every clinician&apos;s CVA on one chart, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
+                  same-tier providers share a colour.
+                </p>
+                <MultiLineChart
+                  title="CVA by Provider"
+                  data={providerCvaWide.rows}
+                  seriesKeys={providerCvaWide.keys}
+                  colors={providerCvaWide.colors}
+                  format="decimal"
+                  decimals={1}
+                  height={280}
+                />
               </Card>
             </div>
           )}
           {providerNcvaWide.rows.length > 0 && (
             <div className="mt-4">
               <Card title="NCVA by Individual Provider">
-                <p className="mb-3 text-xs text-muted">Every clinician&apos;s NCVA on one chart, to compare them directly against each other.</p>
-                <MultiLineChart title="NCVA by Provider" data={providerNcvaWide.rows} seriesKeys={providerNcvaWide.keys} format="decimal" decimals={1} height={280} />
+                <p className="mb-3 text-xs text-muted">
+                  Every clinician&apos;s NCVA on one chart, coloured by tier the same way as the CVA chart above.
+                </p>
+                <MultiLineChart
+                  title="NCVA by Provider"
+                  data={providerNcvaWide.rows}
+                  seriesKeys={providerNcvaWide.keys}
+                  colors={providerNcvaWide.colors}
+                  format="decimal"
+                  decimals={1}
+                  height={280}
+                />
               </Card>
             </div>
           )}

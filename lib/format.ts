@@ -17,7 +17,7 @@ export function formatValue(
     case "percent":
       return `${(value * 100).toFixed(1)}%`;
     case "decimal":
-      return value.toFixed(decimals ?? 2);
+      return value.toFixed(decimals ?? 1);
     case "number":
       return value.toLocaleString("en-AU");
     case "boolean":

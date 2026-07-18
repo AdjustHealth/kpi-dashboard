@@ -3,6 +3,7 @@ import { ActionStepsCard } from "@/components/provider/ActionStepsCard";
 import { WeeklyScorecardTable, WeekMetrics } from "@/components/provider/PerformanceTable";
 import { KpaScorecardTable } from "@/components/provider/KpaScorecardTable";
 import { AdminSharedComplianceTable } from "@/components/provider/AdminSharedComplianceTable";
+import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { AdminPerformanceCharts } from "@/components/provider/AdminPerformanceCharts";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
@@ -73,6 +74,12 @@ export function ProviderDetailView({
         history={history}
         section="metrics"
       />
+
+      {variant !== "admin" &&
+        (() => {
+          const names = history[history.length - 1]?.metrics?.new_patient_names;
+          return Array.isArray(names) ? <NewPatientsCard names={names as string[]} /> : null;
+        })()}
 
       {variant === "admin" && clinicHistory && <AdminSharedComplianceTable clinicHistory={clinicHistory} />}
 

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { recentWeeks } from "@/lib/week";
+import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
 
 export interface ClinicWeekRow {
   week_ending: string;
@@ -79,6 +80,8 @@ export async function getClinicWideCvaRollup(week: string): Promise<ClinicWideCv
 export interface ProviderCvaSeries {
   providerName: string;
   role: string;
+  /** CVA-tier bucket (lib/cvaTier.ts) — used to color multi-provider comparison charts by tier instead of one hue per person. */
+  tier: CvaTier | null;
   points: { week_ending: string; value: number | null }[];
 }
 
@@ -91,10 +94,10 @@ export async function getProviderMetricHistory(
   const supabase = await createClient();
   const weeks = recentWeeks(week, historyWeeks);
   const [providersResult, weeklyResult] = await Promise.all([
-    supabase.from("providers").select("id, name, role").eq("active", true).order("sort_order"),
+    supabase.from("providers").select("id, name, role, targets").eq("active", true).order("sort_order"),
     supabase.from("provider_weekly").select("provider_id, week_ending, metrics").in("week_ending", weeks),
   ]);
-  const providers = (providersResult.data ?? []) as { id: string; name: string; role: string }[];
+  const providers = (providersResult.data ?? []) as { id: string; name: string; role: string; targets: Record<string, unknown> | null }[];
   const rows = (weeklyResult.data ?? []) as { provider_id: string; week_ending: string; metrics: Record<string, unknown> }[];
   const byProviderWeek = new Map(rows.map((r) => [`${r.provider_id}:${r.week_ending}`, r.metrics]));
 
@@ -103,6 +106,7 @@ export async function getProviderMetricHistory(
     .map((p) => ({
       providerName: p.name,
       role: p.role,
+      tier: cvaTierBucket({ role: p.role, targets: p.targets }),
       points: weeks.map((w) => {
         const v = byProviderWeek.get(`${p.id}:${w}`)?.[metricKey];
         return { week_ending: w, value: typeof v === "number" ? v : null };

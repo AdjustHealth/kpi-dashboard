@@ -22,6 +22,7 @@ export function MultiLineChart({
   format = "number",
   decimals,
   height = 200,
+  colors,
 }: {
   title: string;
   data: Record<string, unknown>[];
@@ -30,6 +31,8 @@ export function MultiLineChart({
   format?: ChartFormat;
   decimals?: number;
   height?: number;
+  /** Explicit color per series (parallel to seriesKeys) — overrides the default categorical cycling, e.g. to group series by tier instead of assigning each its own hue. */
+  colors?: string[];
 }) {
   return (
     <div className="rounded-lg border border-border bg-surface-raised p-3">
@@ -62,17 +65,20 @@ export function MultiLineChart({
               formatter={(v) => formatValue(Number(v), format, decimals)}
             />
             <Legend wrapperStyle={{ fontSize: 11, color: CHART_CHROME.secondaryInk }} />
-            {seriesKeys.map((key, i) => (
-              <Line
-                key={key}
-                type="monotone"
-                dataKey={key}
-                stroke={CATEGORICAL[i % CATEGORICAL.length]}
-                strokeWidth={2}
-                dot={{ r: 3, fill: CATEGORICAL[i % CATEGORICAL.length], strokeWidth: 0 }}
-                connectNulls
-              />
-            ))}
+            {seriesKeys.map((key, i) => {
+              const color = colors?.[i] ?? CATEGORICAL[i % CATEGORICAL.length];
+              return (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: color, strokeWidth: 0 }}
+                  connectNulls
+                />
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
