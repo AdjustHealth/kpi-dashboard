@@ -30,7 +30,9 @@ Provider,Days,"
             ",Occupied,Occupancy,Services,Classes
 Alex Example,7,2160,1770,81.94%,39,2
 Jamie Sample,7,1950,1710,87.69%,42,2
-Total,,4110,3480,,81,4
+Sam Zero,7,0,0,0%,0,0
+Robin Overbooked,7,1200,3180,265.00%,12,0
+Total,,5310,6660,,93,2
 
 `;
 
@@ -46,11 +48,13 @@ Total,2,1,10,,,
 
 Details
 Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
-01/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,08/07/2026,rsx moved to next week,01/07/2026,9:00am,Staff One,1001
+01/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,2026-07-08 09:00:00,rsx moved to next week,01/07/2026,9:00am,Staff One,1001
 02/07/2026,Adjust Physiotherapy,Test Client Two,0400 000 002,Alex Example,Private - Physio,Service,Cancelled,2026-06-02 10:00:00,,no rebook needed,02/07/2026,9:00am,Staff One,1002
-03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Cancelled,2026-06-03 10:00:00,20/07/2026,will call to rebook,03/07/2026,9:00am,Staff One,1003
+03/07/2026,Adjust Physiotherapy,Test Client Three,0400 000 003,Alex Example,Private - Physio,Service,Cancelled,2026-06-03 10:00:00,2026-07-20 09:00:00,will call to rebook,03/07/2026,9:00am,Staff One,1003
 04/07/2026,Adjust Physiotherapy,Test Client Four,0400 000 004,Alex Example,Private - Physio,Service,Did Not Arrive,2026-06-04 10:00:00,,dna,04/07/2026,9:00am,Staff One,1004
 05/07/2026,Adjust Physiotherapy,Test Client Five,0400 000 005,Alex Example,Private - Physio,Service,Cancelled,2026-06-05 10:00:00,,plan cancelled - client left,05/07/2026,9:00am,Staff One,1005
+03/07/2026,Adjust Physiotherapy,Test Client Six,0400 000 006,Alex Example,Private - Physio,Service,Cancelled,2026-01-01 10:00:00,,stale carry-through — plan was cancelled months ago,01/01/2026,9:00am,Staff One,1006
+04/07/2026,Adjust Physiotherapy,Test Client One,0400 000 001,Alex Example,Private - Physio,Service,Cancelled,2026-06-01 10:00:00,,second service for the same client this week,04/07/2026,9:00am,Staff One,1001
 
 `;
 
@@ -64,6 +68,7 @@ Client,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provide
 Test Client One,Private - Physio,Private,Adjust Physiotherapy,Yes,Yes,No,29/06/2026,Alex Example,15/07/2026,1 Complete / 2 Total,a@example.com,No,0400 000 001,Yes,No,1001
 Test Client Two,Medicare 2026,Medicare,Adjust Physiotherapy,No,Yes,No,30/06/2026,Alex Example,,1 Complete / 1 Total,b@example.com,No,0400 000 002,Yes,No,1002
 Test Client Three,NDIS - Plan Managed,Provider Choice,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Jamie Sample,,1 Complete / 1 Total,c@example.com,No,0400 000 003,Yes,No,1003
+Test Client Four,Village - Pre-Employment,Village Road Show Theme Parks Pty Ltd,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Alex Example,,1 Complete / 1 Total,d@example.com,No,0400 000 004,Yes,No,1004
 
 `;
 
@@ -175,17 +180,24 @@ describe("nookal csv helpers", () => {
     expect(parseNumber("")).toBeNull();
   });
 
-  it("parseNookalDate reads DD/MM/YYYY", () => {
+  it("parseNookalDate reads DD/MM/YYYY (Appointment Date, Modifed Date)", () => {
     const d = parseNookalDate("08/07/2026");
     expect(d?.getUTCFullYear()).toBe(2026);
     expect(d?.getUTCMonth()).toBe(6); // 0-indexed -> July
     expect(d?.getUTCDate()).toBe(8);
   });
 
+  it("parseNookalDate also reads YYYY-MM-DD with a time component (Last Attendance, Next Booking use this format in real exports)", () => {
+    const d = parseNookalDate("2026-07-08 10:30:00");
+    expect(d?.getUTCFullYear()).toBe(2026);
+    expect(d?.getUTCMonth()).toBe(6);
+    expect(d?.getUTCDate()).toBe(8);
+  });
+
   it("extractSection finds a named section and stops before the Total row", () => {
     const rows = parseCsvRows(OCCUPANCY_CSV);
     const section = extractSection(rows, "Summary");
-    expect(section?.rows.length).toBe(2);
+    expect(section?.rows.length).toBe(4);
     expect(section?.rows.every((r) => r[0] !== "Total")).toBe(true);
   });
 });
@@ -210,27 +222,48 @@ describe("parseOccupancyReport", () => {
     expect(result.byProvider["Alex Example"].occupiedMinutes).toBe(1770);
     expect(result.byProvider["Jamie Sample"].occupancyPct).toBeCloseTo(0.8769, 4);
   });
+
+  it("treats occupancy as not-tracked (null) when a provider saw zero patients that week, rather than Nookal's misleading 0%", () => {
+    const result = parseOccupancyReport(OCCUPANCY_CSV);
+    expect(result.byProvider["Sam Zero"].occupancyPct).toBeNull();
+    expect(result.byProvider["Sam Zero"].services).toBe(0);
+  });
+
+  it("caps occupancy at 100% instead of the raw >100% figure a roster/schedule mismatch can produce in Nookal", () => {
+    const result = parseOccupancyReport(OCCUPANCY_CSV);
+    expect(result.byProvider["Robin Overbooked"].occupancyPct).toBe(1);
+  });
 });
 
 describe("parseCancellationsReport", () => {
-  it("takes counts/percentages from Summary", () => {
+  it("takes DNAs/completed/percentages from Summary, but computes cancellations itself from Details (Summary's raw count overcounts real events)", () => {
     const result = parseCancellationsReport(CANCELLATIONS_CSV);
-    expect(result.byProvider["Alex Example"].cancellations).toBe(2);
     expect(result.byProvider["Alex Example"].dnas).toBe(1);
     expect(result.byProvider["Alex Example"].cancellationPct).toBeCloseTo(0.1538, 3);
+    // Summary says "2", but that's Nookal's raw Details row count. The real
+    // per-client event count (see the "derives not-rebooked..." test below
+    // for the row-by-row breakdown) is 3.
+    expect(result.byProvider["Alex Example"].cancellations).toBe(3);
   });
 
-  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details — RSX-tagged notes only, DNA and bulk-cancel rows excluded", () => {
+  it("derives not-rebooked / reschedule rate / booked-within-7-days from Details — RSX-tagged notes only, DNA/bulk-cancel/stale rows excluded, same-client rows deduped", () => {
     const result = parseCancellationsReport(CANCELLATIONS_CSV);
     const alex = result.byProvider["Alex Example"];
-    // 5 Details rows, but only 3 are real events for the rate denominator:
-    //   row1: "rsx moved to next week", next booking 01/07->08/07 (7 days) -> counts as rescheduled + booked-within-7
-    //   row2: "no rebook needed", no next booking -> counts as not rebooked
-    //   row3: "will call to rebook", HAS a next booking (03/07->20/07) but isn't RSX-tagged -> counts toward the
-    //         denominator only, not toward either rescheduled or not-rebooked (matches the real per-provider sheet,
-    //         where RSX% + NR% never add to 100%)
+    // 7 Details rows, but only 3 real per-client events for the rate denominator:
+    //   row1+row7: "Test Client One", 2 rows (a second service cancelled the same week) -> 1 event, not 2.
+    //     row1: "rsx moved to next week", next booking 01/07->08/07 (7 days) -> the RSX tag makes the whole
+    //           client count as rescheduled + booked-within-7 (Next Booking is in real Nookal's actual
+    //           YYYY-MM-DD format here, not DD/MM/YYYY like Appointment Date — parseNookalDate must handle
+    //           both or this silently reads as "no next booking")
+    //     row7: no RSX tag, no next booking -> doesn't change the client's rescheduled verdict (RSX wins)
+    //   row2 "Test Client Two": "no rebook needed", no next booking -> counts as not rebooked
+    //   row3 "Test Client Three": "will call to rebook", HAS a next booking (03/07->20/07) but isn't
+    //     RSX-tagged -> counts toward the denominator only, not toward either rescheduled or not-rebooked
+    //     (matches the real per-provider sheet, where RSX% + NR% never add to 100%)
     //   row4: Did Not Arrive -> excluded (DNAs come from Summary, not this rate)
     //   row5: "plan cancelled" -> excluded (bulk/whole-plan cancellation, not a real single event)
+    //   row6 "Test Client Six": modified 01/01/2026 for a 03/07/2026 appointment, >14 days apart -> excluded
+    //     as a stale, already-actioned cancellation just carrying through to this week's diary
     expect(alex.eventsCount).toBe(3);
     expect(alex.notRebooked).toBe(1);
     expect(alex.rescheduledCount).toBe(1);
@@ -243,9 +276,21 @@ describe("parseCancellationsReport", () => {
 describe("parseClientsAndCasesReport", () => {
   it("counts new clients and new cases per provider", () => {
     const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
-    expect(result.byProvider["Alex Example"].newClients).toBe(1);
-    expect(result.byProvider["Alex Example"].newCases).toBe(2);
+    expect(result.byProvider["Alex Example"].newClients).toBe(2);
+    expect(result.byProvider["Alex Example"].newCases).toBe(3);
     expect(result.byProvider["Jamie Sample"].newClients).toBe(1);
+  });
+
+  it("excludes Pre-Employment screening cases from the per-provider new-client count, but keeps them in the raw newClients total", () => {
+    // Confirmed against the director's real weekly sheet: two providers with
+    // Pre-Employment (Village Road Show / Top Golf) cases that week both
+    // matched exactly only once those cases were excluded from their
+    // individual "# New Clients" figure — the clinic-wide total still
+    // includes them ("Total new clients incl Pre Employments").
+    const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
+    expect(result.byProvider["Alex Example"].newClients).toBe(2);
+    expect(result.byProvider["Alex Example"].newClientsExclPreEmployment).toBe(1);
+    expect(result.byProvider["Jamie Sample"].newClientsExclPreEmployment).toBe(1);
   });
 });
 

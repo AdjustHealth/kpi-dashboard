@@ -62,8 +62,8 @@ function cvaTierBucket(p: ProviderRow): "senior" | "massage" | "ep" | "new_grad"
  * data (e.g. if a provider's name in Nookal doesn't exactly match the name
  * on the Providers/Settings page).
  *
- * "business_performance" and "aged_debtors" are stored (by the caller) but
- * not parsed here — see lib/nookal/parsers.ts for why.
+ * "aged_debtors" is stored (by the caller) but not parsed here — see
+ * lib/nookal/parsers.ts for why. "business_performance" IS parsed below.
  */
 export async function applyNookalReport(
   supabase: SupabaseClient,
@@ -241,7 +241,9 @@ export async function applyNookalReport(
     for (const [name, data] of Object.entries(result.byProvider)) {
       totalNewClients += data.newClients;
       const p = findProvider(name);
-      if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClients });
+      // Clinic-wide total includes Pre-Employment screenings; each
+      // provider's own KPI figure doesn't (see PRE_EMPLOYMENT_PATTERN).
+      if (p) await upsertProviderMetrics(p.id, { new_patients: data.newClientsExclPreEmployment });
     }
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {

@@ -104,6 +104,26 @@ export function WeeklyInputForm({
             />
           </Card>
 
+          <Card title="Ageing Debts">
+            <p className="mb-4 text-xs text-muted">
+              Off the Aged Debtors report. Typed manually — Nookal exports this combined across
+              locations and grouped by payer type, so it can&apos;t reliably split Adjust from
+              Podiatry or separate true Private balances from NDIS clients invoiced as Private.
+            </p>
+            <p className="mb-2 text-xs font-medium text-foreground">Adjust Physiotherapy</p>
+            <ClinicFieldGrid
+              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => !f.id.startsWith("ad_pod_"))}
+              values={weekly}
+              onChange={onChange}
+            />
+            <p className="mb-2 mt-4 text-xs font-medium text-foreground">Podiatry</p>
+            <ClinicFieldGrid
+              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id.startsWith("ad_pod_"))}
+              values={weekly}
+              onChange={onChange}
+            />
+          </Card>
+
           <Card title="Diary Management">
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Diary").filter((f) => f.id !== "diary_mgmt_pct")}

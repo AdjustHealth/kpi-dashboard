@@ -134,7 +134,19 @@ export function parseActivityReport(
   };
 }
 
-/** Occupancy Report — per-provider scheduled vs. occupied minutes. */
+/**
+ * Occupancy Report — per-provider scheduled vs. occupied minutes.
+ *
+ * Two real-world quirks, both confirmed against the director's own sheet
+ * (which reports neither raw): a provider who saw zero patients that week
+ * (services = 0 — on leave, block-booked-but-all-cancelled, etc.) gets a
+ * meaningless raw Occupancy figure (Nookal still divides by whatever's on
+ * the roster) — the sheet reports these as blank/not-tracked rather than a
+ * number, so occupancyPct is null here too. A provider who DID see patients
+ * can still read over 100% (occupied minutes exceeding scheduled minutes —
+ * a Nookal roster/scheduling mismatch, not a real >100% occupancy) — the
+ * sheet caps these at 100% instead of showing the inflated figure.
+ */
 export function parseOccupancyReport(text: string): OccupancyReportResult {
   const rows = parseCsvRows(text);
   const section = extractSection(rows, "Summary");
@@ -145,11 +157,15 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
     const r = rowToRecord(section.header, row);
     const provider = r["Provider"];
     if (!provider) continue;
+    const services = parseNumber(r["Services"]);
+    let occupancyPct = parsePercent(r["Occupancy"]);
+    if (!services) occupancyPct = null;
+    else if (occupancyPct !== null && occupancyPct > 1) occupancyPct = 1;
     byProvider[provider] = {
-      occupancyPct: parsePercent(r["Occupancy"]),
+      occupancyPct,
       scheduledMinutes: parseNumber(r["Scheduled Minutes"]),
       occupiedMinutes: parseNumber(r["Occupied"]),
-      services: parseNumber(r["Services"]),
+      services,
     };
   }
   return { byProvider };
@@ -186,17 +202,39 @@ function isBulkCancelNote(note: string | undefined): boolean {
   return BULK_CANCEL_NOTE_PATTERNS.some((re) => re.test(n));
 }
 
+// A recurring booking that was cancelled well before this reporting week
+// (e.g. a client's whole plan cancelled a month ago) can still produce a
+// "Cancelled" Details row for an appointment date that falls inside this
+// week — Nookal doesn't remove the ghost slot from the diary. That's not a
+// fresh cancellation event *this week*, it's last time's decision carrying
+// through. Confirmed against the director's real weekly sheet: filtering
+// out any row whose Modified Date is more than STALE_CANCEL_DAYS before its
+// own Appointment Date (i.e. it was actioned well in advance, not reacted
+// to this week) brought every provider within 0-2 of the sheet's real
+// per-provider cancellation count, vs. wildly overcounting before (e.g. one
+// provider read 37 raw vs. 20 on the sheet).
+const STALE_CANCEL_DAYS = 14;
+
+function isStaleCancellation(apptDate: Date | null, modifiedDate: Date | null): boolean {
+  if (!apptDate || !modifiedDate) return false;
+  const daysBeforeAppt = (apptDate.getTime() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24);
+  return daysBeforeAppt > STALE_CANCEL_DAYS;
+}
+
 /**
- * Cancellations Report — the Summary gives per-provider counts/percentages
- * directly from Nookal. The Details rows (one per cancelled/DNA event) are
- * used to compute "Not Rebooked" and "Reschedule Rate": a cancellation
- * counts toward the reschedule rate ("saved") only when staff tagged its
- * Note "RSX"/"RX"; it counts as Not Rebooked only when it has no future
- * Next Booking at all. Rows whose Note indicates a bulk/whole-plan
- * cancellation are excluded entirely (see BULK_CANCEL_NOTE_PATTERNS) so
- * they don't inflate this week's real cancellation count. "Booked within 7
- * Days" is the share of all (non-excluded) cancellations that were
- * rebooked within 7 days of the original appointment date.
+ * Cancellations Report. The Summary section's own per-provider Cancellations
+ * count is Nookal's raw tally of every Details row, which — as above —
+ * substantially overcounts a real week's cancellations, so counts here are
+ * computed from Details instead: excluded rows (DNAs, bulk/whole-plan notes,
+ * stale carry-through) are dropped, and what's left is grouped by client —
+ * a client with several cancelled service-lines from the same underlying
+ * decision (e.g. "flu, cancelling everything this week") is one cancellation
+ * event, not one per line item. Per client: "rescheduled" if any of their
+ * kept rows is RSX/RX-tagged by staff (the real "reschedule rate" signal —
+ * a future Next Booking date alone doesn't mean staff "saved" it); else
+ * "not rebooked" if none of their kept rows has any future booking at all;
+ * "booked within 7 days" if any kept row was rebooked within 7 days of its
+ * original appointment date.
  */
 export function parseCancellationsReport(text: string): CancellationsReportResult {
   const rows = parseCsvRows(text);
@@ -210,7 +248,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       const provider = r["Provider"];
       if (!provider) continue;
       byProvider[provider] = {
-        cancellations: parseNumber(r["Cancellations"]) ?? 0,
+        cancellations: 0,
         dnas: parseNumber(r["DNAs"]) ?? 0,
         completed: parseNumber(r["Completed"]),
         cancellationPct: parsePercent(r["Cancellation %"]),
@@ -227,40 +265,27 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
 
   const details = extractSection(rows, "Details");
   if (details) {
-    const rebookedWithin7: Record<string, number> = {};
-    const total: Record<string, number> = {};
-    // Admin-side bucketing: same rows, grouped by "Modified User" — the
-    // admin staff member who actioned the cancellation, not the clinician
-    // it happened to.
-    const adminRescheduled: Record<string, number> = {};
-    const adminNotRebooked: Record<string, number> = {};
-    const adminTotal: Record<string, number> = {};
-    const adminDaysToNextSum: Record<string, number> = {};
-    const adminDaysToNextCount: Record<string, number> = {};
-    const adminRebookedWithin7: Record<string, number> = {};
-    let totalHandledByAnyAdmin = 0;
+    // Real (non-DNA, non-bulk, non-stale) rows, grouped by provider then by
+    // client — the "one event per client" dedup described above.
+    const providerClientRows: Record<string, Record<string, ReturnType<typeof rowToRecord>[]>> = {};
+    // Same rows, grouped by "Modified User" (the admin who actioned it)
+    // then by client — same one-event-per-client dedup, per admin.
+    const adminClientRows: Record<string, Record<string, ReturnType<typeof rowToRecord>[]>> = {};
 
     for (const row of details.rows) {
       const r = rowToRecord(details.header, row);
       const provider = r["Provider"];
       const status = r["Status"];
       const note = r["Note"];
+      const client = r["Client"];
 
       // DNAs are already counted from the Summary section's DNAs column —
-      // they're a different event type from a cancellation and shouldn't
-      // also feed reschedule/not-rebooked rates.
-      if (status !== "Cancelled") continue;
-      // A whole-plan bulk cancellation can produce one row per future
-      // appointment in Nookal's export — counting every one as a distinct
-      // cancellation this week would wildly overcount.
+      // they're a different event type from a cancellation.
+      if (status !== "Cancelled" || !client) continue;
       if (isBulkCancelNote(note)) continue;
-
-      const nextBooking = r["Next Booking"];
       const apptDate = parseNookalDate(r["Appointment Date"]);
-      const nextDate = nextBooking ? parseNookalDate(nextBooking) : null;
-      const daysBetween = apptDate && nextDate ? (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24) : null;
-      const hasNext = Boolean(nextBooking);
-      const rsx = RSX_NOTE_PATTERN.test((note ?? "").trim());
+      const modifiedDate = parseNookalDate(r["Modifed Date"]);
+      if (isStaleCancellation(apptDate, modifiedDate)) continue;
 
       if (provider) {
         if (!byProvider[provider]) {
@@ -278,58 +303,96 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
             eventsCount: 0,
           };
         }
-        total[provider] = (total[provider] ?? 0) + 1;
-        if (rsx) byProvider[provider].rescheduledCount += 1;
-        else if (!hasNext) byProvider[provider].notRebooked += 1;
-        // else: has a future booking but wasn't explicitly tagged RSX/RX —
-        // counts toward this week's cancellations, but not toward either
-        // the reschedule rate or the not-rebooked rate.
-        if (hasNext && daysBetween !== null && daysBetween <= 7) {
-          rebookedWithin7[provider] = (rebookedWithin7[provider] ?? 0) + 1;
-        }
+        ((providerClientRows[provider] ??= {})[client] ??= []).push(r);
       }
 
       const admin = r["Modified User"];
-      if (admin) {
-        adminTotal[admin] = (adminTotal[admin] ?? 0) + 1;
-        totalHandledByAnyAdmin += 1;
-        if (rsx) adminRescheduled[admin] = (adminRescheduled[admin] ?? 0) + 1;
-        else if (!hasNext) adminNotRebooked[admin] = (adminNotRebooked[admin] ?? 0) + 1;
-        if (hasNext && daysBetween !== null) {
-          adminDaysToNextSum[admin] = (adminDaysToNextSum[admin] ?? 0) + daysBetween;
-          adminDaysToNextCount[admin] = (adminDaysToNextCount[admin] ?? 0) + 1;
-          if (daysBetween <= 7) adminRebookedWithin7[admin] = (adminRebookedWithin7[admin] ?? 0) + 1;
-        }
+      if (admin) ((adminClientRows[admin] ??= {})[client] ??= []).push(r);
+    }
+
+    const bookedWithin7 = (clientRows: ReturnType<typeof rowToRecord>[]): boolean =>
+      clientRows.some((r) => {
+        if (!r["Next Booking"]) return false;
+        const apptDate = parseNookalDate(r["Appointment Date"]);
+        const nextDate = parseNookalDate(r["Next Booking"]);
+        if (!apptDate || !nextDate) return false;
+        const daysBetween = (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysBetween <= 7;
+      });
+    const daysToNext = (clientRows: ReturnType<typeof rowToRecord>[]): number | null => {
+      const days = clientRows
+        .filter((r) => r["Next Booking"])
+        .map((r) => {
+          const apptDate = parseNookalDate(r["Appointment Date"]);
+          const nextDate = parseNookalDate(r["Next Booking"]);
+          return apptDate && nextDate ? (nextDate.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24) : null;
+        })
+        .filter((d): d is number => d !== null);
+      if (days.length === 0) return null;
+      return days.reduce((a, b) => a + b, 0) / days.length;
+    };
+
+    for (const [provider, clients] of Object.entries(providerClientRows)) {
+      const entry = byProvider[provider];
+      const clientEntries = Object.values(clients);
+      const t = clientEntries.length;
+      entry.cancellations = t;
+      entry.eventsCount = t;
+      for (const clientRows of clientEntries) {
+        const rsx = clientRows.some((r) => RSX_NOTE_PATTERN.test((r["Note"] ?? "").trim()));
+        const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
+        if (rsx) entry.rescheduledCount += 1;
+        else if (!hasNext) entry.notRebooked += 1;
       }
+      const within7Count = clientEntries.filter(bookedWithin7).length;
+      entry.rescheduleRatePct = t > 0 ? entry.rescheduledCount / t : null;
+      entry.notRebookedPct = t > 0 ? entry.notRebooked / t : null;
+      entry.bookedWithin7DaysPct = t > 0 ? within7Count / t : null;
     }
 
-    for (const provider of Object.keys(byProvider)) {
-      const t = total[provider];
-      if (!t) continue;
-      byProvider[provider].rescheduleRatePct = byProvider[provider].rescheduledCount / t;
-      byProvider[provider].notRebookedPct = byProvider[provider].notRebooked / t;
-      byProvider[provider].bookedWithin7DaysPct = (rebookedWithin7[provider] ?? 0) / t;
-      byProvider[provider].eventsCount = t;
-    }
+    const totalHandledByAnyAdmin = Object.values(adminClientRows).reduce(
+      (sum, clients) => sum + Object.keys(clients).length,
+      0
+    );
 
-    for (const admin of Object.keys(adminTotal)) {
-      const t = adminTotal[admin];
-      const daysCount = adminDaysToNextCount[admin] ?? 0;
+    for (const [admin, clients] of Object.entries(adminClientRows)) {
+      const clientEntries = Object.values(clients);
+      const t = clientEntries.length;
+      let notRebooked = 0;
+      let rescheduledCount = 0;
+      for (const clientRows of clientEntries) {
+        const rsx = clientRows.some((r) => RSX_NOTE_PATTERN.test((r["Note"] ?? "").trim()));
+        const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
+        if (rsx) rescheduledCount += 1;
+        else if (!hasNext) notRebooked += 1;
+      }
+      const within7Count = clientEntries.filter(bookedWithin7).length;
+      const avgDays = clientEntries.map(daysToNext).filter((d): d is number => d !== null);
       byAdmin[admin] = {
         cancellationsHandled: t,
-        notRebooked: adminNotRebooked[admin] ?? 0,
-        rescheduledCount: adminRescheduled[admin] ?? 0,
-        rescheduleRatePct: t > 0 ? (adminRescheduled[admin] ?? 0) / t : null,
-        notRebookedPct: t > 0 ? (adminNotRebooked[admin] ?? 0) / t : null,
-        bookedWithin7DaysPct: t > 0 ? (adminRebookedWithin7[admin] ?? 0) / t : null,
+        notRebooked,
+        rescheduledCount,
+        rescheduleRatePct: t > 0 ? rescheduledCount / t : null,
+        notRebookedPct: t > 0 ? notRebooked / t : null,
+        bookedWithin7DaysPct: t > 0 ? within7Count / t : null,
         pctOfTotalClinicCx: totalHandledByAnyAdmin > 0 ? t / totalHandledByAnyAdmin : null,
-        avgDaysToNextBooking: daysCount > 0 ? adminDaysToNextSum[admin] / daysCount : null,
+        avgDaysToNextBooking: avgDays.length > 0 ? avgDays.reduce((a, b) => a + b, 0) / avgDays.length : null,
       };
     }
   }
 
   return { byProvider, byAdmin };
 }
+
+// Corporate Pre-Employment screening visits (Village Road Show, Top Golf,
+// etc.) show up as "New Client: Yes" in Nookal like any other new client,
+// but they're one-off screenings, not a real new patient booking — the
+// director's own weekly sheet counts them in the clinic-wide total ("Total
+// new clients incl Pre Employments") but excludes them from every
+// individual provider's "# New Clients" figure. Confirmed against two
+// providers' real weekly numbers (both matched exactly once Pre-Employment
+// cases were excluded, and not before).
+const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
 
 /** Clients and Cases Report — new client / new case counts per provider. */
 export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportResult {
@@ -342,8 +405,11 @@ export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportR
     const r = rowToRecord(section.header, row);
     const provider = r["Provider"];
     if (!provider) continue;
-    if (!byProvider[provider]) byProvider[provider] = { newClients: 0, newCases: 0 };
-    if (r["New Client"]?.toLowerCase() === "yes") byProvider[provider].newClients += 1;
+    if (!byProvider[provider]) byProvider[provider] = { newClients: 0, newClientsExclPreEmployment: 0, newCases: 0 };
+    if (r["New Client"]?.toLowerCase() === "yes") {
+      byProvider[provider].newClients += 1;
+      if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) byProvider[provider].newClientsExclPreEmployment += 1;
+    }
     if (r["New Case"]?.toLowerCase() === "yes") byProvider[provider].newCases += 1;
   }
   return { byProvider };

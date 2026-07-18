@@ -1,14 +1,21 @@
-/** Weeks are keyed by their "week ending" date (YYYY-MM-DD), matching Nookal reporting convention. */
+/**
+ * Weeks are keyed by their "week ending" date (YYYY-MM-DD). The practice's
+ * own week runs Sunday-through-Saturday — confirmed directly against the
+ * director's KPI spreadsheet ("WEEK ENDING" cell reads a Saturday date,
+ * e.g. 11/07/2026, for the week whose Nookal reports span Mon 06/07 -
+ * Sun 12/07) — NOT the calendar week (Mon-Sun ending Sunday) Nookal's own
+ * report date ranges suggest at a glance.
+ */
 
 export function toDateKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Most recent Sunday on or before `from` (defaults to today). */
+/** Most recent Saturday on or before `from` (defaults to today). */
 export function defaultWeekEnding(from: Date = new Date()): string {
   const d = new Date(Date.UTC(from.getFullYear(), from.getMonth(), from.getDate()));
-  const day = d.getUTCDay(); // 0 = Sunday
-  d.setUTCDate(d.getUTCDate() - day);
+  const day = d.getUTCDay(); // 0 = Sunday .. 6 = Saturday
+  d.setUTCDate(d.getUTCDate() - ((day + 1) % 7));
   return toDateKey(d);
 }
 
@@ -18,11 +25,12 @@ export function shiftWeek(weekEnding: string, deltaWeeks: number): string {
   return toDateKey(d);
 }
 
+/** Numeric DD/MM/YYYY, matching the director's spreadsheet (e.g. "11/07/2026"). */
 export function formatWeekLabel(weekEnding: string): string {
   const d = new Date(`${weekEnding}T00:00:00Z`);
   return d.toLocaleDateString("en-AU", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     timeZone: "UTC",
   });
@@ -48,14 +56,14 @@ export function weeksBetween(from: string, to: string): number {
 export const TRACKING_START_WEEK = "2026-07-01";
 
 /**
- * First week-ending (Sunday) on or after TRACKING_START_WEEK. TRACKING_START_WEEK
- * itself isn't necessarily a Sunday, so this is the actual earliest week-ending
+ * First week-ending (Saturday) on or after TRACKING_START_WEEK. TRACKING_START_WEEK
+ * itself isn't necessarily a Saturday, so this is the actual earliest week-ending
  * value that should ever appear in history — everything is keyed by week-ending.
  */
 export const TRACKING_START_WEEK_ENDING = (() => {
   const d = new Date(`${TRACKING_START_WEEK}T00:00:00Z`);
-  const day = d.getUTCDay(); // 0 = Sunday
-  if (day !== 0) d.setUTCDate(d.getUTCDate() + (7 - day));
+  const day = d.getUTCDay(); // 0 = Sunday .. 6 = Saturday
+  d.setUTCDate(d.getUTCDate() + ((6 - day + 7) % 7));
   return toDateKey(d);
 })();
 
@@ -63,7 +71,7 @@ export const TRACKING_START_WEEK_ENDING = (() => {
  * How many weeks of history to fetch to cover TRACKING_START_WEEK_ENDING through `week`.
  * Never goes earlier than TRACKING_START_WEEK_ENDING (this system's rollout date) —
  * capped at `max` so a far-future week doesn't trigger an unbounded query. Both
- * dates are Sundays, so weeksBetween is exact here (no rounding drift).
+ * dates are Saturdays, so weeksBetween is exact here (no rounding drift).
  */
 export function trackingHistoryWeeks(week: string, max = 52): number {
   return Math.min(max, Math.max(1, weeksBetween(TRACKING_START_WEEK_ENDING, week) + 1));

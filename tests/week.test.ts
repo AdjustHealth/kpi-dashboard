@@ -4,7 +4,7 @@ import { trackingHistoryWeeks, recentWeeks, TRACKING_START_WEEK_ENDING } from "@
 describe("trackingHistoryWeeks", () => {
   it("never includes weeks before TRACKING_START_WEEK_ENDING", () => {
     // Only 3 weeks have elapsed since rollout — must NOT pad out to a bigger window.
-    const week = "2026-07-19"; // 2 weeks after the first tracked Sunday (07-05)
+    const week = "2026-07-18"; // 2 weeks after the first tracked Saturday (07-04)
     const count = trackingHistoryWeeks(week);
     const weeks = recentWeeks(week, count);
     for (const w of weeks) {
@@ -12,15 +12,16 @@ describe("trackingHistoryWeeks", () => {
     }
   });
 
-  it("computes the first tracked week-ending as the Sunday on/after TRACKING_START_WEEK", () => {
-    // TRACKING_START_WEEK is 2026-07-01 (a Wednesday) — the first Sunday on/after it is 2026-07-05.
-    expect(TRACKING_START_WEEK_ENDING).toBe("2026-07-05");
+  it("computes the first tracked week-ending as the Saturday on/after TRACKING_START_WEEK", () => {
+    // TRACKING_START_WEEK is 2026-07-01 (a Wednesday) — the practice's week runs
+    // Sun-Sat, so the first Saturday on/after it is 2026-07-04.
+    expect(TRACKING_START_WEEK_ENDING).toBe("2026-07-04");
   });
 
   it("grows as more weeks elapse since rollout", () => {
-    expect(trackingHistoryWeeks("2026-07-05")).toBe(1);
-    expect(trackingHistoryWeeks("2026-07-12")).toBe(2);
-    expect(trackingHistoryWeeks("2026-09-20")).toBeGreaterThan(10);
+    expect(trackingHistoryWeeks("2026-07-04")).toBe(1);
+    expect(trackingHistoryWeeks("2026-07-11")).toBe(2);
+    expect(trackingHistoryWeeks("2026-09-19")).toBeGreaterThan(10);
   });
 
   it("is capped at max for far-future weeks", () => {

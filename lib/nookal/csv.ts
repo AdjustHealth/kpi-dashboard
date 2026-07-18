@@ -80,10 +80,22 @@ export function parseNumber(value: string | undefined): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-/** Nookal dates are DD/MM/YYYY, optionally with a time component. */
+/**
+ * Nookal dates come in two different formats depending on the column, both
+ * optionally with a time component: most columns ("Appointment Date",
+ * "Modifed Date") are DD/MM/YYYY, but "Last Attendance" and "Next Booking"
+ * in the Cancellations Report are exported as YYYY-MM-DD instead — confirmed
+ * against a real export. Handles both rather than assuming one.
+ */
 export function parseNookalDate(value: string | undefined): Date | null {
   if (!value) return null;
   const [datePart] = value.trim().split(" ");
+  if (datePart.includes("-")) {
+    const [y, m, d] = datePart.split("-").map(Number);
+    if (!d || !m || !y) return null;
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
   const [d, m, y] = datePart.split("/").map(Number);
   if (!d || !m || !y) return null;
   const date = new Date(Date.UTC(y, m - 1, d));

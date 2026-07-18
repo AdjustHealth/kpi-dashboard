@@ -65,7 +65,16 @@ export interface CancellationsReportResult {
 }
 
 export interface ClientsAndCasesReportResult {
-  byProvider: Record<string, { newClients: number; newCases: number }>;
+  byProvider: Record<
+    string,
+    {
+      /** All new clients, including corporate Pre-Employment screening cases (Village Road Show, Top Golf, etc.) — feeds the clinic-wide "Total new clients (incl Pre Employments)" figure. */
+      newClients: number;
+      /** New clients excluding Pre-Employment screening cases — the real per-provider "# New Clients" figure the director's sheet tracks (confirmed: a Pre-Employment case inflates the raw count but isn't counted per-provider). */
+      newClientsExclPreEmployment: number;
+      newCases: number;
+    }
+  >;
 }
 
 export interface ProvidersAndPracticeReportResult {
