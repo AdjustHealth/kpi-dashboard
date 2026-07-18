@@ -43,6 +43,18 @@ export async function PATCH(request: NextRequest) {
 
   const supabase = await createClient();
 
+  // provider_weekly.week_ending has a foreign key into weekly_kpis(week_ending)
+  // — a week only ever gets a weekly_kpis row via a Nookal upload, so any save
+  // on a provider/admin/senior page for a week that hasn't had one uploaded
+  // yet (e.g. navigating ahead to a future week) fails this FK with no
+  // visible reason beyond "couldn't save". Ensure a placeholder row exists
+  // first — ignoreDuplicates means this never touches real data that's
+  // already there.
+  const { error: weekEnsureError } = await supabase
+    .from("weekly_kpis")
+    .upsert({ week_ending }, { onConflict: "week_ending", ignoreDuplicates: true });
+  if (weekEnsureError) return NextResponse.json({ error: weekEnsureError.message }, { status: 500 });
+
   const { data: existing, error: fetchError } = await supabase
     .from("provider_weekly")
     .select(section)
