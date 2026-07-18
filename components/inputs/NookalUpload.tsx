@@ -76,9 +76,8 @@ export function NookalUpload({ week }: { week: string }) {
   return (
     <Card title="Upload Nookal Reports">
       <p className="mb-4 text-xs text-muted">
-        Activity, Occupancy, Cancellations, Clients &amp; Cases, and Providers &amp; Practice reports auto-fill the
-        fields marked <span className="font-medium text-accent">Auto</span> below — still editable afterward.
-        Business Performance and Aged Debtors are stored but not auto-parsed yet.
+        All 7 report types auto-fill the fields marked <span className="font-medium text-accent">Auto</span> below —
+        still editable afterward.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {NOOKAL_REPORT_TYPES.map((type) => {

@@ -10,6 +10,7 @@ import {
 import { categorizePayer, PayerCategory } from "@/lib/nookal/payerCategories";
 import {
   ActivityReportResult,
+  AgedDebtorsReportResult,
   BusinessPerformanceReportResult,
   CancellationsReportResult,
   ClientsAndCasesReportResult,
@@ -34,13 +35,15 @@ const JBV_INIT_PATTERN = /init/i;
  * Clinic-wide specialty consult categories from the director's own
  * "SPECIALTY SERVICES CONSULTATIONS" tracker — matched against the same
  * Case/Item text as JBV, independent of which provider saw the client.
- * Women's Health has no CSV source on the director's sheet (tracked
- * manually), so it isn't here.
+ * Women's Health items use a standalone "WH" token (e.g. "Private - WH
+ * Physio", "Private Initial WH 60 min 500") — confirmed against a real
+ * export.
  */
 const SPECIALTY_CATEGORY_PATTERNS: Record<string, RegExp> = {
   vestibular: /vestib/i,
   headaches: /headache|tmj/i,
   paeds: /paed|pediatric/i,
+  womens_health: /\bwh\b|women/i,
 };
 
 /**
@@ -411,12 +414,19 @@ export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportR
     const provider = r["Provider"];
     if (!provider) continue;
     if (!byProvider[provider]) {
-      byProvider[provider] = { newClients: 0, newClientsExclPreEmployment: 0, newCases: 0, npbrRecommendationsTotal: 0 };
+      byProvider[provider] = {
+        newClients: 0,
+        newClientsExclPreEmployment: 0,
+        newCases: 0,
+        npbrRecommendationsTotal: 0,
+        newClientNames: [],
+      };
     }
     if (r["New Client"]?.toLowerCase() === "yes") {
       byProvider[provider].newClients += 1;
       if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) {
         byProvider[provider].newClientsExclPreEmployment += 1;
+        if (r["Client"]) byProvider[provider].newClientNames.push(r["Client"]);
         const bookingsMatch = BOOKINGS_TOTAL_PATTERN.exec(r["Bookings"] ?? "");
         if (bookingsMatch) byProvider[provider].npbrRecommendationsTotal += Number(bookingsMatch[1]);
       }
@@ -522,4 +532,75 @@ export function parseBusinessPerformanceReport(text: string): BusinessPerformanc
   }
 
   return { byProvider };
+}
+
+// The Aged Debtors report's "Client" column is actually a payer name (the
+// report groups by payer, not by individual client) — "[Private]" is
+// Nookal's own bracketed label for that bucket, which needs stripping
+// before categorizePayer() (which matches on the exact string "private").
+const PRIVATE_BUCKET_PATTERN = /^\[private\]$/i;
+
+/**
+ * Aged Debtors Report — see AgedDebtorsReportResult for what this can and
+ * can't derive. WorkCover-categorized AND every payer categorizePayer()
+ * can't place (falls to "other") both fold into 3rd Party — the schema's 4
+ * buckets (Private/NDIS/3rd Party/Medicare-DVA) are meant to cover every
+ * payer between them, so "everyone who isn't Private/Medicare/DVA/NDIS" is
+ * 3rd Party by construction, not a special case.
+ */
+export function parseAgedDebtorsReport(text: string): AgedDebtorsReportResult {
+  const rows = parseCsvRows(text);
+  const totalRow = extractSectionTotalRow(rows, "Details");
+  const adTotal = totalRow ? parseNumber(totalRow[totalRow.length - 1]) : null;
+
+  const section = extractSection(rows, "Details");
+  if (!section) return { adTotalPrivate: null, adNdis: null, ad3rdParty6190: null, ad3rdParty90: null, adMedicareDva31: null, adTotal };
+
+  let adTotalPrivate = 0;
+  let adNdis = 0;
+  let ad3rdParty6190 = 0;
+  let ad3rdParty90 = 0;
+  let adMedicareDva31 = 0;
+  let sawPrivate = false;
+  let sawNdis = false;
+  let saw3rdParty = false;
+  let sawMedicareDva = false;
+
+  for (const row of section.rows) {
+    const r = rowToRecord(section.header, row);
+    const client = (r["Client"] ?? "").trim();
+    if (!client) continue;
+
+    const amount = parseNumber(r["Amount"]) ?? 0;
+    const d3160 = parseNumber(r["31 - 60 Days"]) ?? 0;
+    const d6190 = parseNumber(r["61 - 90 Days"]) ?? 0;
+    const d90 = parseNumber(r["> 90 Days"]) ?? 0;
+
+    const normalized = PRIVATE_BUCKET_PATTERN.test(client) ? "Private" : client;
+    const category = categorizePayer(normalized);
+
+    if (category === "private") {
+      adTotalPrivate += amount;
+      sawPrivate = true;
+    } else if (category === "dva" || category === "medicare") {
+      adMedicareDva31 += d3160 + d6190 + d90;
+      sawMedicareDva = true;
+    } else if (category === "ndis") {
+      adNdis += amount;
+      sawNdis = true;
+    } else {
+      ad3rdParty6190 += d6190;
+      ad3rdParty90 += d90;
+      saw3rdParty = true;
+    }
+  }
+
+  return {
+    adTotalPrivate: sawPrivate ? adTotalPrivate : null,
+    adNdis: sawNdis ? adNdis : null,
+    ad3rdParty6190: saw3rdParty ? ad3rdParty6190 : null,
+    ad3rdParty90: saw3rdParty ? ad3rdParty90 : null,
+    adMedicareDva31: sawMedicareDva ? adMedicareDva31 : null,
+    adTotal,
+  };
 }

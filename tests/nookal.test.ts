@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseActivityReport,
+  parseAgedDebtorsReport,
   parseBusinessPerformanceReport,
   parseCancellationsReport,
   parseClientsAndCasesReport,
@@ -372,6 +373,29 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(result.specialtyCounts.paeds).toEqual({ total: 1, initial: 1, sub: 0 });
   });
 
+  it("detects Women's Health consults from a standalone 'WH' token, not any word containing it", () => {
+    const WH_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,300.00,0,300.00
+Total,300.00,0,300.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Test Client One,Private - WH Physio,Private Initial WH 60 min 500,Service,3001,01/07/2026,Private,,240.00,0.00,0.00,240.00,0.00,3001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Private - WH Physio,Private Subs WH 505,Service,3002,02/07/2026,Private,,116.00,0.00,0.00,116.00,0.00,3002
+03/07/2026,Alex Example,Adjust Physiotherapy,Test Client Three,Which appointment,Whatever Subs 505,Service,3003,03/07/2026,Private,,116.00,0.00,0.00,116.00,0.00,3003
+
+`;
+    const result = parseActivityReport(WH_CSV);
+    // Row 3's "Which"/"Whatever" must NOT match — \bwh\b requires "wh" as its own token.
+    expect(result.specialtyCounts.womens_health).toEqual({ total: 2, initial: 1, sub: 1 });
+  });
+
   it("counts per-provider keyword matches (e.g. a specialty init/sub pair)", () => {
     const HEADACHE_CSV = `Activity Report
 
@@ -452,5 +476,64 @@ Lachlan Brazier,8.86,0,81.33,13.75,44.69,614.4875,53.45%,49.88119436619718,32.87
     // so Providers & Practice's CVA would be undefined/0 — but her real UCVA
     // here (a rolling-12-month figure) is a meaningful 4.12, not 0 or 1.0.
     expect(result.byProvider["Samantha Delohery"].ucva).toBe(4.12);
+  });
+});
+
+describe("parseAgedDebtorsReport", () => {
+  const AGED_DEBTORS_CSV = `Ageing Debts Report
+
+Parameters
+Dates,17/07/2016 - 17/07/2026
+
+Summary
+Range,Amount
+0-30 Days,500.00
+31-60 Days,200.00
+61-90 Days,100.00
+>90 Days,50.00
+Total,850.00
+
+Details
+Client,Invoices,0 - 30 Days,31 - 60 Days,61 - 90 Days,> 90 Days,Amount
+[Private],3,300.00,50.00,0.00,0.00,350.00
+Department of Veterans Affairs,2,0.00,50.00,20.00,10.00,80.00
+Tweed Coast Plan Management,1,100.00,0.00,0.00,0.00,100.00
+Workcover QLD,4,100.00,100.00,80.00,40.00,320.00
+Total,,500.00,200.00,100.00,50.00,850.00
+
+`;
+
+  it("buckets Private/DVA/NDIS/everything-else the same way the Revenue page categorizes payers", () => {
+    const result = parseAgedDebtorsReport(AGED_DEBTORS_CSV);
+    // [Private] -> full Amount, unfiltered by age.
+    expect(result.adTotalPrivate).toBeCloseTo(350, 2);
+    // Tweed Coast Plan Management -> NDIS (matches "plan manag"), full Amount.
+    expect(result.adNdis).toBeCloseTo(100, 2);
+    // DVA -> 31+ days only (0-30 excluded): 50 + 20 + 10.
+    expect(result.adMedicareDva31).toBeCloseTo(80, 2);
+    // Workcover QLD -> 3rd Party, 61-90/>90 columns only.
+    expect(result.ad3rdParty6190).toBeCloseTo(80, 2);
+    expect(result.ad3rdParty90).toBeCloseTo(40, 2);
+    // Grand total straight off the Details section's own Total row.
+    expect(result.adTotal).toBeCloseTo(850, 2);
+  });
+
+  it("returns nulls for a bucket with no matching rows, not 0", () => {
+    const NO_NDIS_CSV = `Ageing Debts Report
+
+Parameters
+Dates,17/07/2016 - 17/07/2026
+
+Details
+Client,Invoices,0 - 30 Days,31 - 60 Days,61 - 90 Days,> 90 Days,Amount
+[Private],1,100.00,0.00,0.00,0.00,100.00
+Total,,100.00,0.00,0.00,0.00,100.00
+
+`;
+    const result = parseAgedDebtorsReport(NO_NDIS_CSV);
+    expect(result.adTotalPrivate).toBeCloseTo(100, 2);
+    expect(result.adNdis).toBeNull();
+    expect(result.ad3rdParty6190).toBeNull();
+    expect(result.adMedicareDva31).toBeNull();
   });
 });

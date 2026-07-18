@@ -66,8 +66,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 26, id: "bookings_start_week", label: "Bookings at Start of Week", source: "manual", type: "number", category: "Diary" },
   { idx: 27, id: "bookings_following_week", label: "Total Bookings for Following Week", source: "manual", type: "number", category: "Diary" },
   { idx: 28, id: "diary_mgmt_pct", label: "Diary Management %", source: "calc", type: "percent", category: "Diary" },
-  { idx: 29, id: "online_bookings_total", label: "Online Bookings Total", source: "manual", type: "number", category: "Diary" },
-  { idx: 30, id: "online_bookings_new", label: "Online Bookings New", source: "manual", type: "number", category: "Diary" },
+  // Scoped to new clients only, not every booking: of this week's new
+  // clients (excl. Pre-Employment — same population as total_nc's per-
+  // provider figure), how many booked their initial appointment online vs.
+  // by phone/in person. e.g. 14 new clients, 5 booked online -> total=14, new=5.
+  { idx: 29, id: "online_bookings_total", label: "New Clients (Online Bookings denominator)", source: "manual", type: "number", category: "Diary" },
+  { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "manual", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
   { idx: 31, id: "cva_new_grads", label: "CVA — New Grads", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
@@ -78,8 +82,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 36, id: "jbv_sub", label: "JBV Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 37, id: "jbv_total", label: "JBV Total", source: "calc", type: "number", category: "Clinic" },
 
-  // Admin manual fields (Weekly Input spec)
-  { idx: 38, id: "admin_followup_calls", label: "Follow-up Calls Completed", source: "manual", type: "number", category: "Admin" },
+  // Admin manual fields (Weekly Input spec) — entered once, shared
+  // identically across every admin staff member's KPI Scorecard/Compliance
+  // (they're clinic-level admin-team metrics, not each admin's own number).
+  { idx: 38, id: "admin_followup_calls", label: "Follow-up Calls Completed %", source: "manual", type: "percent", category: "Admin" },
   { idx: 39, id: "admin_onboarding_video_pct", label: "Onboarding Videos Sent %", source: "manual", type: "percent", category: "Admin" },
   { idx: 40, id: "admin_email_optin_pct", label: "Email Opt-In %", source: "manual", type: "percent", category: "Admin" },
   { idx: 41, id: "admin_website_optin_pct", label: "Website Opt-In %", source: "manual", type: "percent", category: "Admin" },
@@ -96,8 +102,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 49, id: "cva_senior", label: "CVA — Senior (6+ yrs)", source: "manual", type: "decimal", decimals: 2, category: "Clinic" },
 
   // Clinic-wide specialty consult counts (from the director's "SPECIALTY SERVICES CONSULTATIONS" tracker).
-  // Vestibular/Headaches/Paeds auto-fill from the Activity Report the same way JBV does; Women's Health has
-  // no CSV source on the director's own sheet, so it stays manual.
+  // Vestibular/Headaches/Paeds/Women's Health all auto-fill from the Activity Report the same way JBV does —
+  // matched against Case/Item text for "WH"/"women" (see SPECIALTY_CATEGORY_PATTERNS in lib/nookal/parsers.ts).
   { idx: 50, id: "specialty_vestibular_initial", label: "Vestibular Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 51, id: "specialty_vestibular_sub", label: "Vestibular Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 52, id: "specialty_vestibular_total", label: "Vestibular Total Consults", source: "calc", type: "number", category: "Clinic" },
@@ -107,22 +113,22 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 56, id: "specialty_paeds_initial", label: "Paeds Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 57, id: "specialty_paeds_sub", label: "Paeds Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 58, id: "specialty_paeds_total", label: "Paeds Total Consults", source: "calc", type: "number", category: "Clinic" },
-  { idx: 59, id: "specialty_womens_health_total", label: "Women's Health Total Consults", source: "manual", type: "number", category: "Clinic" },
+  { idx: 59, id: "specialty_womens_health_total", label: "Women's Health Total Consults", source: "calc", type: "number", category: "Clinic" },
 
   // Ageing Debts — from the director's "C. Ageing Debts" / "AGEING DEBT PODIATRY" sheet sections.
-  // The Nookal Aged Debtors report only exports "All Locations" combined and groups by payer
-  // type, not by individual client — it can't tell us which of a "[Private]" balance belongs to
-  // a true private-pay client vs. an NDIS self-managed client invoiced as Private, and it can't
-  // split Adjust Physiotherapy from Podiatry. Rather than guess at a split on numbers this
-  // sensitive, every field here stays manual (typed straight off the report), same as Gym/Podiatry
-  // revenue today.
-  { idx: 60, id: "ad_total_private", label: "Ageing Debt — Total Private", source: "manual", type: "currency", category: "AgeingDebt" },
+  // Auto-fills from the Aged Debtors report using the same payer categorization as the Revenue
+  // page (see parseAgedDebtorsReport in lib/nookal/parsers.ts) — bucketed by payer, since the
+  // report groups rows by payer type rather than individual client. ad_actual_private (can't tell
+  // a true private-pay client from an NDIS self-managed client invoiced as Private) and every
+  // ad_pod_* field (report has no location column, can't split Adjust from Podiatry) still can't
+  // be auto-derived and stay manual.
+  { idx: 60, id: "ad_total_private", label: "Ageing Debt — Total Private", source: "calc", type: "currency", category: "AgeingDebt" },
   { idx: 61, id: "ad_actual_private", label: "Ageing Debt — Actual Private", source: "manual", type: "currency", category: "AgeingDebt" },
-  { idx: 62, id: "ad_ndis", label: "Ageing Debt — NDIS", source: "manual", type: "currency", category: "AgeingDebt" },
-  { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt — 3rd Party 61-90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
-  { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt — 3rd Party >90 Days", source: "manual", type: "currency", category: "AgeingDebt" },
-  { idx: 65, id: "ad_medicare_dva_31", label: "Ageing Debt — Medicare/DVA over 31 Days", source: "manual", type: "currency", category: "AgeingDebt" },
-  { idx: 66, id: "ad_total", label: "Total Ageing Debt — Adjust Only", source: "manual", type: "currency", category: "AgeingDebt" },
+  { idx: 62, id: "ad_ndis", label: "Ageing Debt — NDIS", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt — 3rd Party 61-90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt — 3rd Party >90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 65, id: "ad_medicare_dva_31", label: "Ageing Debt — Medicare/DVA over 31 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 66, id: "ad_total", label: "Total Ageing Debt — Adjust Only", source: "calc", type: "currency", category: "AgeingDebt" },
 
   { idx: 67, id: "ad_pod_total_private", label: "Podiatry Ageing Debt — Total Private", source: "manual", type: "currency", category: "AgeingDebt" },
   { idx: 68, id: "ad_pod_actual_private", label: "Podiatry Ageing Debt — Actual Private", source: "manual", type: "currency", category: "AgeingDebt" },
@@ -132,9 +138,11 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 72, id: "ad_pod_medicare_dva_31", label: "Podiatry Ageing Debt — Medicare/DVA over 31 Days", source: "manual", type: "currency", category: "AgeingDebt" },
   { idx: 73, id: "ad_pod_total", label: "Total Ageing Debt — Podiatry Only", source: "manual", type: "currency", category: "AgeingDebt" },
 
-  // Sheet also tracks Women's Health Initial Consults alongside the total (matching the
-  // Vestibular/Headaches/Paeds Init/Sub/Total pattern above) — no CSV source, so manual like the total.
-  { idx: 74, id: "specialty_womens_health_initial", label: "Women's Health Initial Consults", source: "manual", type: "number", category: "Clinic" },
+  { idx: 74, id: "specialty_womens_health_initial", label: "Women's Health Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 75, id: "specialty_womens_health_sub", label: "Women's Health Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 76, id: "admin_obv_not_sent", label: "OBV Number Not Sent", source: "manual", type: "number", category: "Admin" },
+  { idx: 77, id: "admin_rx_notes_pct", label: "Rx Notes Made in Therapist Diary %", source: "manual", type: "percent", category: "Admin" },
+  { idx: 78, id: "admin_answered_calls_pct", label: "Answered Calls %", source: "manual", type: "percent", category: "Admin" },
 ];
 
 export function getClinicHeaders(): string[] {
@@ -165,6 +173,7 @@ export const GENERATED_CLINIC_FIELD_IDS = [
   "specialty_vestibular_total",
   "specialty_headaches_total",
   "specialty_paeds_total",
+  "specialty_womens_health_total",
 ] as const;
 
 /**

@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { NookalReportType } from "@/lib/schema";
 import {
   parseActivityReport,
+  parseAgedDebtorsReport,
   parseBusinessPerformanceReport,
   parseCancellationsReport,
   parseClientsAndCasesReport,
@@ -62,8 +63,7 @@ function cvaTierBucket(p: ProviderRow): "senior" | "massage" | "ep" | "new_grad"
  * data (e.g. if a provider's name in Nookal doesn't exactly match the name
  * on the Providers/Settings page).
  *
- * "aged_debtors" is stored (by the caller) but not parsed here — see
- * lib/nookal/parsers.ts for why. "business_performance" IS parsed below.
+ * "business_performance" and "aged_debtors" are both parsed below.
  */
 export async function applyNookalReport(
   supabase: SupabaseClient,
@@ -140,6 +140,8 @@ export async function applyNookalReport(
     clinicPatch.specialty_headaches_sub = result.specialtyCounts.headaches.sub;
     clinicPatch.specialty_paeds_initial = result.specialtyCounts.paeds.initial;
     clinicPatch.specialty_paeds_sub = result.specialtyCounts.paeds.sub;
+    clinicPatch.specialty_womens_health_initial = result.specialtyCounts.womens_health.initial;
+    clinicPatch.specialty_womens_health_sub = result.specialtyCounts.womens_health.sub;
 
     for (const [name, amount] of Object.entries(result.revenueByProvider)) {
       const p = findProvider(name);
@@ -244,7 +246,10 @@ export async function applyNookalReport(
       if (!p) continue;
       // Clinic-wide total includes Pre-Employment screenings; each
       // provider's own KPI figure doesn't (see PRE_EMPLOYMENT_PATTERN).
-      const patch: Record<string, unknown> = { new_patients: data.newClientsExclPreEmployment };
+      const patch: Record<string, unknown> = {
+        new_patients: data.newClientsExclPreEmployment,
+        new_patient_names: data.newClientNames,
+      };
       // New Patient Booking Rate: each new client's own "X Complete / Y Total"
       // Bookings count, averaged across all of this provider's new clients
       // that week (see parseClientsAndCasesReport's npbrRecommendationsTotal).
@@ -319,6 +324,17 @@ export async function applyNookalReport(
     if (epAvg !== null) clinicPatch.cva_ep = epAvg;
     if (newGradAvg !== null) clinicPatch.cva_new_grads = newGradAvg;
     if (tier25Avg !== null) clinicPatch.cva_2_5yr = tier25Avg;
+  } else if (reportType === "aged_debtors") {
+    const result = parseAgedDebtorsReport(csvText);
+    rowsFound = [result.adTotalPrivate, result.adNdis, result.ad3rdParty6190, result.adMedicareDva31].filter(
+      (v) => v !== null
+    ).length;
+    if (result.adTotalPrivate !== null) clinicPatch.ad_total_private = result.adTotalPrivate;
+    if (result.adNdis !== null) clinicPatch.ad_ndis = result.adNdis;
+    if (result.ad3rdParty6190 !== null) clinicPatch.ad_3rd_party_61_90 = result.ad3rdParty6190;
+    if (result.ad3rdParty90 !== null) clinicPatch.ad_3rd_party_90 = result.ad3rdParty90;
+    if (result.adMedicareDva31 !== null) clinicPatch.ad_medicare_dva_31 = result.adMedicareDva31;
+    if (result.adTotal !== null) clinicPatch.ad_total = result.adTotal;
   }
 
   if (Object.keys(clinicPatch).length > 0) {

@@ -83,6 +83,8 @@ export interface ClientsAndCasesReportResult {
        * across all of a provider's new clients that week).
        */
       npbrRecommendationsTotal: number;
+      /** Names of this provider's new clients that week (excl. Pre-Employment), in report order — for the "new clients this week" review list. */
+      newClientNames: string[];
     }
   >;
 }
@@ -117,4 +119,25 @@ export interface BusinessPerformanceReportResult {
       tpr: number | null;
     }
   >;
+}
+
+/**
+ * Aged Debtors Report — one row per payer (not per client), "All Locations"
+ * combined. Bucketed with the same categorizePayer() used on the Revenue
+ * page, so it inherits that function's known blind spots: a plan-manager-
+ * style payer whose name doesn't contain "plan manag"/"disability"/"NDIS"
+ * (e.g. an individual coordinator's name) reads as "other" and folds into
+ * 3rd Party here rather than NDIS. Can't split Adjust from Podiatry (no
+ * location column in this report) or tell a true-private client from an
+ * NDIS self-managed client invoiced as Private — those stay manual
+ * (ad_actual_private, all ad_pod_* fields).
+ */
+export interface AgedDebtorsReportResult {
+  adTotalPrivate: number | null;
+  adNdis: number | null;
+  ad3rdParty6190: number | null;
+  ad3rdParty90: number | null;
+  adMedicareDva31: number | null;
+  /** The report's own Details "Total" row — its Amount column, unfiltered. */
+  adTotal: number | null;
 }
