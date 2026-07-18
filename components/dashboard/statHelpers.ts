@@ -3,7 +3,12 @@ import { formatValue } from "@/lib/format";
 import { periodOverPeriodChange } from "@/lib/calc";
 import { ClinicWeekRow } from "@/lib/clinicData";
 
-export function clinicStatTile(history: ClinicWeekRow[], fieldId: string, goodDirection: "up" | "down" = "up") {
+export function clinicStatTile(
+  history: ClinicWeekRow[],
+  fieldId: string,
+  goodDirection: "up" | "down" = "up",
+  opts?: { target?: number | null; betterWhen?: "higher" | "lower" }
+) {
   const field = getClinicField(fieldId);
   const latest = history[history.length - 1]?.[fieldId];
   const value = typeof latest === "number" ? latest : null;
@@ -14,6 +19,9 @@ export function clinicStatTile(history: ClinicWeekRow[], fieldId: string, goodDi
     value: formatValue(value, field?.type ?? "number", field?.decimals),
     deltaPct,
     goodDirection,
+    rawValue: value,
+    target: opts?.target ?? null,
+    betterWhen: opts?.betterWhen,
   };
 }
 

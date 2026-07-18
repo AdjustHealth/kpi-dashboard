@@ -2,11 +2,16 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
-import { LineTrendChart } from "@/components/charts/LineTrendChart";
-import { NotTrackedPanel } from "@/components/dashboard/NotTrackedPanel";
-import { getClinicHistory } from "@/lib/clinicData";
-import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
+import { OccupancyBars } from "@/components/charts/OccupancyBars";
+import {
+  getClinicHistory,
+  getClinicTargets,
+  getClinicWideCvaRollup,
+  getNewClientsByProvider,
+} from "@/lib/clinicData";
+import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { formatValue } from "@/lib/format";
 
 export default async function ClinicHealthPage({
   searchParams,
@@ -15,31 +20,32 @@ export default async function ClinicHealthPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const history = await getClinicHistory(week, trackingHistoryWeeks(week));
+  const [history, clinicTargets, cvaRollup, newClientsByProvider] = await Promise.all([
+    getClinicHistory(week, trackingHistoryWeeks(week)),
+    getClinicTargets(),
+    getClinicWideCvaRollup(week),
+    getNewClientsByProvider(week),
+  ]);
 
-  const occupancyData = history.map((h) => ({
-    label: formatWeekLabel(h.week_ending),
-    Clinic: h.clinic_occ ?? null,
-    Physio: h.physio_occ ?? null,
-    Massage: h.massage_occ ?? null,
-    EP: h.ep_occ ?? null,
-  }));
+  const latest = history[history.length - 1];
+  const cxPctTarget = typeof clinicTargets.cx_pct_target === "number" ? clinicTargets.cx_pct_target : null;
 
-  const cvaData = history.map((h) => ({
-    label: formatWeekLabel(h.week_ending),
-    "New Grad": h.cva_new_grads ?? null,
-    "2-5yr": h.cva_2_5yr ?? null,
-    "Senior (6+yr)": h.cva_senior ?? null,
-    Massage: h.cva_massage ?? null,
-    EP: h.cva_ep ?? null,
-  }));
+  const occupancyRows = [
+    { label: "Clinic", value: typeof latest?.clinic_occ === "number" ? (latest.clinic_occ as number) : null },
+    { label: "Physio", value: typeof latest?.physio_occ === "number" ? (latest.physio_occ as number) : null },
+    { label: "Massage", value: typeof latest?.massage_occ === "number" ? (latest.massage_occ as number) : null },
+    { label: "EP", value: typeof latest?.ep_occ === "number" ? (latest.ep_occ as number) : null },
+  ];
 
-
-  const onlineBookingsData = history.map((h) => ({
-    label: formatWeekLabel(h.week_ending),
-    Total: h.online_bookings_total ?? null,
-    New: h.online_bookings_new ?? null,
-  }));
+  const newClientsOnlineData = history.map((h) => {
+    const total = typeof h.online_bookings_total === "number" ? h.online_bookings_total : null;
+    const online = typeof h.online_bookings_new === "number" ? h.online_bookings_new : null;
+    return {
+      label: formatWeekLabel(h.week_ending),
+      Online: online,
+      "Phone / In-Person": total !== null && online !== null ? Math.max(0, total - online) : null,
+    };
+  });
 
   return (
     <>
@@ -50,7 +56,7 @@ export default async function ClinicHealthPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile {...clinicStatTile(history, "total_consults")} label="Completed Appointments" />
             <StatTile {...clinicStatTile(history, "total_nc")} label="New Patients" />
-            <StatTile {...clinicStatTile(history, "clinic_occ")} label="Clinic Occupancy" />
+            <StatTile {...clinicStatTile(history, "clinic_occ", "up", { target: 0.85, betterWhen: "higher" })} label="Clinic Occupancy" />
           </div>
         </div>
 
@@ -67,30 +73,29 @@ export default async function ClinicHealthPage({
               format="number"
             />
             <MultiLineChart
-              title="Online Bookings — Total vs New"
-              data={onlineBookingsData}
-              seriesKeys={["Total", "New"]}
+              title="New Clients — Online vs. Phone / In-Person"
+              data={newClientsOnlineData}
+              seriesKeys={["Online", "Phone / In-Person"]}
               format="number"
             />
           </div>
         </Card>
 
-        <Card title="Occupancy by Service Line">
-          <MultiLineChart
-            title="Clinic / Physio / Massage / EP Occupancy"
-            data={occupancyData}
-            seriesKeys={["Clinic", "Physio", "Massage", "EP"]}
-            format="percent"
-            height={260}
-          />
+        <Card title="Occupancy by Service Line — this week">
+          <OccupancyBars rows={occupancyRows} target={0.85} />
         </Card>
 
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Retention / Value</h2>
-          <NotTrackedPanel
-            title="Clinic-wide CVA / NCVA / TPR"
-            items={["a clinic-level rollup of provider CVA, NCVA, and TPR — the tier breakdown below is tracked"]}
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatTile
+              label="Clinic-wide CVA"
+              value={formatValue(cvaRollup.avgCva, "decimal", 1)}
+              sublabel={`avg across ${cvaRollup.providerCount} clinicians`}
+            />
+            <StatTile label="Clinic-wide NCVA" value={formatValue(cvaRollup.avgNcva, "decimal", 1)} sublabel="avg across clinicians" />
+            <StatTile label="Clinic-wide TPR" value={formatValue(cvaRollup.totalTpr, "currency")} sublabel="summed across clinicians" />
+          </div>
           <div className="mt-4">
             <Card title="CVA by Provider Tier">
               <p className="mb-3 text-xs text-muted">
@@ -98,27 +103,32 @@ export default async function ClinicHealthPage({
               </p>
               <MultiLineChart
                 title="CVA by Tier"
-                data={cvaData}
+                data={history.map((h) => ({
+                  label: formatWeekLabel(h.week_ending),
+                  "New Grad": h.cva_new_grads ?? null,
+                  "2-5yr": h.cva_2_5yr ?? null,
+                  "Senior (6+yr)": h.cva_senior ?? null,
+                  Massage: h.cva_massage ?? null,
+                  EP: h.cva_ep ?? null,
+                }))}
                 seriesKeys={["New Grad", "2-5yr", "Senior (6+yr)", "Massage", "EP"]}
                 format="decimal"
-                decimals={2}
+                decimals={1}
               />
             </Card>
           </div>
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Ageing Debts</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Ageing Debts — Adjust</h2>
+          <p className="mb-3 text-xs text-muted">
+            Numbers only — Podiatry ageing debt isn&apos;t tracked here (see Weekly Input).
+          </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile {...clinicStatTile(history, "ad_total", "down")} label="Total Ageing Debt (Adjust)" />
+            <StatTile {...clinicStatTile(history, "ad_total", "down")} label="Total Ageing Debt" />
+            <StatTile {...clinicStatTile(history, "ad_total_private", "down")} label="Total Private" />
+            <StatTile {...clinicStatTile(history, "ad_ndis", "down")} label="NDIS" />
             <StatTile {...clinicStatTile(history, "ad_medicare_dva_31", "down")} label="Medicare/DVA over 31 Days" />
-            <StatTile {...clinicStatTile(history, "ad_3rd_party_90", "down")} label="3rd Party > 90 Days" />
-            <StatTile {...clinicStatTile(history, "ad_pod_total", "down")} label="Total Ageing Debt (Podiatry)" />
-          </div>
-          <div className="mt-4">
-            <Card title="Total Ageing Debt Trend">
-              <LineTrendChart title="Adjust + Podiatry" data={toTrendSeries(history, "ad_total")} format="currency" colorIndex={2} />
-            </Card>
           </div>
         </div>
 
@@ -126,19 +136,54 @@ export default async function ClinicHealthPage({
           <h2 className="mb-3 text-sm font-semibold text-foreground">Cancellations</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile {...clinicStatTile(history, "cx_cancels", "down")} label="Total Cancellations" />
-            <StatTile {...clinicStatTile(history, "cx_pct", "down")} label="Cancellation %" />
+            <StatTile
+              {...clinicStatTile(history, "cx_pct", "down", cxPctTarget !== null ? { target: cxPctTarget, betterWhen: "lower" } : undefined)}
+              label="Cancellation %"
+            />
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
-            <StatTile {...clinicStatTile(history, "cx_rsx_pct")} label="Reschedule Rate" />
+            <StatTile {...clinicStatTile(history, "cx_rsx_pct", "up", { target: 0.3, betterWhen: "higher" })} label="Reschedule Rate" />
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card title="Cancellations Trend">
-              <LineTrendChart title="Number of Cancellations" data={toTrendSeries(history, "cx_cancels")} format="number" colorIndex={3} />
+              <MultiLineChart
+                title="Number of Cancellations"
+                data={history.map((h) => ({ label: formatWeekLabel(h.week_ending), Cancellations: h.cx_cancels ?? null }))}
+                seriesKeys={["Cancellations"]}
+                format="number"
+              />
             </Card>
             <Card title="Reschedule Rate Trend">
-              <LineTrendChart title="Reschedule Rate" data={toTrendSeries(history, "cx_rsx_pct")} format="percent" colorIndex={1} />
+              <MultiLineChart
+                title="Reschedule Rate"
+                data={history.map((h) => ({ label: formatWeekLabel(h.week_ending), "Reschedule Rate": h.cx_rsx_pct ?? null }))}
+                seriesKeys={["Reschedule Rate"]}
+                format="percent"
+              />
             </Card>
           </div>
         </div>
+
+        {newClientsByProvider.length > 0 && (
+          <div>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">New Clients This Week — by Provider</h2>
+            <Card>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {newClientsByProvider.map((p) => (
+                  <div key={p.providerName}>
+                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                      {p.providerName} ({p.names.length})
+                    </div>
+                    <ul className="text-sm text-foreground">
+                      {p.names.map((name, i) => (
+                        <li key={`${name}-${i}`}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </>
   );

@@ -17,8 +17,8 @@ export function ClinicAnalysisCard({ history }: { history: ClinicWeekRow[] }) {
     <Card title="Clinic Analysis" action={<span className="text-xs text-muted">Shared clinic-wide data</span>}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile {...clinicStatTile(history, "diary_mgmt_pct")} label="Diary Management" />
-        <StatTile {...clinicStatTile(history, "cva_new_grads")} label="CVA — New Grads" />
-        <StatTile {...clinicStatTile(history, "cva_2_5yr")} label="CVA — 2-5yr" />
+        <StatTile {...clinicStatTile(history, "cva_new_grads", "up", { target: 4, betterWhen: "higher" })} label="CVA — New Grads" />
+        <StatTile {...clinicStatTile(history, "cva_2_5yr", "up", { target: 6, betterWhen: "higher" })} label="CVA — 2-5yr" />
         <StatTile {...clinicStatTile(history, "cva_ep")} label="CVA — EP" />
         <StatTile {...clinicStatTile(history, "cva_massage")} label="CVA — Massage" />
         <StatTile {...clinicStatTile(history, "jbv_initial")} label="JBV Initial" />
