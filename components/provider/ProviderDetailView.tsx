@@ -80,15 +80,17 @@ export function ProviderDetailView({
         />
       )}
 
-      <WeeklyScorecardTable
-        title="Compliance"
-        fields={COMPLIANCE_FIELDS}
-        targets={{}}
-        providerId={provider.id}
-        currentWeek={week}
-        history={history}
-        section="kpas"
-      />
+      {variant !== "admin" && (
+        <WeeklyScorecardTable
+          title="Compliance"
+          fields={COMPLIANCE_FIELDS}
+          targets={{}}
+          providerId={provider.id}
+          currentWeek={week}
+          history={history}
+          section="kpas"
+        />
+      )}
 
       {variant !== "admin" && (
         <WeeklyScorecardTable

@@ -137,13 +137,13 @@ export function WeeklyInputForm({
           </Card>
 
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-foreground">Provider Compliance — every provider</h3>
-            {providers.length === 0 && (
+            <h3 className="text-sm font-semibold text-foreground">Provider Compliance — every clinician (not admin)</h3>
+            {providers.filter((p) => p.role !== "admin").length === 0 && (
               <p className="text-sm text-muted">
-                No active providers yet — add them on the Settings page.
+                No active clinicians yet — add them on the Settings page.
               </p>
             )}
-            {providers.map((provider) => (
+            {providers.filter((p) => p.role !== "admin").map((provider) => (
               <ChecklistCard
                 key={provider.id}
                 title={provider.name}
