@@ -5,7 +5,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { getClinicHistory } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
-import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 
 const QUICK_LINKS = [
   { href: "/clinic/revenue", label: "Revenue", desc: "Trend, target, and payer mix" },
@@ -23,7 +23,7 @@ export default async function DashboardPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const history = await getClinicHistory(week, trackingHistoryWeeks(week));
+  const history = await getClinicHistory(week, clinicHistoryWeeks(week));
 
   return (
     <>

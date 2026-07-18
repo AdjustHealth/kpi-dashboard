@@ -52,20 +52,17 @@ export function weeksBetween(from: string, to: string): number {
   return Math.round((b - a) / (7 * 24 * 60 * 60 * 1000));
 }
 
-/** When this KPI system's tracking starts for every provider, admin, and clinic page — nothing before this week is meaningful history. */
-export const TRACKING_START_WEEK = "2026-07-01";
-
-/**
- * First week-ending (Saturday) on or after TRACKING_START_WEEK. TRACKING_START_WEEK
- * itself isn't necessarily a Saturday, so this is the actual earliest week-ending
- * value that should ever appear in history — everything is keyed by week-ending.
- */
-export const TRACKING_START_WEEK_ENDING = (() => {
-  const d = new Date(`${TRACKING_START_WEEK}T00:00:00Z`);
+/** First week-ending (Saturday) on or after `dateStr` — dateStr isn't necessarily a Saturday itself. */
+function firstWeekEndingOnOrAfter(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
   const day = d.getUTCDay(); // 0 = Sunday .. 6 = Saturday
   d.setUTCDate(d.getUTCDate() + ((6 - day + 7) % 7));
   return toDateKey(d);
-})();
+}
+
+/** When this KPI system's tracking starts for every provider, admin, and clinic page — nothing before this week is meaningful history. */
+export const TRACKING_START_WEEK = "2026-07-01";
+export const TRACKING_START_WEEK_ENDING = firstWeekEndingOnOrAfter(TRACKING_START_WEEK);
 
 /**
  * How many weeks of history to fetch to cover TRACKING_START_WEEK_ENDING through `week`.
@@ -75,4 +72,19 @@ export const TRACKING_START_WEEK_ENDING = (() => {
  */
 export function trackingHistoryWeeks(week: string, max = 52): number {
   return Math.min(max, Math.max(1, weeksBetween(TRACKING_START_WEEK_ENDING, week) + 1));
+}
+
+/**
+ * Clinic-wide (weekly_kpis) data has real backfilled history going back to
+ * January 2026 — much further than the per-provider system's July 2026
+ * rollout, since provider_weekly was never backfilled. Clinic-wide-only
+ * pages (Dashboard, Clinic Health, Specialty Services, Revenue) use this
+ * longer window so their trend charts read as an actual timeline instead of
+ * 1-2 points; provider/admin/senior pages keep the shorter window above.
+ */
+export const CLINIC_HISTORY_START_WEEK = "2026-01-01";
+export const CLINIC_HISTORY_START_WEEK_ENDING = firstWeekEndingOnOrAfter(CLINIC_HISTORY_START_WEEK);
+
+export function clinicHistoryWeeks(week: string, max = 52): number {
+  return Math.min(max, Math.max(1, weeksBetween(CLINIC_HISTORY_START_WEEK_ENDING, week) + 1));
 }

@@ -12,7 +12,7 @@ import {
   getProviderCvaHistory,
 } from "@/lib/clinicData";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
-import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
 
 function pctPointDelta(current: unknown, previous: unknown): number | null {
@@ -27,13 +27,18 @@ export default async function ClinicHealthPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const historyWeeks = trackingHistoryWeeks(week);
+  // weekly_kpis has real backfilled history back to January 2026 — much
+  // further than provider_weekly, which only starts at the July rollout —
+  // so the clinic-wide history and the per-provider CVA history intentionally
+  // use two different windows.
+  const historyWeeks = clinicHistoryWeeks(week);
+  const providerHistoryWeeks = trackingHistoryWeeks(week);
   const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory] = await Promise.all([
     getClinicHistory(week, historyWeeks),
     getClinicTargets(),
     getClinicWideCvaRollup(week),
     getNewClientsByProvider(week),
-    getProviderCvaHistory(week, Math.min(historyWeeks, 8)),
+    getProviderCvaHistory(week, Math.min(providerHistoryWeeks, 8)),
   ]);
 
   const latest = history[history.length - 1];

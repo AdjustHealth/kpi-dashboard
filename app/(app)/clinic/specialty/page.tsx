@@ -1,12 +1,15 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
-import { getClinicHistory } from "@/lib/clinicData";
+import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { getClinicHistory, ClinicWeekRow } from "@/lib/clinicData";
 import { toTrendSeries } from "@/components/dashboard/statHelpers";
 import { compoundingTrendSeries } from "@/lib/providerCalc";
-import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 import { StatTile } from "@/components/ui/StatTile";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
+import { JBV_PARTNERS } from "@/lib/jbvPartners";
+import { STATUS } from "@/components/charts/palette";
 
 /**
  * Clinic-wide specialty consult categories, from the director's own
@@ -17,11 +20,31 @@ import { clinicStatTile } from "@/components/dashboard/statHelpers";
  * *personal* specialty KPI (e.g. Marcio's Headache Init/Sub target) is a
  * separate, provider-scoped number shown on their own meeting page.
  */
-const SPECIALTIES: { name: string; key: string }[] = [
-  { name: "Vestibular", key: "specialty_vestibular" },
-  { name: "Headaches / TMJ", key: "specialty_headaches" },
-  { name: "Paediatrics", key: "specialty_paeds" },
+const SPECIALTIES: { name: string; key: string; colorIndex: number }[] = [
+  { name: "Vestibular", key: "specialty_vestibular", colorIndex: 0 },
+  { name: "Headaches / TMJ", key: "specialty_headaches", colorIndex: 3 },
+  { name: "Paediatrics", key: "specialty_paeds", colorIndex: 4 },
 ];
+
+/** % change from `weeksBack` weeks ago to the latest week — a growth-rate framing, not a target (none is stated for these categories). */
+function growthRatePct(history: ClinicWeekRow[], key: string, weeksBack: number): number | null {
+  const latest = history[history.length - 1]?.[key];
+  const past = history[history.length - 1 - weeksBack]?.[key];
+  if (typeof latest !== "number" || typeof past !== "number" || past === 0) return null;
+  return ((latest - past) / past) * 100;
+}
+
+function GrowthStat({ label, pct }: { label: string; pct: number | null }) {
+  const color = pct === null ? undefined : pct >= 0 ? STATUS.good : STATUS.critical;
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-lg font-semibold text-foreground" style={color ? { color } : undefined}>
+        {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+      </div>
+    </div>
+  );
+}
 
 export default async function SpecialtyServicesPage({
   searchParams,
@@ -30,14 +53,20 @@ export default async function SpecialtyServicesPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const historyWeeks = trackingHistoryWeeks(week);
+  const historyWeeks = clinicHistoryWeeks(week);
   const clinicHistory = await getClinicHistory(week, historyWeeks);
+  const growthWindow = Math.min(4, clinicHistory.length - 1);
 
   // Verified against the real senior-physio sheet's JBV Trend column
   // (17.00 -> 17.51 -> 18.04 -> 18.58 compounds at 3%/week, not 5%).
   const jbvTargetGrowthRate = 0.03;
   const firstJbv = clinicHistory.find((h) => typeof h.jbv_total === "number")?.jbv_total as number | undefined;
-  const jbvTrendTarget = firstJbv !== undefined ? compoundingTrendSeries(firstJbv, jbvTargetGrowthRate, clinicHistory.length) : [];
+  const jbvTrend = firstJbv !== undefined ? compoundingTrendSeries(firstJbv, jbvTargetGrowthRate, clinicHistory.length) : [];
+  const jbvChartData = clinicHistory.map((h, i) => ({
+    label: formatWeekLabel(h.week_ending),
+    "JBV Actual": typeof h.jbv_total === "number" ? h.jbv_total : null,
+    "JBV Trend (3%/wk)": jbvTrend[i] ?? null,
+  }));
 
   return (
     <>
@@ -49,19 +78,22 @@ export default async function SpecialtyServicesPage({
               <div className="mb-3 flex flex-wrap gap-6">
                 <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
                 <StatTile {...clinicStatTile(clinicHistory, `${s.key}_total`)} label="Total Consults" />
+                {growthWindow > 0 && (
+                  <GrowthStat label={`${growthWindow}-Week Growth`} pct={growthRatePct(clinicHistory, `${s.key}_total`, growthWindow)} />
+                )}
               </div>
               <LineTrendChart
                 title={`${s.name} — Total Consults`}
                 data={toTrendSeries(clinicHistory, `${s.key}_total`)}
                 format="number"
+                colorIndex={s.colorIndex}
               />
             </Card>
           ))}
 
           <Card title="Women's Health">
             <p className="mb-3 text-xs text-muted">
-              No Nookal report source for this category on the director&apos;s sheet — entered manually on
-              Weekly Input.
+              Auto-detected from the Activity Report (Women&apos;s Health / pelvic health item names) — no longer manual.
             </p>
             <div className="mb-3 flex flex-wrap gap-6">
               <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_initial")} label="Initial Consults" />
@@ -72,6 +104,7 @@ export default async function SpecialtyServicesPage({
                 title="Women's Health — Total Consults"
                 data={toTrendSeries(clinicHistory, "specialty_womens_health_total")}
                 format="number"
+                colorIndex={1}
               />
             </div>
           </Card>
@@ -84,17 +117,22 @@ export default async function SpecialtyServicesPage({
             <StatTile {...clinicStatTile(clinicHistory, "jbv_sub")} label="JBV Subsequent Consults" />
           </div>
           <p className="mb-3 text-[11px] text-muted">Target growth: 3% per week.</p>
-          <LineTrendChart
-            title="JBV Total vs 3% Growth Target"
-            data={toTrendSeries(clinicHistory, "jbv_total")}
+          <MultiLineChart
+            title="JBV Actual vs 3% Growth Trend"
+            data={jbvChartData}
+            seriesKeys={["JBV Actual", "JBV Trend (3%/wk)"]}
             format="number"
-            colorIndex={6}
+            height={240}
           />
-          {jbvTrendTarget.length > 0 && (
-            <p className="mt-2 text-[11px] text-muted">
-              Target trajectory from {formatWeekLabel(clinicHistory[0].week_ending)}: {jbvTrendTarget.map((v) => v.toFixed(1)).join(" → ")}
-            </p>
-          )}
+
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-2 text-xs font-medium text-muted">JBV Partners ({JBV_PARTNERS.length})</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground">
+              {JBV_PARTNERS.map((name) => (
+                <span key={name}>{name}</span>
+              ))}
+            </div>
+          </div>
         </Card>
       </div>
     </>

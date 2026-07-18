@@ -8,7 +8,7 @@ import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatValue } from "@/lib/format";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
-import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 
 export default async function RevenuePage({
   searchParams,
@@ -17,7 +17,7 @@ export default async function RevenuePage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const [history, targets] = await Promise.all([getClinicHistory(week, trackingHistoryWeeks(week)), getClinicTargets()]);
+  const [history, targets] = await Promise.all([getClinicHistory(week, clinicHistoryWeeks(week)), getClinicTargets()]);
 
   const weeklyTarget = typeof targets.weekly_revenue_target === "number" ? targets.weekly_revenue_target : null;
   const breakeven = typeof targets.weekly_breakeven_target === "number" ? targets.weekly_breakeven_target : null;

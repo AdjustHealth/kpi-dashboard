@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { trackingHistoryWeeks, recentWeeks, TRACKING_START_WEEK_ENDING } from "@/lib/week";
+import {
+  trackingHistoryWeeks,
+  recentWeeks,
+  TRACKING_START_WEEK_ENDING,
+  clinicHistoryWeeks,
+  CLINIC_HISTORY_START_WEEK_ENDING,
+} from "@/lib/week";
 
 describe("trackingHistoryWeeks", () => {
   it("never includes weeks before TRACKING_START_WEEK_ENDING", () => {
@@ -26,5 +32,21 @@ describe("trackingHistoryWeeks", () => {
 
   it("is capped at max for far-future weeks", () => {
     expect(trackingHistoryWeeks("2030-01-01", 52)).toBe(52);
+  });
+});
+
+describe("clinicHistoryWeeks", () => {
+  it("starts from January 2026, well before the per-provider TRACKING_START_WEEK", () => {
+    expect(CLINIC_HISTORY_START_WEEK_ENDING < TRACKING_START_WEEK_ENDING).toBe(true);
+    expect(CLINIC_HISTORY_START_WEEK_ENDING).toBe("2026-01-03");
+  });
+
+  it("covers far more weeks than trackingHistoryWeeks for the same current week", () => {
+    const week = "2026-07-18";
+    expect(clinicHistoryWeeks(week)).toBeGreaterThan(trackingHistoryWeeks(week));
+  });
+
+  it("is capped at max for far-future weeks", () => {
+    expect(clinicHistoryWeeks("2030-01-01", 52)).toBe(52);
   });
 });
