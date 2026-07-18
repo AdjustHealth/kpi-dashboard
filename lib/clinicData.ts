@@ -23,13 +23,18 @@ export async function getClinicTargets(): Promise<Record<string, unknown>> {
 export interface ClinicWideCvaRollup {
   avgCva: number | null;
   avgNcva: number | null;
-  totalTpr: number | null;
+  /** TPR is already a per-provider total (e.g. 5 consults x $100 = $500) — the clinic-wide figure averages those totals across providers, it doesn't sum them again. */
+  avgTpr: number | null;
   providerCount: number;
 }
 
 export interface ProviderNewClients {
   providerName: string;
   names: string[];
+}
+
+function average(values: number[]): number | null {
+  return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
 }
 
 /**
@@ -53,11 +58,42 @@ export async function getClinicWideCvaRollup(week: string): Promise<ClinicWideCv
   const tprs = rows.map((r) => (r.metrics as Record<string, unknown>)?.tpr).filter((v): v is number => typeof v === "number");
 
   return {
-    avgCva: cvas.length > 0 ? cvas.reduce((a, b) => a + b, 0) / cvas.length : null,
-    avgNcva: ncvas.length > 0 ? ncvas.reduce((a, b) => a + b, 0) / ncvas.length : null,
-    totalTpr: tprs.length > 0 ? tprs.reduce((a, b) => a + b, 0) : null,
+    avgCva: average(cvas),
+    avgNcva: average(ncvas),
+    avgTpr: average(tprs),
     providerCount: cvas.length,
   };
+}
+
+export interface ProviderCvaSeries {
+  providerName: string;
+  role: string;
+  points: { week_ending: string; value: number | null }[];
+}
+
+/** Each active clinician's own CVA (ucva) over time, for a per-provider comparison chart. */
+export async function getProviderCvaHistory(week: string, historyWeeks: number): Promise<ProviderCvaSeries[]> {
+  const supabase = await createClient();
+  const weeks = recentWeeks(week, historyWeeks);
+  const [providersResult, weeklyResult] = await Promise.all([
+    supabase.from("providers").select("id, name, role").eq("active", true).order("sort_order"),
+    supabase.from("provider_weekly").select("provider_id, week_ending, metrics").in("week_ending", weeks),
+  ]);
+  const providers = (providersResult.data ?? []) as { id: string; name: string; role: string }[];
+  const rows = (weeklyResult.data ?? []) as { provider_id: string; week_ending: string; metrics: Record<string, unknown> }[];
+  const byProviderWeek = new Map(rows.map((r) => [`${r.provider_id}:${r.week_ending}`, r.metrics]));
+
+  return providers
+    .filter((p) => p.role !== "admin")
+    .map((p) => ({
+      providerName: p.name,
+      role: p.role,
+      points: weeks.map((w) => {
+        const v = byProviderWeek.get(`${p.id}:${w}`)?.ucva;
+        return { week_ending: w, value: typeof v === "number" ? v : null };
+      }),
+    }))
+    .filter((s) => s.points.some((pt) => pt.value !== null));
 }
 
 /** Each clinician's list of new patients this week (from the Clients & Cases upload), for the director to review. */

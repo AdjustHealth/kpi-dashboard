@@ -3,15 +3,22 @@ import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { OccupancyBars } from "@/components/charts/OccupancyBars";
+import { ProviderSmallMultiples } from "@/components/charts/ProviderSmallMultiples";
 import {
   getClinicHistory,
   getClinicTargets,
   getClinicWideCvaRollup,
   getNewClientsByProvider,
+  getProviderCvaHistory,
 } from "@/lib/clinicData";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
+
+function pctPointDelta(current: unknown, previous: unknown): number | null {
+  if (typeof current !== "number" || typeof previous !== "number") return null;
+  return (current - previous) * 100;
+}
 
 export default async function ClinicHealthPage({
   searchParams,
@@ -20,21 +27,40 @@ export default async function ClinicHealthPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const [history, clinicTargets, cvaRollup, newClientsByProvider] = await Promise.all([
-    getClinicHistory(week, trackingHistoryWeeks(week)),
+  const historyWeeks = trackingHistoryWeeks(week);
+  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory] = await Promise.all([
+    getClinicHistory(week, historyWeeks),
     getClinicTargets(),
     getClinicWideCvaRollup(week),
     getNewClientsByProvider(week),
+    getProviderCvaHistory(week, Math.min(historyWeeks, 8)),
   ]);
 
   const latest = history[history.length - 1];
+  const prior = history[history.length - 2];
   const cxPctTarget = typeof clinicTargets.cx_pct_target === "number" ? clinicTargets.cx_pct_target : null;
 
   const occupancyRows = [
-    { label: "Clinic", value: typeof latest?.clinic_occ === "number" ? (latest.clinic_occ as number) : null },
-    { label: "Physio", value: typeof latest?.physio_occ === "number" ? (latest.physio_occ as number) : null },
-    { label: "Massage", value: typeof latest?.massage_occ === "number" ? (latest.massage_occ as number) : null },
-    { label: "EP", value: typeof latest?.ep_occ === "number" ? (latest.ep_occ as number) : null },
+    {
+      label: "Clinic",
+      value: typeof latest?.clinic_occ === "number" ? (latest.clinic_occ as number) : null,
+      deltaPts: pctPointDelta(latest?.clinic_occ, prior?.clinic_occ),
+    },
+    {
+      label: "Physio",
+      value: typeof latest?.physio_occ === "number" ? (latest.physio_occ as number) : null,
+      deltaPts: pctPointDelta(latest?.physio_occ, prior?.physio_occ),
+    },
+    {
+      label: "Massage",
+      value: typeof latest?.massage_occ === "number" ? (latest.massage_occ as number) : null,
+      deltaPts: pctPointDelta(latest?.massage_occ, prior?.massage_occ),
+    },
+    {
+      label: "EP",
+      value: typeof latest?.ep_occ === "number" ? (latest.ep_occ as number) : null,
+      deltaPts: pctPointDelta(latest?.ep_occ, prior?.ep_occ),
+    },
   ];
 
   const newClientsOnlineData = history.map((h) => {
@@ -94,7 +120,11 @@ export default async function ClinicHealthPage({
               sublabel={`avg across ${cvaRollup.providerCount} clinicians`}
             />
             <StatTile label="Clinic-wide NCVA" value={formatValue(cvaRollup.avgNcva, "decimal", 1)} sublabel="avg across clinicians" />
-            <StatTile label="Clinic-wide TPR" value={formatValue(cvaRollup.totalTpr, "currency")} sublabel="summed across clinicians" />
+            <StatTile
+              label="Clinic-wide TPR"
+              value={formatValue(cvaRollup.avgTpr, "currency")}
+              sublabel="avg per provider — each provider's TPR is already a total (e.g. 5 consults x $100 = $500)"
+            />
           </div>
           <div className="mt-4">
             <Card title="CVA by Provider Tier">
@@ -117,6 +147,14 @@ export default async function ClinicHealthPage({
               />
             </Card>
           </div>
+          {providerCvaHistory.length > 0 && (
+            <div className="mt-4">
+              <Card title="CVA by Individual Provider">
+                <p className="mb-3 text-xs text-muted">Same CVA figure, one mini chart per clinician — colored by tier (blue = senior, violet = physio, magenta = massage, orange = EP).</p>
+                <ProviderSmallMultiples series={providerCvaHistory} format="decimal" decimals={1} />
+              </Card>
+            </div>
+          )}
         </div>
 
         <div>

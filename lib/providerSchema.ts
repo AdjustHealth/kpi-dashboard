@@ -31,6 +31,8 @@ export interface ProviderField {
   decimals?: number;
   /** For conditional red/green formatting against a target — omit for fields with no meaningful direction (e.g. raw counts with no target). */
   betterWhen?: "higher" | "lower";
+  /** Small supporting text shown under `label` (e.g. a KPA's full behavioural description) — label stays the bold, obvious heading. */
+  sublabel?: string;
 }
 
 export const KPA_RATINGS = ["not_met", "demonstrated", "above_and_beyond"] as const;
@@ -217,20 +219,23 @@ export const PROVIDER_TASK_KPA_FIELDS: ProviderField[] = [
 export const CUSTOMER_SERVICE_KPA_FIELDS: ProviderField[] = [
   {
     key: "set_the_stage",
-    label:
-      "Set the Stage — 7 seconds to make a first impression / acknowledge and greet client when they enter / introduce yourself to new clients / no bitching, moaning or negative personal talk on the front desk / positive body language, posture & tone / be mindful of how the waiting room looks",
+    label: "Set the Stage",
+    sublabel:
+      "7 seconds to make a first impression / acknowledge and greet client when they enter / introduce yourself to new clients / no bitching, moaning or negative personal talk on the front desk / positive body language, posture & tone / be mindful of how the waiting room looks",
     type: "rating",
   },
   {
     key: "interaction_connection",
-    label:
-      "Interaction & Connection — Power of familiarity: introduce, use client names where possible, say \"thank you\" / Embracing Vulnerability: being who you are, giving yourself permission to be you / creating a safe space for others to be who they are, letting your wall or guard down",
+    label: "Interaction & Connection",
+    sublabel:
+      "Power of familiarity: introduce, use client names where possible, say \"thank you\" / Embracing Vulnerability: being who you are, giving yourself permission to be you / creating a safe space for others to be who they are, letting your wall or guard down",
     type: "rating",
   },
   {
     key: "solutions_focused",
-    label:
-      "Solutions Focused — Being solutions focused / using your initiative / understanding what people are going through / following things right through to the end",
+    label: "Solutions Focused",
+    sublabel:
+      "Being solutions focused / using your initiative / understanding what people are going through / following things right through to the end",
     type: "rating",
   },
 ];

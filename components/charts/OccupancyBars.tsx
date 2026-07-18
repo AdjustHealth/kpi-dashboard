@@ -5,6 +5,8 @@ import { STATUS, CATEGORICAL } from "@/components/charts/palette";
 export interface OccupancyRow {
   label: string;
   value: number | null;
+  /** Percentage-point change vs. the prior week, so this weekly snapshot still reads chronologically. */
+  deltaPts?: number | null;
 }
 
 /**
@@ -26,8 +28,16 @@ export function OccupancyBars({ rows, target = 0.85 }: { rows: OccupancyRow[]; t
           <div key={row.label}>
             <div className="mb-1 flex items-baseline justify-between text-xs">
               <span className="font-medium text-foreground">{row.label}</span>
-              <span className="font-semibold" style={{ color }}>
-                {row.value === null ? "—" : `${(row.value * 100).toFixed(1)}%`}
+              <span className="flex items-center gap-2">
+                {typeof row.deltaPts === "number" && (
+                  <span className="text-[11px] font-medium" style={{ color: row.deltaPts >= 0 ? STATUS.good : STATUS.critical }}>
+                    {row.deltaPts >= 0 ? "+" : ""}
+                    {row.deltaPts.toFixed(1)}pt vs last week
+                  </span>
+                )}
+                <span className="font-semibold" style={{ color }}>
+                  {row.value === null ? "—" : `${(row.value * 100).toFixed(1)}%`}
+                </span>
               </span>
             </div>
             <div className="relative h-3 w-full overflow-hidden rounded-full bg-surface-raised">

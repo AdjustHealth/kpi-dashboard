@@ -62,7 +62,10 @@ export function KpaScorecardTable({
       <div className="flex flex-col divide-y divide-border/60">
         {fields.map((field) => (
           <div key={field.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="max-w-xl text-sm text-foreground">{field.label}</div>
+            <div className="max-w-xl">
+              <div className="text-sm font-bold text-foreground">{field.label}</div>
+              {field.sublabel && <div className="mt-0.5 text-xs text-muted">{field.sublabel}</div>}
+            </div>
             <div className="flex flex-shrink-0 items-center gap-1.5">
               {history.map((w, i) => {
                 const isCurrent = i === currentIndex;
