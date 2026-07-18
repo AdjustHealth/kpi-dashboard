@@ -22,7 +22,7 @@ export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
   return (
     <Card title="Performance Charts">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <LineTrendChart title="UCVA" data={series(history, "ucva")} format="decimal" decimals={2} colorIndex={0} />
+        <LineTrendChart title="CVA" data={series(history, "ucva")} format="decimal" decimals={2} colorIndex={0} />
         <LineTrendChart title="NCVA" data={series(history, "ncva")} format="decimal" decimals={2} colorIndex={1} />
         <LineTrendChart
           title="NCVA — 4wk Rolling Avg"

@@ -223,7 +223,7 @@ Total,120,30,,0,0,
 
     expect(providerWeekly["p1:2026-07-05"].completed_consults).toBe(40);
     expect(providerWeekly["p1:2026-07-05"].fba).toBeCloseTo(4, 2);
-    expect(providerWeekly["p1:2026-07-05"].personal_cva).toBeCloseTo(2, 2);
+    expect(providerWeekly["p1:2026-07-05"].personal_cva).toBeUndefined();
     expect(providerWeekly["p1:2026-07-05"].ucva).toBeUndefined();
     expect(providerWeekly["p2:2026-07-05"].ucva).toBeUndefined();
 

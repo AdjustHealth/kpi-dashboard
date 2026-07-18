@@ -88,8 +88,8 @@ export default async function ClinicHealthPage({
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Retention / Value</h2>
           <NotTrackedPanel
-            title="Clinic-wide UCVA / NCVA / TPR"
-            items={["a clinic-level rollup of provider UCVA, NCVA, and TPR — the tier breakdown below is tracked"]}
+            title="Clinic-wide CVA / NCVA / TPR"
+            items={["a clinic-level rollup of provider CVA, NCVA, and TPR — the tier breakdown below is tracked"]}
           />
           <div className="mt-4">
             <Card title="CVA by Provider Tier">

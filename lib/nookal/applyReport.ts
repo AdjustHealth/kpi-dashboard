@@ -257,15 +257,15 @@ export async function applyNookalReport(
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {
     // NOTE: Nookal's "Client Visit Average" in this report is NOT the same
-    // metric as "UCVA" on the KPI Scorecard/Clinic Analysis — the director's
-    // own "where the data comes from" sheet confirms UCVA/NCVA/TPR are a
-    // rolling-12-month figure from the Business Performance Report (with
-    // payer/provider exclusions), which we don't parse. Do not write this
-    // report's "Client Visit Average" into `ucva` — that was silently wrong
-    // (writing a single week's Providers & Practice ratio, sometimes 1.0 for
-    // low-volume providers, into a field labelled as a 12-month figure).
-    // It IS this week's real "Personal CVA" scorecard row, though — a
-    // different, single-week metric the KPI Scorecard tracks alongside UCVA.
+    // metric as "CVA" (key: ucva) on the KPI Scorecard/Clinic Analysis — the
+    // director's own "where the data comes from" sheet confirms CVA/NCVA/TPR
+    // are a rolling-12-month figure from the Business Performance Report
+    // (with payer/provider exclusions), which we don't parse here. Do not
+    // write this report's "Client Visit Average" anywhere on the scorecard —
+    // tried surfacing it as a separate "Personal CVA" row once, and it read
+    // as a second, much-lower, confusing number next to the real one (a
+    // single week's Services/Unique-Client ratio, ~1.0-1.2, vs. CVA's
+    // rolling-year figure) — the director doesn't track two CVAs, just one.
     const result = parseProvidersAndPracticeReport(csvText);
     rowsFound = Object.keys(result.byProvider).length;
     let totalCompletedConsults = 0;
@@ -278,7 +278,6 @@ export async function applyNookalReport(
       const patch: Record<string, unknown> = {};
       if (data.completedConsults !== null) patch.completed_consults = data.completedConsults;
       if (data.forwardBookingAverage !== null) patch.fba = data.forwardBookingAverage;
-      if (data.cva !== null) patch.personal_cva = data.cva;
       if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
     }
 
