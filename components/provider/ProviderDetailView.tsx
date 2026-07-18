@@ -20,6 +20,7 @@ export function ProviderDetailView({
   currentMeetingNotes,
   clinicHistory,
   seniorSince,
+  roleTargets,
   variant,
 }: {
   provider: Provider;
@@ -29,10 +30,12 @@ export function ProviderDetailView({
   clinicHistory?: ClinicWeekRow[];
   /** Only count weeks from this date forward toward bonus-tier cumulative turnover. */
   seniorSince?: string | null;
+  /** Role-level target groups (Providers/Senior/Admin) — see lib/targetsSchema.ts. */
+  roleTargets?: Record<string, Record<string, unknown>>;
   variant: "standard" | "senior" | "admin";
 }) {
   const metricFields = metricFieldsForRole(provider.role);
-  const effectiveTargets = getEffectiveTargets(provider);
+  const effectiveTargets = getEffectiveTargets(provider, roleTargets);
   const kpaGroups = kpaGroupsForRole(provider.role);
   // Cumulative turnover must only count weeks since this senior physio
   // actually started the role, not the whole fetched history window.

@@ -20,6 +20,17 @@ export async function getClinicTargets(): Promise<Record<string, unknown>> {
   return data?.values ?? {};
 }
 
+/** Role-level target sets ("providers" / "senior" / "admin"), keyed by group id — see lib/targetsSchema.ts. */
+export async function getRoleTargets(): Promise<Record<string, Record<string, unknown>>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("role_targets").select("id, values");
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const row of data ?? []) {
+    out[row.id as string] = (row.values as Record<string, unknown>) ?? {};
+  }
+  return out;
+}
+
 export interface ClinicWideCvaRollup {
   avgCva: number | null;
   avgNcva: number | null;

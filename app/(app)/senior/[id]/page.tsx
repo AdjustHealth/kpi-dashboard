@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
-import { getClinicHistory } from "@/lib/clinicData";
+import { getClinicHistory, getRoleTargets } from "@/lib/clinicData";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding, weeksBetween, trackingHistoryWeeks } from "@/lib/week";
 
@@ -31,9 +31,10 @@ export default async function SeniorPhysioPage({
     seniorSince ? weeksBetween(seniorSince, week) + 1 : 0
   );
 
-  const [{ provider, history, currentMeetingNotes }, clinicHistory] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes }, clinicHistory, roleTargets] = await Promise.all([
     getProviderDetailData(id, week, historyWeeks),
     getClinicHistory(week, historyWeeks),
+    getRoleTargets(),
   ]);
   if (!provider || provider.role !== "senior_physio") notFound();
 
@@ -47,6 +48,7 @@ export default async function SeniorPhysioPage({
         currentMeetingNotes={currentMeetingNotes}
         clinicHistory={clinicHistory}
         seniorSince={seniorSince}
+        roleTargets={roleTargets}
         variant="senior"
       />
     </>

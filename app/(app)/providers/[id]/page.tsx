@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
+import { getRoleTargets } from "@/lib/clinicData";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 
@@ -16,7 +17,10 @@ export default async function ProviderDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const { provider, history, currentMeetingNotes } = await getProviderDetailData(id, week, trackingHistoryWeeks(week));
+  const [{ provider, history, currentMeetingNotes }, roleTargets] = await Promise.all([
+    getProviderDetailData(id, week, trackingHistoryWeeks(week)),
+    getRoleTargets(),
+  ]);
   if (!provider) notFound();
 
   return (
@@ -27,6 +31,7 @@ export default async function ProviderDetailPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
+        roleTargets={roleTargets}
         variant="standard"
       />
     </>

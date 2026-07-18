@@ -5,9 +5,15 @@ import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { NumberField } from "@/components/inputs/NumberField";
 import { BONUS_TIER_FIELDS, PROVIDER_TARGET_FIELDS } from "@/lib/targetsSchema";
-import { metricFieldsForRole, ProviderField } from "@/lib/providerSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { Provider } from "@/lib/types";
+
+/** Whether this provider has any genuinely individual target to show (role-group cards cover everyone else). */
+export function providerHasIndividualTargets(provider: Provider): boolean {
+  if (provider.role === "senior_physio") return true;
+  if (provider.role !== "admin") return true; // PROVIDER_TARGET_FIELDS always apply
+  return provider.specialty_metrics.length > 0;
+}
 
 export function ProviderTargetsCard({ provider }: { provider: Provider }) {
   const [targets, setTargets] = useState<Record<string, unknown>>(provider.targets ?? {});
@@ -32,15 +38,11 @@ export function ProviderTargetsCard({ provider }: { provider: Provider }) {
     set("bonus_tiers", bonusTiers);
   }
 
-  // Every non-boolean KPI Scorecard field gets an editable target here — the
-  // same "targets[field.key]" value the meeting page's Target column reads —
-  // plus a few target-only fields (personal_cva, annual_turnover_target,
-  // working_weeks) that don't have a matching weekly metric.
-  const metricTargetFields = metricFieldsForRole(provider.role).filter(
-    (f): f is ProviderField & { type: Exclude<ProviderField["type"], "boolean" | "rating"> } =>
-      f.type !== "boolean" && f.type !== "rating"
-  );
-  const baseFields = [...metricTargetFields, ...(provider.role === "admin" ? [] : PROVIDER_TARGET_FIELDS)];
+  // Only genuinely individual target-only fields live here now (personal_cva,
+  // annual_turnover_target, working_weeks) — the shared KPI Scorecard targets
+  // (FBA, DNAs, Cancellations, etc.) are set once per role group on the
+  // "Providers"/"Senior"/"Admin" cards above instead of per person.
+  const baseFields = provider.role === "admin" ? [] : PROVIDER_TARGET_FIELDS;
 
   return (
     <Card title={provider.name} action={<SaveIndicator status={status} />}>
