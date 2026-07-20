@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
+import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
 import { ProviderMeetingNotes, ACTION_PLAN_CATEGORIES } from "@/lib/providerSchema";
 
 const ACTION_STEP_COUNT = 3;
@@ -52,6 +53,16 @@ export function ActionStepsCard({
     if (!res.ok) throw new Error("save failed");
   });
 
+  const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
+    setNotes((prev) => ({ ...prev, ...remote }));
+  });
+  function fieldFocusHandlers(key: string) {
+    return {
+      onFocus: () => markActive(key),
+      onBlur: () => markInactive(key),
+    };
+  }
+
   function updateActionStep(index: number, value: string) {
     setNotes((prev) => {
       const list = [...(prev.action_steps ?? Array(ACTION_STEP_COUNT).fill(""))];
@@ -88,6 +99,7 @@ export function ActionStepsCard({
                 placeholder={`Notes for ${category.label}`}
                 className={large ? "min-h-20 text-base" : undefined}
                 onChange={(e) => updateActionPlan(category.key, e.target.value)}
+                {...fieldFocusHandlers("action_plan")}
               />
             </div>
           ))}
@@ -101,6 +113,7 @@ export function ActionStepsCard({
               placeholder={`Action Step / Agreement ${i + 1}`}
               className={large ? "py-3 text-base" : undefined}
               onChange={(e) => updateActionStep(i, e.target.value)}
+              {...fieldFocusHandlers("action_steps")}
             />
           ))}
         </div>
@@ -113,6 +126,7 @@ export function ActionStepsCard({
             value={notes.performance_review_goals ?? ""}
             onChange={(e) => updateGoals(e.target.value)}
             className={large ? "min-h-40 text-base" : undefined}
+            {...fieldFocusHandlers("performance_review_goals")}
           />
         </div>
       )}

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Field, Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
+import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
 import { MULTI_DISC_LABELS, ProviderMeetingNotes } from "@/lib/providerSchema";
 
 const DISC_KEYS = ["hydro", "ep_ms", "rmt", "gym"] as const;
@@ -36,6 +37,16 @@ export function MeetingNotesCard({
     if (!res.ok) throw new Error("save failed");
   });
 
+  const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
+    setNotes((prev) => ({ ...prev, ...remote }));
+  });
+  function fieldFocusHandlers(key: string) {
+    return {
+      onFocus: () => markActive(key),
+      onBlur: () => markInactive(key),
+    };
+  }
+
   function updateText(key: "agenda_items" | "review_previous_actions", value: string) {
     setNotes((prev) => ({ ...prev, [key]: value }));
     set(key, value);
@@ -61,16 +72,18 @@ export function MeetingNotesCard({
   return (
     <Card title="Meeting Notes" action={<SaveIndicator status={status} />}>
       <div className="flex flex-col gap-4">
-        <Field label="New Agenda Items">
+        <Field label="New Agenda Items" hint="Start a line with “- ” to dot-point it — it carries onto the next line automatically.">
           <Textarea
             value={notes.agenda_items ?? ""}
             onChange={(e) => updateText("agenda_items", e.target.value)}
+            {...fieldFocusHandlers("agenda_items")}
           />
         </Field>
         <Field label="Review from Last Week / Action Steps">
           <Textarea
             value={notes.review_previous_actions ?? ""}
             onChange={(e) => updateText("review_previous_actions", e.target.value)}
+            {...fieldFocusHandlers("review_previous_actions")}
           />
         </Field>
 
@@ -83,6 +96,7 @@ export function MeetingNotesCard({
                 value={notes.wins?.[i] ?? ""}
                 placeholder={`Win ${i + 1}`}
                 onChange={(e) => updateListItem("wins", i, e.target.value)}
+                {...fieldFocusHandlers("wins")}
               />
             ))}
           </div>
@@ -94,6 +108,7 @@ export function MeetingNotesCard({
                 value={notes.things_to_work_on?.[i] ?? ""}
                 placeholder={`Item ${i + 1}`}
                 onChange={(e) => updateListItem("things_to_work_on", i, e.target.value)}
+                {...fieldFocusHandlers("things_to_work_on")}
               />
             ))}
           </div>
@@ -110,6 +125,7 @@ export function MeetingNotesCard({
                   onChange={(e) =>
                     updateDisc(key, e.target.value === "" ? null : Number(e.target.value))
                   }
+                  {...fieldFocusHandlers("multi_disc_utilisation")}
                 />
               </Field>
             ))}
