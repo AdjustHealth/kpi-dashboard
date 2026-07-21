@@ -157,7 +157,9 @@ export function ProviderDetailView({
 
       {variant !== "admin" && Array.isArray(newPatientNames) && <NewPatientsCard names={newPatientNames as string[]} />}
 
-      {variant === "admin" && clinicHistory && <AdminSharedComplianceTable clinicHistory={clinicHistory} />}
+      {variant === "admin" && clinicHistory && (
+        <AdminSharedComplianceTable clinicHistory={clinicHistory} targets={effectiveTargets} />
+      )}
 
       {variant !== "admin" && (
         <WeeklyScorecardTable

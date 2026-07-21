@@ -8,19 +8,13 @@ import { formatWeekLabel } from "@/lib/week";
 import { ProviderField, KPA_RATINGS, KPA_RATING_LABELS, KpaRating } from "@/lib/providerSchema";
 import { STATUS } from "@/components/charts/palette";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
+import { targetColor } from "@/lib/targetColor";
 
 const RATING_COLOR: Record<KpaRating, string> = {
   above_and_beyond: STATUS.good,
   demonstrated: STATUS.warning,
   not_met: STATUS.critical,
 };
-
-/** Red/green vs the field's target — only when both a numeric value and a numeric target exist. */
-function targetColor(value: unknown, target: unknown, betterWhen: ProviderField["betterWhen"]): string | undefined {
-  if (!betterWhen || typeof value !== "number" || typeof target !== "number") return undefined;
-  const met = betterWhen === "higher" ? value >= target : value <= target;
-  return met ? STATUS.good : STATUS.critical;
-}
 
 export interface WeekMetrics {
   week_ending: string;
