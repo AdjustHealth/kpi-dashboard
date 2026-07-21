@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ClinicTargetsCard } from "@/components/targets/ClinicTargetsCard";
 import { RoleTargetsCard } from "@/components/targets/RoleTargetsCard";
-import { ProviderTargetsCard, providerHasIndividualTargets } from "@/components/targets/ProviderTargetsCard";
-import { ROLE_TARGET_GROUPS } from "@/lib/targetsSchema";
+import { ProviderTargetsCard } from "@/components/targets/ProviderTargetsCard";
+import { ROLE_TARGET_GROUPS, providerHasIndividualTargets } from "@/lib/targetsSchema";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
 

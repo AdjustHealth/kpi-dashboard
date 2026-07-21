@@ -118,3 +118,15 @@ export function roleTargetGroupId(role: ProviderRole): RoleTargetGroupId {
   if (role === "senior_physio") return "senior";
   return "providers";
 }
+
+/**
+ * Whether this provider has any genuinely individual target to show
+ * (role-group cards cover everyone else) — a plain function, not a
+ * component, so it must live in a non-"use client" module to be callable
+ * directly from the server-rendered Targets page.
+ */
+export function providerHasIndividualTargets(provider: { role: ProviderRole; specialty_metrics: unknown[] }): boolean {
+  if (provider.role === "senior_physio") return true;
+  if (provider.role !== "admin") return true; // PROVIDER_TARGET_FIELDS always apply
+  return provider.specialty_metrics.length > 0;
+}

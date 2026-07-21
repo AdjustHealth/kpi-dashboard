@@ -8,13 +8,6 @@ import { BONUS_TIER_FIELDS, PROVIDER_TARGET_FIELDS } from "@/lib/targetsSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { Provider } from "@/lib/types";
 
-/** Whether this provider has any genuinely individual target to show (role-group cards cover everyone else). */
-export function providerHasIndividualTargets(provider: Provider): boolean {
-  if (provider.role === "senior_physio") return true;
-  if (provider.role !== "admin") return true; // PROVIDER_TARGET_FIELDS always apply
-  return provider.specialty_metrics.length > 0;
-}
-
 export function ProviderTargetsCard({ provider }: { provider: Provider }) {
   const [targets, setTargets] = useState<Record<string, unknown>>(provider.targets ?? {});
 

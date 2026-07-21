@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ProviderMeetingNotes } from "@/lib/providerSchema";
 
@@ -10,12 +10,20 @@ import { ProviderMeetingNotes } from "@/lib/providerSchema";
  * focused (tracked via the returned `markActive`/`markInactive`, wired to
  * onFocus/onBlur) are left out of incoming updates so a remote save can't
  * clobber a field mid-keystroke — it's picked up as soon as focus leaves it.
+ *
+ * MeetingNotesCard and ActionStepsCard both call this for the same
+ * provider+week at once — supabase-js reuses a channel by its exact topic
+ * string, so a shared name here means the second caller's `.on()` throws
+ * ("cannot add postgres_changes callbacks... after subscribe()") the moment
+ * the first caller has already subscribed. useId() keeps each hook instance
+ * on its own channel while both still filter on the same row.
  */
 export function useRealtimeMeetingNotes(
   providerId: string,
   week: string,
   onRemoteChange: (notes: ProviderMeetingNotes) => void
 ) {
+  const instanceId = useId();
   const activeKeys = useRef<Set<string>>(new Set());
   const onRemoteChangeRef = useRef(onRemoteChange);
   useEffect(() => {
@@ -25,7 +33,7 @@ export function useRealtimeMeetingNotes(
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`provider_weekly_meeting_notes:${providerId}:${week}`)
+      .channel(`provider_weekly_meeting_notes:${providerId}:${week}:${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -47,7 +55,7 @@ export function useRealtimeMeetingNotes(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [providerId, week]);
+  }, [providerId, week, instanceId]);
 
   const markActive = useCallback((key: string) => {
     activeKeys.current.add(key);
