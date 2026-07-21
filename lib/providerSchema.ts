@@ -263,18 +263,11 @@ export function kpaGroupsForRole(role: ProviderRole): KpaGroup[] {
   ];
 }
 
-/**
- * Performance Review Goals for regular (non-senior) providers — 3 fixed
- * short-term goal slots, scored per week as achieved / not achieved (a
- * goal either was hit or it wasn't — not a 3-tier KPA rating). Senior
- * physios instead get a free-text goals section at the bottom of their
- * page (ActionStepsCard) — different structure, not this.
- */
-export const PROVIDER_GOAL_FIELDS: ProviderField[] = [
-  { key: "short_term_1", label: "Short Term 1 — Achieved?", type: "boolean" },
-  { key: "short_term_2", label: "Short Term 2 — Achieved?", type: "boolean" },
-  { key: "short_term_3", label: "Short Term 3 — Achieved?", type: "boolean" },
-];
+// Performance Review Goals for regular (non-senior) providers now live on
+// providers.goals (lib/types.ts's Goal[]) — persistent text + achieved flag,
+// not a per-week scorecard field (see components/provider/GoalsCard.tsx).
+// Senior physios still get a free-text goals section at the bottom of their
+// page (ActionStepsCard) — different structure, unrelated to this.
 
 export const ROLE_LABELS: Record<ProviderRole, string> = {
   senior_physio: "Senior Physio",

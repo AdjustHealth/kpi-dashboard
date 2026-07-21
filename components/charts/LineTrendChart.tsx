@@ -46,6 +46,7 @@ export function LineTrendChart({
   decimals,
   colorIndex = 0,
   height = 160,
+  accent = false,
 }: {
   title: string;
   data: TrendPoint[];
@@ -54,16 +55,21 @@ export function LineTrendChart({
   decimals?: number;
   colorIndex?: number;
   height?: number;
+  /** Adds a coloured top border matching the line's colour — a bit more polish for a page of many small charts side by side. */
+  accent?: boolean;
 }) {
   const chartData = data.map((d) => ({ ...d, label: formatWeekLabel(d.week_ending) }));
   const color = CATEGORICAL[colorIndex % CATEGORICAL.length];
 
   return (
-    <div className="rounded-lg border border-border bg-surface-raised p-3">
+    <div
+      className="rounded-lg border border-border bg-surface-raised p-3"
+      style={accent ? { borderTopColor: color, borderTopWidth: 3 } : undefined}
+    >
       <div className="mb-1 text-xs font-medium text-muted">{title}</div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={CHART_CHROME.gridline} vertical={false} />
             <XAxis
               dataKey="label"

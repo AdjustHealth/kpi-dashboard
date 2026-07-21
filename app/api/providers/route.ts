@@ -31,9 +31,11 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const { id, targets_patch, fields } = body as {
+  const { id, targets_patch, goals, fields } = body as {
     id?: string;
     targets_patch?: Record<string, unknown>;
+    /** Full replacement — there are always exactly 3 fixed slots, so the caller just sends the whole array. */
+    goals?: { text: string; achieved: boolean }[];
     fields?: Record<string, unknown>;
   };
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -50,6 +52,8 @@ export async function PATCH(request: NextRequest) {
     if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
     update.targets = { ...(existing?.targets ?? {}), ...targets_patch };
   }
+
+  if (goals) update.goals = goals;
 
   const { data, error } = await supabase
     .from("providers")

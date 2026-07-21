@@ -10,7 +10,8 @@ import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
 import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
-import { COMPLIANCE_FIELDS, PROVIDER_GOAL_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
+import { GoalsCard } from "@/components/provider/GoalsCard";
+import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { Provider } from "@/lib/types";
 import { ClinicWeekRow } from "@/lib/clinicData";
@@ -182,15 +183,7 @@ export function ProviderDetailView({
         />
       ))}
 
-      <WeeklyScorecardTable
-        title="Performance Review Goals"
-        fields={PROVIDER_GOAL_FIELDS}
-        targets={{}}
-        providerId={provider.id}
-        currentWeek={week}
-        history={history}
-        section="kpas"
-      />
+      <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
 
       {variant === "admin" ? <AdminPerformanceCharts history={history} /> : <ProviderCharts history={history} />}
     </div>

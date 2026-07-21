@@ -11,7 +11,6 @@ import {
   CORE_VALUES_KPA_FIELDS,
   PROVIDER_TASK_KPA_FIELDS,
   CUSTOMER_SERVICE_KPA_FIELDS,
-  PROVIDER_GOAL_FIELDS,
 } from "@/lib/providerSchema";
 
 describe("providerSchema", () => {
@@ -54,7 +53,6 @@ describe("providerSchema", () => {
       CORE_VALUES_KPA_FIELDS,
       PROVIDER_TASK_KPA_FIELDS,
       CUSTOMER_SERVICE_KPA_FIELDS,
-      PROVIDER_GOAL_FIELDS,
     ]) {
       const keys = set.map((f) => f.key);
       expect(new Set(keys).size).toBe(keys.length);

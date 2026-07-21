@@ -39,7 +39,7 @@ export function MultiLineChart({
       <div className="mb-1 text-xs font-medium text-muted">{title}</div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={CHART_CHROME.gridline} vertical={false} />
             <XAxis
               dataKey="label"

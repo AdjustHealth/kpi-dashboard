@@ -7,6 +7,11 @@ export interface SpecialtyMetricDef {
   source?: "manual" | "calc";
 }
 
+export interface Goal {
+  text: string;
+  achieved: boolean;
+}
+
 export interface Provider {
   id: string;
   name: string;
@@ -15,6 +20,8 @@ export interface Provider {
   sort_order: number;
   specialty_metrics: SpecialtyMetricDef[];
   targets: Record<string, unknown>;
+  /** Persistent — stays exactly as-is week to week until edited, or "achieved" is cleared at the next performance review. Not scoped to a week. */
+  goals: Goal[];
   created_at: string;
   updated_at: string;
 }

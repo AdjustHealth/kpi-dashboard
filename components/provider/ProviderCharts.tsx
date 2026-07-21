@@ -22,24 +22,26 @@ export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
   return (
     <Card title="Performance Charts">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <LineTrendChart title="CVA" data={series(history, "ucva")} format="decimal" decimals={1} colorIndex={0} />
-        <LineTrendChart title="NCVA" data={series(history, "ncva")} format="decimal" decimals={1} colorIndex={1} />
+        <LineTrendChart title="CVA" data={series(history, "ucva")} format="decimal" decimals={1} colorIndex={0} accent />
+        <LineTrendChart title="NCVA" data={series(history, "ncva")} format="decimal" decimals={1} colorIndex={1} accent />
         <LineTrendChart
           title="NCVA — 4wk Rolling Avg"
           data={rollingSeries(history, "ncva")}
           format="decimal"
           decimals={1}
-          colorIndex={1}
+          colorIndex={6}
+          accent
         />
-        <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} />
+        <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} accent />
         <LineTrendChart
           title="New Patient Booking Rate"
           data={series(history, "new_pt_booking_rate")}
           format="decimal"
           decimals={1}
           colorIndex={3}
+          accent
         />
-        <LineTrendChart title="New Patients" data={series(history, "new_patients")} format="number" colorIndex={4} />
+        <LineTrendChart title="New Patients" data={series(history, "new_patients")} format="number" colorIndex={4} accent />
       </div>
     </Card>
   );
