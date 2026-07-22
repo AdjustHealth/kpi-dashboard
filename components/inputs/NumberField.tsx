@@ -27,7 +27,9 @@ export function NumberField({
       ? ""
       : type === "percent"
         ? round(value * 100, 2)
-        : value;
+        : type === "decimal" || type === "currency"
+          ? round(value, decimals ?? (type === "currency" ? 2 : 1))
+          : value;
 
   const tag =
     source === "calc" ? (

@@ -14,10 +14,13 @@ export function MeetingNotesCard({
   providerId,
   week,
   initialNotes,
+  showMultiDisc = true,
 }: {
   providerId: string;
   week: string;
   initialNotes: ProviderMeetingNotes;
+  /** Admin staff don't see clients directly, so Multi-Disciplinary Team Utilisation (Hydro/EP-MS/RMT/Gym referrals) doesn't apply to their meeting. */
+  showMultiDisc?: boolean;
 }) {
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
     agenda_items: "",
@@ -114,23 +117,25 @@ export function MeetingNotesCard({
           </div>
         </div>
 
-        <div>
-          <span className="text-xs font-medium text-muted">Multi-Disciplinary Team Utilisation</span>
-          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {DISC_KEYS.map((key) => (
-              <Field key={key} label={MULTI_DISC_LABELS[key]}>
-                <Input
-                  type="number"
-                  value={notes.multi_disc_utilisation?.[key] ?? ""}
-                  onChange={(e) =>
-                    updateDisc(key, e.target.value === "" ? null : Number(e.target.value))
-                  }
-                  {...fieldFocusHandlers("multi_disc_utilisation")}
-                />
-              </Field>
-            ))}
+        {showMultiDisc && (
+          <div>
+            <span className="text-xs font-medium text-muted">Multi-Disciplinary Team Utilisation</span>
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {DISC_KEYS.map((key) => (
+                <Field key={key} label={MULTI_DISC_LABELS[key]}>
+                  <Input
+                    type="number"
+                    value={notes.multi_disc_utilisation?.[key] ?? ""}
+                    onChange={(e) =>
+                      updateDisc(key, e.target.value === "" ? null : Number(e.target.value))
+                    }
+                    {...fieldFocusHandlers("multi_disc_utilisation")}
+                  />
+                </Field>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Card>
   );

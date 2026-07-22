@@ -141,7 +141,12 @@ export function ProviderDetailView({
 
   return (
     <div className="flex flex-col gap-6 p-8">
-      <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+      <MeetingNotesCard
+        providerId={provider.id}
+        week={week}
+        initialNotes={currentMeetingNotes}
+        showMultiDisc={variant !== "admin"}
+      />
 
       <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
 
