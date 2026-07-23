@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatWeekLabel } from "@/lib/week";
+import { isRescheduleNote } from "@/lib/nookal/parsers";
 
 export interface CancellationEventRow {
   id: string;
@@ -75,8 +76,19 @@ export function CancellationsTable({ rows }: { rows: CancellationEventRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((row) => (
-            <tr key={row.id} className="border-b border-border/60 last:border-0 align-top">
+          {sortedRows.map((row) => {
+            // Same reschedule/not-rebooked signal the KPI stats use (RSX/RX
+            // note = staff "saved" it; no Next Booking at all = not rebooked)
+            // — only meaningful for real cancellations, not DNAs.
+            const rescheduled = row.status === "Cancelled" && Boolean(row.note && isRescheduleNote(row.note));
+            const notRebooked = row.status === "Cancelled" && !row.next_booking && !rescheduled;
+            const rowStyle = rescheduled
+              ? { backgroundColor: "color-mix(in srgb, var(--color-success) 10%, transparent)" }
+              : notRebooked
+                ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 8%, transparent)" }
+                : undefined;
+            return (
+            <tr key={row.id} className="border-b border-border/60 last:border-0 align-top" style={rowStyle}>
               <td className="py-2 pr-3 pl-0 whitespace-nowrap text-muted">
                 {row.appointment_date ? formatWeekLabel(row.appointment_date) : "—"}
               </td>
@@ -100,7 +112,8 @@ export function CancellationsTable({ rows }: { rows: CancellationEventRow[] }) {
               <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
               <td className="max-w-md py-2 px-3 text-foreground">{row.note ?? "—"}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

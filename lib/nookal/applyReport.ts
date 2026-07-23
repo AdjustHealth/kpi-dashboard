@@ -249,7 +249,16 @@ export async function applyNookalReport(
       );
     }
   } else if (reportType === "clients_and_cases") {
-    const result = parseClientsAndCasesReport(csvText);
+    // A provider's own NPBR can exclude a specialty category (e.g. Nick
+    // Baxter's vestibular referrals) via providers.targets.npbr_exclude_keyword.
+    const npbrExcludeKeywordsByProvider: Record<string, RegExp> = {};
+    for (const p of providers) {
+      const keyword = p.targets?.npbr_exclude_keyword;
+      if (typeof keyword === "string" && keyword.trim()) {
+        npbrExcludeKeywordsByProvider[p.name] = new RegExp(keyword.trim(), "i");
+      }
+    }
+    const result = parseClientsAndCasesReport(csvText, npbrExcludeKeywordsByProvider);
     rowsFound = Object.keys(result.byProvider).length;
     let totalNewClients = 0;
 

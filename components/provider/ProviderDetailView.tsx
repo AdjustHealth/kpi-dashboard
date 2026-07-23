@@ -55,6 +55,10 @@ export function ProviderDetailView({
 
   if (variant === "senior") {
     const weeklyTurnover = bonusHistory.map((h) => (typeof h.metrics.turnover === "number" ? h.metrics.turnover : null));
+    const bonusMetricKey = typeof provider.targets.bonus_metric_key === "string" ? provider.targets.bonus_metric_key : null;
+    const bonusMetricHistory = bonusMetricKey
+      ? bonusHistory.map((h) => (typeof h.metrics[bonusMetricKey] === "number" ? (h.metrics[bonusMetricKey] as number) : null))
+      : undefined;
     return (
       <div className="flex flex-col gap-6 p-8">
         <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
@@ -73,6 +77,7 @@ export function ProviderDetailView({
             weeklyTurnover={weeklyTurnover}
             weekLabels={bonusHistory.map((h) => h.week_ending)}
             jbvHistory={bonusClinicHistory.map((h) => (typeof h.jbv_total === "number" ? h.jbv_total : null))}
+            bonusMetricHistory={bonusMetricHistory}
           />
         </div>
 
@@ -135,6 +140,8 @@ export function ProviderDetailView({
           <SectionLabel>Action Plan</SectionLabel>
           <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" categorized />
         </div>
+
+        <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
       </div>
     );
   }

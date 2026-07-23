@@ -47,6 +47,14 @@ const SPECIALTY_CATEGORY_PATTERNS: Record<string, RegExp> = {
   hydro: /hydro/i,
 };
 
+// A client whose Case is named after a specialty (e.g. "WC HYDRO - Right
+// lower leg") can also have an unrelated "Travel" line item under that same
+// Case — Case+Item text together would wrongly match hydro even though a
+// travel charge (what's billed for driving to the pool) isn't a consult of
+// any kind. Confirmed against the real 11/7 Activity Report (Peter
+// Walmsley's "WC Travel" row inflating the Hydro count).
+const TRAVEL_ITEM_PATTERN = /travel/i;
+
 /**
  * Activity Report — revenue detail, one row per invoiced line item.
  *
@@ -116,6 +124,7 @@ export function parseActivityReport(
 
     for (const [key, pattern] of Object.entries(SPECIALTY_CATEGORY_PATTERNS)) {
       if (!pattern.test(itemText)) continue;
+      if (TRAVEL_ITEM_PATTERN.test(r["Item"] ?? "")) continue;
       specialtyCounts[key].total += 1;
       if (JBV_SUB_PATTERN.test(itemText)) specialtyCounts[key].sub += 1;
       else if (JBV_INIT_PATTERN.test(itemText)) specialtyCounts[key].initial += 1;
@@ -194,9 +203,17 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 // those must NOT count as rescheduled, hence the negation exclusion.
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN = /(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+to\s+)?(?:rsx|rx)\b/i;
-function isRescheduleNote(note: string): boolean {
+export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
 }
+
+// Corporate Pre-Employment screening partners (Village Road Show, Move OT,
+// Biosym, Top Golf, etc.) show up in the Cancellations report like any real
+// client, but a screening no-show/reschedule isn't a real clinic retention
+// event — the director confirmed these should never count toward Retention
+// Rate (or the cancellation/reschedule stats it's derived from). Same
+// population PRE_EMPLOYMENT_PATTERN excludes from each provider's NPBR.
+const CORPORATE_SCREENING_PATTERN = /village|move\s*ot|biosym|pre[\s-]?employment/i;
 
 // Notes matching these patterns mean the whole booking plan was cancelled
 // in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
@@ -320,6 +337,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       // they're a different event type from a cancellation.
       if (status !== "Cancelled" || !client) continue;
       if (isBulkCancelNote(note)) continue;
+      if (CORPORATE_SCREENING_PATTERN.test(r["Case"] ?? "")) continue;
       const apptDate = parseNookalDate(r["Appointment Date"]);
       const modifiedDate = parseNookalDate(r["Modifed Date"]);
       if (isStaleCancellation(apptDate, modifiedDate)) continue;
@@ -440,8 +458,19 @@ const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
 // New Patient Booking Rate (see ClientsAndCasesReportResult.npbrRecommendationsTotal).
 const BOOKINGS_TOTAL_PATTERN = /\/\s*(\d+)\s*Total/i;
 
-/** Clients and Cases Report — new client / new case counts per provider. */
-export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportResult {
+/**
+ * Clients and Cases Report — new client / new case counts per provider.
+ *
+ * `npbrExcludeKeywordsByProvider` lets a specific provider's NPBR figure
+ * exclude a category of new client the same way Pre-Employment is always
+ * excluded — e.g. Nick Baxter's generic NPBR shouldn't include vestibular
+ * referrals, which have a different booking-recommendation pattern (see
+ * providers.targets.npbr_exclude_keyword).
+ */
+export function parseClientsAndCasesReport(
+  text: string,
+  npbrExcludeKeywordsByProvider: Record<string, RegExp> = {}
+): ClientsAndCasesReportResult {
   const rows = parseCsvRows(text);
   const section = extractSection(rows, "Details");
   const byProvider: ClientsAndCasesReportResult["byProvider"] = {};
@@ -462,7 +491,10 @@ export function parseClientsAndCasesReport(text: string): ClientsAndCasesReportR
     }
     if (r["New Client"]?.toLowerCase() === "yes") {
       byProvider[provider].newClients += 1;
-      if (!PRE_EMPLOYMENT_PATTERN.test(r["Case"] ?? "")) {
+      const caseName = r["Case"] ?? "";
+      const excludePattern = npbrExcludeKeywordsByProvider[provider];
+      const excluded = PRE_EMPLOYMENT_PATTERN.test(caseName) || (excludePattern && excludePattern.test(caseName));
+      if (!excluded) {
         byProvider[provider].newClientsExclPreEmployment += 1;
         if (r["Client"]) byProvider[provider].newClientNames.push(r["Client"]);
         const bookingsMatch = BOOKINGS_TOTAL_PATTERN.exec(r["Bookings"] ?? "");

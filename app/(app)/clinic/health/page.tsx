@@ -82,6 +82,7 @@ export default async function ClinicHealthPage({
       label: formatWeekLabel(h.week_ending),
       Online: online,
       "Phone / In-Person": total !== null && online !== null ? Math.max(0, total - online) : null,
+      "Total New Patients": typeof h.total_nc === "number" ? h.total_nc : null,
     };
   });
 
@@ -129,7 +130,7 @@ export default async function ClinicHealthPage({
             <MultiLineChart
               title="New Clients — Online vs. Phone / In-Person"
               data={newClientsOnlineData}
-              seriesKeys={["Online", "Phone / In-Person"]}
+              seriesKeys={["Online", "Phone / In-Person", "Total New Patients"]}
               format="number"
             />
           </div>

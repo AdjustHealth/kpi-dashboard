@@ -18,11 +18,14 @@ export function BonusTierCard({
   weeklyTurnover,
   weekLabels,
   jbvHistory,
+  bonusMetricHistory,
 }: {
   targets: ProviderTargets;
   weeklyTurnover: (number | null)[];
   weekLabels: string[];
   jbvHistory: (number | null)[];
+  /** This provider's own bonus-linked specialty figure (e.g. Sam's Gym Memberships, Marcio's Headache Consults) — see providers.targets.bonus_metric_key/bonus_metric_label. */
+  bonusMetricHistory?: (number | null)[];
 }) {
   const base = weeklyBaseTarget(targets);
   const cumTO = cumulativeTurnoverSeries(weeklyTurnover);
@@ -45,16 +48,45 @@ export function BonusTierCard({
     "JBV Trend": jbvTrend[i] ?? null,
   }));
 
+  const bonusMetricKey = typeof targets.bonus_metric_key === "string" ? targets.bonus_metric_key : null;
+  const bonusMetricLabel =
+    typeof targets.bonus_metric_label === "string" ? targets.bonus_metric_label : bonusMetricKey;
+  const bonusMetricTarget = bonusMetricKey && typeof targets[bonusMetricKey] === "number" ? (targets[bonusMetricKey] as number) : null;
+  const latestBonusMetric = bonusMetricHistory ? [...bonusMetricHistory].reverse().find((v) => typeof v === "number") ?? null : null;
+  const bonusMetricChartData =
+    bonusMetricHistory && bonusMetricLabel
+      ? weekLabels.map((week_ending, i) => ({
+          label: formatWeekLabel(week_ending),
+          [bonusMetricLabel]: bonusMetricHistory[i] ?? null,
+          ...(bonusMetricTarget !== null ? { Target: bonusMetricTarget } : {}),
+        }))
+      : [];
+
   return (
-    <Card title="Bonus Tier Tracker">
+    <Card
+      title="💰 Bonus Tier Tracker"
+      className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]"
+    >
       <div className="mb-4 flex flex-wrap gap-6">
         <Stat label="Weekly Base Target" value={base === null ? "—" : formatValue(base, "currency")} />
         <Stat label="Cumulative Turnover" value={formatValue(cumTO[cumTO.length - 1] ?? 0, "currency")} />
         <Stat label="Turnover Pacing" value={pacing === null ? "—" : `${pacing.toFixed(1)}%`} />
+        {bonusMetricLabel && (
+          <Stat
+            label={bonusMetricLabel}
+            value={
+              latestBonusMetric === null
+                ? "—"
+                : bonusMetricTarget !== null
+                  ? `${latestBonusMetric} / ${bonusMetricTarget}`
+                  : String(latestBonusMetric)
+            }
+          />
+        )}
       </div>
 
       {(bonusTiers.t1 || bonusTiers.t2 || bonusTiers.t3 || bonusTiers.t4) && (
-        <div className="mb-4 flex flex-wrap gap-4 border-t border-border pt-3">
+        <div className="mb-4 flex flex-wrap gap-4 border-t border-amber-400/30 pt-3">
           {(["t1", "t2", "t3", "t4"] as const).map(
             (key) =>
               typeof bonusTiers[key] === "number" && (
@@ -79,6 +111,14 @@ export function BonusTierCard({
             title="JBV Actual vs Trend"
             data={jbvChartData}
             seriesKeys={["JBV Actual", "JBV Trend"]}
+            format="number"
+          />
+        )}
+        {bonusMetricLabel && bonusMetricChartData.length > 0 && (
+          <MultiLineChart
+            title={`${bonusMetricLabel} vs Target`}
+            data={bonusMetricChartData}
+            seriesKeys={bonusMetricTarget !== null ? [bonusMetricLabel, "Target"] : [bonusMetricLabel]}
             format="number"
           />
         )}
