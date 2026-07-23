@@ -126,6 +126,9 @@ export async function applyNookalReport(
     clinicPatch.specialty_paeds_sub = result.specialtyCounts.paeds.sub;
     clinicPatch.specialty_womens_health_initial = result.specialtyCounts.womens_health.initial;
     clinicPatch.specialty_womens_health_sub = result.specialtyCounts.womens_health.sub;
+    clinicPatch.specialty_hydro_initial = result.specialtyCounts.hydro.initial;
+    clinicPatch.specialty_hydro_sub = result.specialtyCounts.hydro.sub;
+    clinicPatch.clients_seen_names = result.clientsSeenNames;
 
     for (const [name, amount] of Object.entries(result.revenueByProvider)) {
       const p = findProvider(name);
@@ -218,6 +221,27 @@ export async function applyNookalReport(
       if (data.bookedWithin7DaysPct !== null) patch.booked_within_7_days_pct = data.bookedWithin7DaysPct;
       if (data.avgDaysToNextBooking !== null) patch.avg_days_to_next_booking = data.avgDaysToNextBooking;
       await upsertProviderMetrics(p.id, patch);
+    }
+
+    // Raw per-cancellation rows for the Cancellations tab — replace this
+    // week's rows entirely so re-uploading a corrected file doesn't leave
+    // stale duplicates behind.
+    await supabase.from("cancellation_events").delete().eq("week_ending", weekEnding);
+    if (result.detailRows.length > 0) {
+      await supabase.from("cancellation_events").insert(
+        result.detailRows.map((row) => ({
+          week_ending: weekEnding,
+          appointment_date: row.appointmentDate,
+          client: row.client,
+          provider: row.provider,
+          case_name: row.caseName,
+          status: row.status,
+          note: row.note,
+          next_booking: row.nextBooking,
+          modified_user: row.modifiedUser,
+          modified_at: row.modifiedAt,
+        }))
+      );
     }
   } else if (reportType === "clients_and_cases") {
     const result = parseClientsAndCasesReport(csvText);

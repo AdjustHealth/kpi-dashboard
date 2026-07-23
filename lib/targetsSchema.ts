@@ -60,6 +60,7 @@ const SHARED_CLINICIAN_TARGET_FIELDS: TargetField[] = [
   { key: "dnas", label: "Number of DNAs", type: "number" },
   { key: "cancellations", label: "Number of Cancellations", type: "number" },
   { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent" },
+  { key: "retention_pct", label: "Retention Rate", type: "percent" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
 ];
 
@@ -100,6 +101,7 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
       { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
       { key: "not_rebooked", label: "Number Not Rebooked", type: "number" },
       { key: "cancellations_not_rebooked_pct", label: "Cancellations Not Rebooked %", type: "percent" },
+      { key: "retention_pct", label: "Retention Rate", type: "percent" },
       { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
       { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent" },
       { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal" },

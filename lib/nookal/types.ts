@@ -16,6 +16,8 @@ export interface ActivityReportResult {
    * SPECIALTY_CATEGORY_PATTERNS' keys in parsers.ts.
    */
   specialtyCounts: Record<string, { total: number; initial: number; sub: number }>;
+  /** Every distinct client with at least one line item this week — used to compute New Patient Retention (were this week's new patients still showing up N weeks later) without a full per-client attendance ledger. */
+  clientsSeenNames: string[];
 }
 
 export interface OccupancyReportResult {
@@ -62,6 +64,24 @@ export interface CancellationsReportResult {
       avgDaysToNextBooking: number | null;
     }
   >;
+  /**
+   * Every raw Cancelled/Did Not Arrive row from Details, unfiltered — for
+   * the Cancellations tab where the director scrolls through each one with
+   * the admin team, the same way the old spreadsheet's tab worked. Unlike
+   * byProvider/byAdmin, this is NOT deduped or exclusion-filtered — every
+   * line item Nookal reports is its own row here.
+   */
+  detailRows: {
+    appointmentDate: string | null;
+    client: string;
+    provider: string | null;
+    caseName: string | null;
+    status: "Cancelled" | "Did Not Arrive";
+    note: string | null;
+    nextBooking: string | null;
+    modifiedUser: string | null;
+    modifiedAt: string | null;
+  }[];
 }
 
 export interface ClientsAndCasesReportResult {

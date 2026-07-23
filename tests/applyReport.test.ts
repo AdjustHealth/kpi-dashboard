@@ -18,9 +18,27 @@ interface FakeProvider {
 function createFakeSupabase(providers: FakeProvider[]) {
   const providerWeekly: Record<string, Record<string, unknown>> = {}; // key: `${provider_id}:${week}` -> metrics
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
+  let cancellationEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
+      if (table === "cancellation_events") {
+        return {
+          delete() {
+            return {
+              async eq(col: string, val: string) {
+                if (col === "week_ending") cancellationEvents = cancellationEvents.filter((r) => r.week_ending !== val);
+                return { data: null, error: null };
+              },
+            };
+          },
+          async insert(rows: Record<string, unknown>[]) {
+            cancellationEvents.push(...rows);
+            return { data: rows, error: null };
+          },
+        };
+      }
+
       if (table === "providers") {
         return {
           select: async () => ({ data: providers }),

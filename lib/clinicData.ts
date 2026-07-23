@@ -135,3 +135,57 @@ export async function getNewClientsByProvider(week: string): Promise<ProviderNew
     })
     .filter((p) => p.names.length > 0);
 }
+
+export interface NewPatientRetention {
+  /** How many weeks back "new" was measured from — the retention window. */
+  lookbackWeeks: number;
+  /** Patients marked new in that week. */
+  newPatientCount: number;
+  /** Of those, how many have had at least one visit (any provider, any reason) since. */
+  retainedCount: number;
+  retentionPct: number | null;
+}
+
+/**
+ * % of patients who were new `lookbackWeeks` ago who've had at least one
+ * visit since — a simple, transparent proxy for new-patient retention that
+ * doesn't need a full per-client attendance ledger: "new" comes from
+ * provider_weekly.metrics.new_patient_names (Clients & Cases upload),
+ * "still showing up" comes from weekly_kpis.clients_seen_names (every
+ * distinct client on that week's Activity Report), unioned across the weeks
+ * since. Name-matched, so a client whose name is entered inconsistently
+ * between reports won't match — same caveat as everywhere else names are
+ * cross-referenced in this app.
+ */
+export async function getNewPatientRetention(week: string, lookbackWeeks = 4): Promise<NewPatientRetention> {
+  const supabase = await createClient();
+  const weeks = recentWeeks(week, lookbackWeeks + 1); // oldest..newest, oldest = the "new patient" week
+  const newPatientWeek = weeks[0];
+  const sinceWeeks = weeks.slice(1); // every week after the new-patient week, through `week`
+
+  const [newPatientRows, seenRows] = await Promise.all([
+    supabase.from("provider_weekly").select("metrics").eq("week_ending", newPatientWeek),
+    supabase.from("weekly_kpis").select("clients_seen_names").in("week_ending", sinceWeeks),
+  ]);
+
+  const newPatients = new Set<string>();
+  for (const row of newPatientRows.data ?? []) {
+    const names = (row.metrics as Record<string, unknown> | null)?.new_patient_names;
+    if (Array.isArray(names)) for (const n of names) if (typeof n === "string") newPatients.add(n);
+  }
+
+  const seenSince = new Set<string>();
+  for (const row of seenRows.data ?? []) {
+    const names = row.clients_seen_names;
+    if (Array.isArray(names)) for (const n of names) if (typeof n === "string") seenSince.add(n);
+  }
+
+  const retained = Array.from(newPatients).filter((n) => seenSince.has(n));
+
+  return {
+    lookbackWeeks,
+    newPatientCount: newPatients.size,
+    retainedCount: retained.length,
+    retentionPct: newPatients.size > 0 ? retained.length / newPatients.size : null,
+  };
+}

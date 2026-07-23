@@ -25,6 +25,7 @@ const SPECIALTIES: { name: string; key: string; colorIndex: number }[] = [
   { name: "Vestibular", key: "specialty_vestibular", colorIndex: 0 },
   { name: "Headaches / TMJ", key: "specialty_headaches", colorIndex: 3 },
   { name: "Paediatrics", key: "specialty_paeds", colorIndex: 4 },
+  { name: "Hydro", key: "specialty_hydro", colorIndex: 7 },
 ];
 
 /** % change from `weeksBack` weeks ago to the latest week — a growth-rate framing, not a target (none is stated for these categories). */

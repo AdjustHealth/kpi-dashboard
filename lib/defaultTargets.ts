@@ -16,6 +16,7 @@ const FLAT_DEFAULTS: Record<string, number> = {
   dnas: 0,
   cancellations: 20,
   not_rebooked_pct: 0.3,
+  retention_pct: 0.7,
   reschedule_rate_pct: 0.3,
   ncva: 20,
   completed_consults: 40,

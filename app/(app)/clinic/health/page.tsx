@@ -10,6 +10,7 @@ import {
   getClinicWideCvaRollup,
   getNewClientsByProvider,
   getProviderMetricHistory,
+  getNewPatientRetention,
 } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries, providerSeriesToWideRows } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
@@ -33,20 +34,23 @@ export default async function ClinicHealthPage({
   // use two different windows.
   const historyWeeks = clinicHistoryWeeks(week);
   const providerHistoryWeeks = Math.min(trackingHistoryWeeks(week), 8);
-  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory, providerNcvaHistory] = await Promise.all([
-    getClinicHistory(week, historyWeeks),
-    getClinicTargets(),
-    getClinicWideCvaRollup(week),
-    getNewClientsByProvider(week),
-    getProviderMetricHistory(week, providerHistoryWeeks, "ucva"),
-    getProviderMetricHistory(week, providerHistoryWeeks, "ncva"),
-  ]);
+  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory, providerNcvaHistory, newPatientRetention] =
+    await Promise.all([
+      getClinicHistory(week, historyWeeks),
+      getClinicTargets(),
+      getClinicWideCvaRollup(week),
+      getNewClientsByProvider(week),
+      getProviderMetricHistory(week, providerHistoryWeeks, "ucva"),
+      getProviderMetricHistory(week, providerHistoryWeeks, "ncva"),
+      getNewPatientRetention(week, 4),
+    ]);
   const providerCvaWide = providerSeriesToWideRows(providerCvaHistory);
   const providerNcvaWide = providerSeriesToWideRows(providerNcvaHistory);
 
   const latest = history[history.length - 1];
   const prior = history[history.length - 2];
   const cxPctTarget = typeof clinicTargets.cx_pct_target === "number" ? clinicTargets.cx_pct_target : null;
+  const retentionRate = typeof latest?.cx_nr_pct === "number" ? 1 - (latest.cx_nr_pct as number) : null;
 
   const occupancyRows = [
     {
@@ -91,6 +95,20 @@ export default async function ClinicHealthPage({
             <StatTile {...clinicStatTile(history, "total_consults")} label="Completed Appointments" />
             <StatTile {...clinicStatTile(history, "total_nc")} label="New Patients" />
             <StatTile {...clinicStatTile(history, "clinic_occ", "up", { target: 0.85, betterWhen: "higher" })} label="Clinic Occupancy" />
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <StatTile
+                label={`New Patient Retention (${newPatientRetention.lookbackWeeks}wk)`}
+                value={formatValue(newPatientRetention.retentionPct, "percent")}
+                rawValue={newPatientRetention.retentionPct}
+                sublabel={`${newPatientRetention.retainedCount} of ${newPatientRetention.newPatientCount} still seen`}
+              />
+              <p className="mt-1.5 text-[11px] text-muted">
+                % of patients new {newPatientRetention.lookbackWeeks} weeks ago who&apos;ve had at least one visit
+                since (name-matched against every client seen on the Activity Report, any provider).
+              </p>
+            </div>
           </div>
         </div>
 
@@ -219,6 +237,14 @@ export default async function ClinicHealthPage({
             />
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
             <StatTile {...clinicStatTile(history, "cx_rsx_pct", "up", { target: 0.3, betterWhen: "higher" })} label="Reschedule Rate" />
+            <StatTile
+              label="Retention Rate"
+              value={formatValue(retentionRate, "percent")}
+              rawValue={retentionRate}
+              target={0.7}
+              betterWhen="higher"
+              sublabel="100% − Not Rebooked %"
+            />
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card title="Cancellations Trend">

@@ -337,6 +337,11 @@ describe("parseActivityReport", () => {
     expect(result.totalRevenue).toBeCloseTo(320, 2); // Summary total (300 Services + 20 Classes)
   });
 
+  it("collects every distinct client name seen this week, for New Patient Retention", () => {
+    const result = parseActivityReport(ACTIVITY_CSV);
+    expect(result.clientsSeenNames.sort()).toEqual(["Test Client One", "Test Client Three", "Test Client Two"]);
+  });
+
   it("sums revenue per provider and per payer category from Details (Services only)", () => {
     const result = parseActivityReport(ACTIVITY_CSV);
     expect(result.revenueByProvider["Alex Example"]).toBeCloseTo(220, 2);

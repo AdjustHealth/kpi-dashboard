@@ -143,6 +143,9 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 76, id: "admin_obv_not_sent", label: "OBV Number Not Sent", source: "manual", type: "number", category: "Admin" },
   { idx: 77, id: "admin_rx_notes_pct", label: "Rx Notes Made in Therapist Diary %", source: "manual", type: "percent", category: "Admin" },
   { idx: 78, id: "admin_answered_calls_pct", label: "Answered Calls %", source: "manual", type: "percent", category: "Admin" },
+  { idx: 79, id: "specialty_hydro_initial", label: "Hydro Initial Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 80, id: "specialty_hydro_sub", label: "Hydro Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 81, id: "specialty_hydro_total", label: "Hydro Total Consults", source: "calc", type: "number", category: "Clinic" },
 ];
 
 export function getClinicHeaders(): string[] {

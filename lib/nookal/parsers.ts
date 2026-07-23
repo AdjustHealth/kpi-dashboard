@@ -44,6 +44,7 @@ const SPECIALTY_CATEGORY_PATTERNS: Record<string, RegExp> = {
   headaches: /headache|tmj/i,
   paeds: /paed|pediatric/i,
   womens_health: /\bwh\b|women/i,
+  hydro: /hydro/i,
 };
 
 /**
@@ -80,6 +81,7 @@ export function parseActivityReport(
     specialtyCounts: Object.fromEntries(
       Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
     ),
+    clientsSeenNames: [],
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -93,12 +95,14 @@ export function parseActivityReport(
   const specialtyCounts: Record<string, { total: number; initial: number; sub: number }> = Object.fromEntries(
     Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
   );
+  const clientsSeen = new Set<string>();
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
     const amount = parseNumber(r["Amount"]);
     const provider = r["Staff"];
     const itemText = `${r["Case"] ?? ""} ${r["Item"] ?? ""}`;
+    if (r["Client"]) clientsSeen.add(r["Client"]);
 
     if (amount !== null) {
       if (provider) revenueByProvider[provider] = (revenueByProvider[provider] ?? 0) + amount;
@@ -134,6 +138,7 @@ export function parseActivityReport(
     jbvSubCount,
     keywordCountsByProvider,
     specialtyCounts,
+    clientsSeenNames: Array.from(clientsSeen),
   };
 }
 
@@ -276,6 +281,8 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
     }
   }
 
+  const detailRows: CancellationsReportResult["detailRows"] = [];
+
   const details = extractSection(rows, "Details");
   if (details) {
     // Real (non-DNA, non-bulk, non-stale) rows, grouped by provider then by
@@ -291,6 +298,23 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       const status = r["Status"];
       const note = r["Note"];
       const client = r["Client"];
+
+      // Every Cancelled/DNA row goes into the raw list for the Cancellations
+      // tab, unfiltered — the stats below apply their own dedup/exclusion on
+      // top of this same data, but the raw scroll-through view shouldn't.
+      if (client && (status === "Cancelled" || status === "Did Not Arrive")) {
+        detailRows.push({
+          appointmentDate: toIsoDate(parseNookalDate(r["Appointment Date"])),
+          client,
+          provider: provider ?? null,
+          caseName: r["Case"] ?? null,
+          status,
+          note: note ?? null,
+          nextBooking: toIsoDate(parseNookalDate(r["Next Booking"])),
+          modifiedUser: r["Modified User"] ?? null,
+          modifiedAt: toIsoDate(parseNookalDate(r["Modifed Date"])),
+        });
+      }
 
       // DNAs are already counted from the Summary section's DNAs column —
       // they're a different event type from a cancellation.
@@ -394,7 +418,11 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
     }
   }
 
-  return { byProvider, byAdmin };
+  return { byProvider, byAdmin, detailRows };
+}
+
+function toIsoDate(date: Date | null): string | null {
+  return date ? date.toISOString().slice(0, 10) : null;
 }
 
 // Corporate Pre-Employment screening visits (Village Road Show, Top Golf,

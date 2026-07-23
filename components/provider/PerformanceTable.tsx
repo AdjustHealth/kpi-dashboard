@@ -106,6 +106,7 @@ export function WeeklyScorecardTable({
                 <tr key={field.key} className="border-b border-border/60 last:border-0">
                   <td className="sticky left-0 bg-surface py-2 pr-3 text-foreground whitespace-nowrap">
                     {field.label}
+                    {field.sublabel && <div className="text-[10px] font-normal normal-case text-muted">{field.sublabel}</div>}
                   </td>
                   <td className="py-2 px-3 text-muted whitespace-nowrap">
                     {typeof target === "number" ? formatValue(target, field.type, field.decimals) : "—"}

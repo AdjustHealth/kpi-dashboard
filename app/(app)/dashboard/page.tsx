@@ -11,6 +11,7 @@ const QUICK_LINKS = [
   { href: "/clinic/revenue", label: "Revenue", desc: "Trend, target, and payer mix" },
   { href: "/clinic/health", label: "Clinic Health", desc: "Activity, occupancy, retention, cancellations" },
   { href: "/clinic/specialty", label: "Specialty Services", desc: "Specialty consults and JBV growth" },
+  { href: "/clinic/cancellations", label: "Cancellations", desc: "Every cancellation and DNA, week by week" },
   { href: "/providers", label: "Providers", desc: "Weekly meetings by provider" },
   { href: "/senior", label: "Senior Physio", desc: "Sam & Marcio — KPIs and bonus tracking" },
   { href: "/admin", label: "Admin", desc: "Weekly meetings by admin staff" },
