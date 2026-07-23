@@ -272,6 +272,33 @@ describe("parseCancellationsReport", () => {
     expect(alex.notRebookedPct).toBeCloseTo(1 / 3, 4);
     expect(alex.bookedWithin7DaysPct).toBeCloseTo(1 / 3, 4);
   });
+
+  it("recognises RSX/RX tags written inline after the client's name (the real convention), not just as a leading tag — and excludes negated 'doesn't want to rsx' notes", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,13/07/2026 - 19/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Jordan Real,3,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+13/07/2026,Adjust Physiotherapy,Client Inline,0400 000 010,Jordan Real,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,Client Inline rsx to Thurs 3.30pm,13/07/2026,9:00am,Staff Two,2001
+14/07/2026,Adjust Physiotherapy,Client Declined,0400 000 011,Jordan Real,Private - Physio,Service,Cancelled,2026-07-07 10:00:00,,Client Declined cnx doesn't want to rsx,14/07/2026,9:00am,Staff Two,2002
+15/07/2026,Adjust Physiotherapy,Client Bare Rx,0400 000 012,Jordan Real,Private - Physio,Service,Cancelled,2026-07-08 10:00:00,,rx Client Bare Rx,15/07/2026,9:00am,Staff Two,2003
+
+`;
+    const result = parseCancellationsReport(csv);
+    const jordan = result.byProvider["Jordan Real"];
+    expect(jordan.eventsCount).toBe(3);
+    // "Client Inline rsx to Thurs 3.30pm" and "rx Client Bare Rx" both tag as rescheduled even
+    // though "rsx"/"rx" isn't the first word — real staff notes lead with the client's name.
+    // "doesn't want to rsx" must NOT count as rescheduled despite containing "rsx".
+    expect(jordan.rescheduledCount).toBe(2);
+    expect(jordan.notRebooked).toBe(1);
+  });
 });
 
 describe("parseClientsAndCasesReport", () => {

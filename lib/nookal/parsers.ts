@@ -174,14 +174,24 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
   return { byProvider };
 }
 
-// A cancellation's Note field starting with "RSX"/"RX" is staff explicitly
+// A cancellation's Note field containing "RSX"/"RX" is staff explicitly
 // tagging it as a rescheduled/"saved" cancellation — the real business
-// definition of "Reschedule Rate (Save Rate)", confirmed against a working
-// reference tool built directly off the director's own note conventions.
-// Just having a future Next Booking date is NOT the same thing (a client
-// can have a future appointment already on the books without this specific
-// cancellation having been "saved" by staff intervention).
-const RSX_NOTE_PATTERN = /^rs[x]?\b|^rx\b/i;
+// definition of "Reschedule Rate (Save Rate)". Just having a future Next
+// Booking date is NOT the same thing (a client can have a future
+// appointment already on the books without this specific cancellation
+// having been "saved" by staff intervention).
+//
+// Real notes write this inline after the client's name ("Kurt Matthes rsx
+// to Thurs 3.30pm"), not as a leading tag — verified against the 18/7/2026
+// Cancellations Report, where an anchored ^rsx pattern matched almost none
+// of ~15 genuine "rsx" notes in the file. A few notes use the tag to say
+// the client declined ("doesn't want to rsx", "didn't want to rsx") —
+// those must NOT count as rescheduled, hence the negation exclusion.
+const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
+const RESCHEDULE_NEGATION_PATTERN = /(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+to\s+)?(?:rsx|rx)\b/i;
+function isRescheduleNote(note: string): boolean {
+  return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
+}
 
 // Notes matching these patterns mean the whole booking plan was cancelled
 // in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
@@ -342,7 +352,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       entry.cancellations = t;
       entry.eventsCount = t;
       for (const clientRows of clientEntries) {
-        const rsx = clientRows.some((r) => RSX_NOTE_PATTERN.test((r["Note"] ?? "").trim()));
+        const rsx = clientRows.some((r) => isRescheduleNote((r["Note"] ?? "").trim()));
         const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
         if (rsx) entry.rescheduledCount += 1;
         else if (!hasNext) entry.notRebooked += 1;
@@ -364,7 +374,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       let notRebooked = 0;
       let rescheduledCount = 0;
       for (const clientRows of clientEntries) {
-        const rsx = clientRows.some((r) => RSX_NOTE_PATTERN.test((r["Note"] ?? "").trim()));
+        const rsx = clientRows.some((r) => isRescheduleNote((r["Note"] ?? "").trim()));
         const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
         if (rsx) rescheduledCount += 1;
         else if (!hasNext) notRebooked += 1;
