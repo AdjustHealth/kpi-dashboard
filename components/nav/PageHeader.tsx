@@ -1,25 +1,30 @@
 import { ReactNode, Suspense } from "react";
 import Link from "next/link";
 import { WeekSelector } from "@/components/nav/WeekSelector";
+import { BackButton } from "@/components/nav/BackButton";
 
 export function PageHeader({
   title,
   subtitle,
   showWeekSelector = true,
   showBack = true,
+  backTo = "dashboard",
   actions,
 }: {
   title: string;
   subtitle?: string;
   showWeekSelector?: boolean;
-  /** Back-to-Dashboard link — on by default, turn off for the Dashboard page itself. */
+  /** Back button — on by default, turn off for the Dashboard page itself. */
   showBack?: boolean;
+  /** "dashboard" always jumps to /dashboard. "history" returns to whatever page the user actually came from (e.g. a provider page returning to the Providers list they clicked in from, not skipping past it to Dashboard). */
+  backTo?: "dashboard" | "history";
   actions?: ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-background/90 px-8 py-4 backdrop-blur">
       <div className="flex items-center gap-3">
-        {showBack && (
+        {showBack && backTo === "history" && <BackButton />}
+        {showBack && backTo === "dashboard" && (
           <Link
             href="/dashboard"
             title="Back to Dashboard"

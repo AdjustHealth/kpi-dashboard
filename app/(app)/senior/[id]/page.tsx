@@ -40,7 +40,7 @@ export default async function SeniorPhysioPage({
 
   return (
     <>
-      <PageHeader title={provider.name} subtitle="Senior Physio" />
+      <PageHeader title={provider.name} subtitle="Senior Physio" backTo="history" />
       <ProviderDetailView
         provider={provider}
         week={week}

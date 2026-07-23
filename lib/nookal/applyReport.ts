@@ -128,6 +128,11 @@ export async function applyNookalReport(
     clinicPatch.specialty_womens_health_sub = result.specialtyCounts.womens_health.sub;
     clinicPatch.specialty_hydro_initial = result.specialtyCounts.hydro.initial;
     clinicPatch.specialty_hydro_sub = result.specialtyCounts.hydro.sub;
+    // Hydro items rarely say "Initial"/"Subsequent" (unlike the other
+    // specialties, which always do), so initial+sub would badly undercount —
+    // write the real matched-row total directly instead of relying on a
+    // generated initial+sub column.
+    clinicPatch.specialty_hydro_total = result.specialtyCounts.hydro.total;
     clinicPatch.clients_seen_names = result.clientsSeenNames;
 
     for (const [name, amount] of Object.entries(result.revenueByProvider)) {

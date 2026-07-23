@@ -25,7 +25,7 @@ export default async function ProviderDetailPage({
 
   return (
     <>
-      <PageHeader title={provider.name} subtitle={ROLE_LABELS[provider.role]} />
+      <PageHeader title={provider.name} subtitle={ROLE_LABELS[provider.role]} backTo="history" />
       <ProviderDetailView
         provider={provider}
         week={week}

@@ -26,7 +26,7 @@ export default async function AdminDetailPage({
 
   return (
     <>
-      <PageHeader title={provider.name} subtitle="Admin" />
+      <PageHeader title={provider.name} subtitle="Admin" backTo="history" />
       <ProviderDetailView
         provider={provider}
         week={week}
