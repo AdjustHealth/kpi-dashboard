@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +11,7 @@ import { formatValue } from "@/lib/format";
 import { formatWeekLabel } from "@/lib/week";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { ROLLING_WINDOWS } from "@/lib/performanceReview";
-import { metricFieldsForRole, kpaGroupsForRole, KPA_RATING_LABELS, KpaRating } from "@/lib/providerSchema";
+import { metricFieldsForRole, kpaGroupsForRole, KPA_RATING_LABELS, KPA_RATINGS, KpaRating } from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
 import { PerformanceReviewRecord, ReviewHistoryRow } from "@/lib/reviewsData";
 
@@ -34,18 +34,34 @@ function pad3<T>(arr: T[] | undefined, empty: T): T[] {
   return [0, 1, 2].map((i) => a[i] ?? empty);
 }
 
-function RatingPill({ rating }: { rating: KpaRating | null }) {
-  if (!rating) return <span className="text-muted">—</span>;
-  const style =
-    rating === "above_and_beyond"
-      ? { color: "var(--color-success)", backgroundColor: "color-mix(in srgb, var(--color-success) 15%, transparent)" }
-      : rating === "demonstrated"
-        ? { color: "var(--color-warning)", backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)" }
-        : { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" };
+function ratingPillStyle(rating: KpaRating): CSSProperties {
+  return rating === "above_and_beyond"
+    ? { color: "var(--color-success)", backgroundColor: "color-mix(in srgb, var(--color-success) 15%, transparent)" }
+    : rating === "demonstrated"
+      ? { color: "var(--color-warning)", backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)" }
+      : { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" };
+}
+
+/** Click cycles Not Met -> Demonstrated -> Above & Beyond -> Not Met — starts from the auto-computed rating, director can override to match their own judgement. */
+function EditableRatingPill({ rating, onChange }: { rating: KpaRating | null; onChange: (next: KpaRating) => void }) {
+  function cycle() {
+    if (!rating) {
+      onChange(KPA_RATINGS[0]);
+      return;
+    }
+    const idx = KPA_RATINGS.indexOf(rating);
+    onChange(KPA_RATINGS[(idx + 1) % KPA_RATINGS.length]);
+  }
   return (
-    <span className="rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap" style={style}>
-      {KPA_RATING_LABELS[rating]}
-    </span>
+    <button
+      type="button"
+      onClick={cycle}
+      title="Click to change rating"
+      className="rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80"
+      style={rating ? ratingPillStyle(rating) : { color: "var(--color-muted)", backgroundColor: "var(--color-surface-raised)" }}
+    >
+      {rating ? KPA_RATING_LABELS[rating] : "Not enough data"}
+    </button>
   );
 }
 
@@ -77,6 +93,8 @@ export function ReviewDetailView({
   });
   const [completing, setCompleting] = useState(false);
   const [completedAt, setCompletedAt] = useState(review.completed_at);
+  const [kpaRollups, setKpaRollups] = useState(review.kpa_rollups);
+  const [bonusSummary, setBonusSummary] = useState<Record<string, unknown>>(review.bonus_summary ?? {});
 
   const { status, set, flush } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/performance-reviews", {
@@ -103,8 +121,23 @@ export function ReviewDetailView({
   }
 
   const metricFields = metricFieldsForRole(provider.role).filter((f) => f.key in review.kpi_rollups);
+  const specialtyFields = (provider.specialty_metrics ?? []).filter((f) => f.key in review.kpi_rollups);
   const kpaGroups = kpaGroupsForRole(provider.role);
   const windows = ROLLING_WINDOWS.slice(0, 2); // 6mth + 1yr shown by default; data for 2yr/3yr fills in as history grows
+
+  function updateKpaRating(fieldKey: string, windowKey: string, rating: KpaRating) {
+    const next = { ...kpaRollups, [fieldKey]: { ...kpaRollups[fieldKey], [windowKey]: rating } };
+    setKpaRollups(next);
+    set("kpa_rollups", next);
+  }
+
+  function updateBonusSummary(patch: Record<string, unknown>) {
+    const next = { ...bonusSummary, ...patch };
+    setBonusSummary(next);
+    set("bonus_summary", next);
+  }
+
+  const hasBonusSummary = typeof bonusSummary.cumulative_turnover === "number";
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -209,6 +242,9 @@ export function ReviewDetailView({
 
       {kpaGroups.map((group) => (
         <Card key={group.title} title={`${group.title} — Rolling Averages`}>
+          <p className="mb-3 text-xs text-muted">
+            Auto-computed from the most common weekly rating in each window — click any rating to override it.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -227,7 +263,10 @@ export function ReviewDetailView({
                     <td className="py-2 pr-3 text-foreground">{field.label}</td>
                     {windows.map((w) => (
                       <td key={w.key} className="py-2 px-3 text-right whitespace-nowrap">
-                        <RatingPill rating={review.kpa_rollups[field.key]?.[w.key] ?? null} />
+                        <EditableRatingPill
+                          rating={kpaRollups[field.key]?.[w.key] ?? null}
+                          onChange={(rating) => updateKpaRating(field.key, w.key, rating)}
+                        />
                       </td>
                     ))}
                   </tr>
@@ -275,6 +314,119 @@ export function ReviewDetailView({
           </table>
         </div>
       </Card>
+
+      {specialtyFields.length > 0 && (
+        <Card title="⭐ Specialty KPIs — Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-accent-secondary/25 text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="py-2 pr-3 font-medium">Metric</th>
+                  {windows.map((w) => (
+                    <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
+                      {w.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {specialtyFields.map((field) => {
+                  const target = provider.targets[field.key];
+                  return (
+                    <tr key={field.key} className="border-b border-accent-secondary/15 last:border-0">
+                      <td className="py-2 pr-3 text-foreground">{field.label}</td>
+                      {windows.map((w) => {
+                        const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
+                        const color = targetColor(value, target, "higher");
+                        return (
+                          <td key={w.key} className="py-2 px-3 text-right whitespace-nowrap">
+                            <span className={color ? "font-medium" : "text-muted"} style={color ? { color } : undefined}>
+                              {value === null ? "—" : formatValue(value, field.type === "boolean" ? "number" : field.type)}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {hasBonusSummary && (
+        <Card title="💰 Bonus &amp; Growth" className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]">
+          <div className="mb-4 flex flex-wrap gap-6">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted">Cumulative Turnover</div>
+              <div className="text-lg font-semibold text-foreground">
+                {formatValue(bonusSummary.cumulative_turnover as number, "currency")}
+              </div>
+            </div>
+            {typeof bonusSummary.base_target_cumulative === "number" && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted">Base Target</div>
+                <div className="text-lg font-semibold text-foreground">
+                  {formatValue(bonusSummary.base_target_cumulative as number, "currency")}
+                </div>
+              </div>
+            )}
+            {typeof bonusSummary.pacing_pct === "number" && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted">Turnover Pacing</div>
+                <div
+                  className="text-lg font-semibold"
+                  style={{ color: (bonusSummary.pacing_pct as number) >= 100 ? "var(--color-success)" : "var(--color-danger)" }}
+                >
+                  {(bonusSummary.pacing_pct as number).toFixed(1)}%
+                </div>
+              </div>
+            )}
+            {bonusSummary.bonus_metric_label != null && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted">{String(bonusSummary.bonus_metric_label)}</div>
+                <div className="text-lg font-semibold text-foreground">
+                  {bonusSummary.bonus_metric_value == null
+                    ? "—"
+                    : bonusSummary.bonus_metric_target != null
+                      ? `${bonusSummary.bonus_metric_value} / ${bonusSummary.bonus_metric_target}`
+                      : String(bonusSummary.bonus_metric_value)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-amber-400/30 pt-4">
+            <p className="mb-3 text-xs text-muted">
+              Reference numbers only — confirm against the actual bonus formula before deciding. This isn&apos;t computed
+              automatically.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted">Bonus Achieved?</span>
+                <select
+                  value={(bonusSummary.achieved as string) ?? ""}
+                  onChange={(e) => updateBonusSummary({ achieved: e.target.value || null })}
+                  className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">Not decided yet</option>
+                  <option value="yes">Yes</option>
+                  <option value="partial">Partial</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <div className="flex-1">
+                <Textarea
+                  value={(bonusSummary.notes as string) ?? ""}
+                  placeholder="Notes on the bonus decision..."
+                  onChange={(e) => updateBonusSummary({ notes: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card title="3 Things They're Proud Of">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

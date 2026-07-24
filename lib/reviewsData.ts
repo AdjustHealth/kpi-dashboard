@@ -78,6 +78,7 @@ export interface PerformanceReviewRecord {
   other_notes: string | null;
   kpi_rollups: KpiRollups;
   kpa_rollups: KpaRollups;
+  bonus_summary: Record<string, unknown>;
 }
 
 export async function getPerformanceReview(id: string): Promise<{
