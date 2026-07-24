@@ -10,7 +10,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { JBV_PARTNERS } from "@/lib/jbvPartners";
 import { JbvPartnerGrid } from "@/components/dashboard/JbvPartnerGrid";
-import { STATUS } from "@/components/charts/palette";
+import { STATUS, CATEGORICAL } from "@/components/charts/palette";
 
 /**
  * Clinic-wide specialty consult categories, from the director's own
@@ -21,11 +21,15 @@ import { STATUS } from "@/components/charts/palette";
  * *personal* specialty KPI (e.g. Marcio's Headache Init/Sub target) is a
  * separate, provider-scoped number shown on their own meeting page.
  */
-const SPECIALTIES: { name: string; key: string; colorIndex: number }[] = [
-  { name: "Vestibular", key: "specialty_vestibular", colorIndex: 0 },
-  { name: "Headaches / TMJ", key: "specialty_headaches", colorIndex: 3 },
-  { name: "Paediatrics", key: "specialty_paeds", colorIndex: 4 },
-  { name: "Hydro", key: "specialty_hydro", colorIndex: 7 },
+const SPECIALTIES: { name: string; key: string; colorIndex: number; hasInitialSubSplit?: boolean }[] = [
+  { name: "Vestibular", key: "specialty_vestibular", colorIndex: 0, hasInitialSubSplit: true },
+  { name: "Headaches / TMJ", key: "specialty_headaches", colorIndex: 3, hasInitialSubSplit: true },
+  { name: "Paediatrics", key: "specialty_paeds", colorIndex: 4, hasInitialSubSplit: true },
+  // Hydro items almost never say "Initial"/"Subsequent" in Nookal (unlike the
+  // others above), so an Initial Consults stat here would misleadingly read
+  // as ~0 every week — Total Consults (the real matched-row count) is the
+  // only trustworthy number for this specialty.
+  { name: "Hydro", key: "specialty_hydro", colorIndex: 7, hasInitialSubSplit: false },
 ];
 
 /** % change from `weeksBack` weeks ago to the latest week — a growth-rate framing, not a target (none is stated for these categories). */
@@ -70,15 +74,37 @@ export default async function SpecialtyServicesPage({
     "JBV Trend (3%/wk)": jbvTrend[i] ?? null,
   }));
 
+  const allServicesData = clinicHistory.map((h) => ({
+    label: formatWeekLabel(h.week_ending),
+    ...Object.fromEntries(SPECIALTIES.map((s) => [s.name, typeof h[`${s.key}_total`] === "number" ? h[`${s.key}_total`] : null])),
+    "Women's Health": typeof h.specialty_womens_health_total === "number" ? h.specialty_womens_health_total : null,
+  }));
+  const allServicesKeys = [...SPECIALTIES.map((s) => s.name), "Women's Health"];
+  const allServicesColors = [...SPECIALTIES.map((s) => s.colorIndex), 1];
+
   return (
     <>
       <PageHeader title="Specialty Services" subtitle="Consults by specialty, clinic-wide." />
       <div className="flex flex-col gap-6 p-8">
+        <Card title="All Specialty Services — Total Consults">
+          <p className="mb-3 text-xs text-muted">Every specialty on one chart, so growth can be compared directly.</p>
+          <MultiLineChart
+            title="Specialty Services vs Each Other"
+            data={allServicesData}
+            seriesKeys={allServicesKeys}
+            colors={allServicesColors.map((i) => CATEGORICAL[i % CATEGORICAL.length])}
+            format="number"
+            height={280}
+          />
+        </Card>
+
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {SPECIALTIES.map((s) => (
             <Card key={s.key} title={s.name}>
               <div className="mb-3 flex flex-wrap gap-6">
-                <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
+                {s.hasInitialSubSplit !== false && (
+                  <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
+                )}
                 <StatTile {...clinicStatTile(clinicHistory, `${s.key}_total`)} label="Total Consults" />
                 {growthWindow > 0 && (
                   <GrowthStat label={`${growthWindow}-Week Growth`} pct={growthRatePct(clinicHistory, `${s.key}_total`, growthWindow)} />
