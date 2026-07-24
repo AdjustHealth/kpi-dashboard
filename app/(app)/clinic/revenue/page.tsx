@@ -17,7 +17,10 @@ export default async function RevenuePage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const [history, targets] = await Promise.all([getClinicHistory(week, clinicHistoryWeeks(week)), getClinicTargets()]);
+  // Revenue trends read as noise over just 4 weeks — a trailing quarter (13
+  // weeks) gives enough points to actually see seasonality/direction, while
+  // still staying a fixed window rather than growing wider every week.
+  const [history, targets] = await Promise.all([getClinicHistory(week, clinicHistoryWeeks(week, 13)), getClinicTargets()]);
 
   const weeklyTarget = typeof targets.weekly_revenue_target === "number" ? targets.weekly_revenue_target : null;
   const breakeven = typeof targets.weekly_breakeven_target === "number" ? targets.weekly_breakeven_target : null;
