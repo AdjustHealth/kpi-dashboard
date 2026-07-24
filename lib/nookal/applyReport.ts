@@ -9,7 +9,10 @@ import {
   parseClientsAndCasesReport,
   parseOccupancyReport,
   parseProvidersAndPracticeReport,
+  isRescheduleNote,
+  hasRescheduleTag,
 } from "@/lib/nookal/parsers";
+import { classifyRescheduleNotes } from "@/lib/nookal/rescheduleClassifier";
 
 export interface ApplyReportResult {
   matchedProviders: string[];
@@ -170,7 +173,27 @@ export async function applyNookalReport(
     if (epAvg !== null) clinicPatch.ep_occ = epAvg;
     if (clinicAvg !== null) clinicPatch.clinic_occ = clinicAvg;
   } else if (reportType === "cancellations") {
-    const result = parseCancellationsReport(csvText);
+    // Regex pass first — fast, deterministic, always available. Then try
+    // upgrading with an LLM read of every rsx/rx-tagged note, which catches
+    // phrasing the regex can't (a new way of saying "declined" or "just
+    // discussed"). Falls back to the regex result untouched if no API key
+    // is configured or the call fails for any reason — never blocks an upload.
+    const baseline = parseCancellationsReport(csvText);
+    const taggedNotes = Array.from(
+      new Set(
+        baseline.detailRows
+          .filter((r) => r.status === "Cancelled" && r.note && hasRescheduleTag(r.note))
+          .map((r) => (r.note as string).trim())
+      )
+    );
+    let result = baseline;
+    if (taggedNotes.length > 0) {
+      const verdicts = await classifyRescheduleNotes(taggedNotes.map((note, i) => ({ id: String(i), note })));
+      if (verdicts) {
+        const byNote = new Map(taggedNotes.map((note, i) => [note, verdicts[String(i)]]));
+        result = parseCancellationsReport(csvText, (note) => byNote.get(note.trim()) ?? isRescheduleNote(note));
+      }
+    }
     rowsFound = Object.keys(result.byProvider).length + Object.keys(result.byAdmin).length;
     let totalCancels = 0;
     let totalDnas = 0;

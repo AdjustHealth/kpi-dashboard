@@ -227,6 +227,11 @@ export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
 }
 
+/** A note mentions "rsx"/"rx" at all — regardless of verdict. Used to pick out candidates worth sending to the LLM classifier (lib/nookal/rescheduleClassifier.ts) instead of every note in the file. */
+export function hasRescheduleTag(note: string): boolean {
+  return RESCHEDULE_TAG_PATTERN.test(note);
+}
+
 // Corporate Pre-Employment screening partners (Village Road Show, Move OT,
 // Biosym, Top Golf, etc.) show up in the Cancellations report like any real
 // client, but a screening no-show/reschedule isn't a real clinic retention
@@ -290,8 +295,18 @@ function isStaleCancellation(apptDate: Date | null, modifiedDate: Date | null): 
  * "not rebooked" if none of their kept rows has any future booking at all;
  * "booked within 7 days" if any kept row was rebooked within 7 days of its
  * original appointment date.
+ *
+ * `isReschedule` defaults to the regex heuristic (isRescheduleNote) but can
+ * be swapped for an LLM-backed classifier (see rescheduleClassifier.ts) —
+ * applyReport.ts calls this twice: once with the default for a reliable
+ * synchronous baseline, then again with an LLM-informed classifier when one
+ * is available, since a real language model reads phrasing regex can't
+ * anticipate ("just discussed", "offered but declined" in a new wording).
  */
-export function parseCancellationsReport(text: string): CancellationsReportResult {
+export function parseCancellationsReport(
+  text: string,
+  isReschedule: (note: string) => boolean = isRescheduleNote
+): CancellationsReportResult {
   const rows = parseCsvRows(text);
   const byProvider: CancellationsReportResult["byProvider"] = {};
   const byAdmin: CancellationsReportResult["byAdmin"] = {};
@@ -414,7 +429,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       entry.cancellations = t;
       entry.eventsCount = t;
       for (const clientRows of clientEntries) {
-        const rsx = clientRows.some((r) => isRescheduleNote((r["Note"] ?? "").trim()));
+        const rsx = clientRows.some((r) => isReschedule((r["Note"] ?? "").trim()));
         const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
         if (rsx) entry.rescheduledCount += 1;
         else if (!hasNext) entry.notRebooked += 1;
@@ -436,7 +451,7 @@ export function parseCancellationsReport(text: string): CancellationsReportResul
       let notRebooked = 0;
       let rescheduledCount = 0;
       for (const clientRows of clientEntries) {
-        const rsx = clientRows.some((r) => isRescheduleNote((r["Note"] ?? "").trim()));
+        const rsx = clientRows.some((r) => isReschedule((r["Note"] ?? "").trim()));
         const hasNext = clientRows.some((r) => Boolean(r["Next Booking"]));
         if (rsx) rescheduledCount += 1;
         else if (!hasNext) notRebooked += 1;

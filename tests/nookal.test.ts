@@ -308,6 +308,27 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(jordan.rescheduledCount).toBe(2);
     expect(jordan.notRebooked).toBe(5);
   });
+
+  it("accepts an injected isReschedule classifier (e.g. the LLM classifier) instead of the regex default", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,13/07/2026 - 19/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Jordan Real,1,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+13/07/2026,Adjust Physiotherapy,Client One,0400 000 010,Jordan Real,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,some note the regex would say no to,13/07/2026,9:00am,Staff Two,2001
+
+`;
+    // A classifier that says yes to everything, regardless of what the regex would say —
+    // proves parseCancellationsReport actually defers to the injected function.
+    const result = parseCancellationsReport(csv, () => true);
+    expect(result.byProvider["Jordan Real"].rescheduledCount).toBe(1);
+  });
 });
 
 describe("parseClientsAndCasesReport", () => {
