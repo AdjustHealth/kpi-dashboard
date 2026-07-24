@@ -35,6 +35,10 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Team",
+    items: [{ label: "Performance Reviews", href: "/reviews" }],
+  },
+  {
     label: "Configuration",
     items: [
       { label: "Targets", href: "/targets" },
