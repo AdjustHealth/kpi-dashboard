@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { recentWeeks } from "@/lib/week";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
+import { retentionPct } from "@/lib/providerData";
 
 export interface ClinicWeekRow {
   week_ending: string;
@@ -134,6 +135,38 @@ export async function getNewClientsByProvider(week: string): Promise<ProviderNew
       return { providerName: p.name, names: Array.isArray(names) ? (names as string[]) : [] };
     })
     .filter((p) => p.names.length > 0);
+}
+
+export interface AdminTeamRow {
+  providerId: string;
+  providerName: string;
+  metrics: Record<string, unknown>;
+}
+
+/**
+ * Every active admin staff member's own cancellation-handling stats for one
+ * week, side by side — matches the original spreadsheet's "admin team"
+ * comparison tab (Cancellations Handled / Not Rebooked / Reschedule Rate /
+ * etc., one row per person). retention_pct is synthetic (see
+ * lib/providerData.ts's retentionPct), same as every other admin/provider page.
+ */
+export async function getAdminTeamComparison(week: string): Promise<AdminTeamRow[]> {
+  const supabase = await createClient();
+  const [providersResult, weeklyResult] = await Promise.all([
+    supabase.from("providers").select("id, name").eq("role", "admin").eq("active", true).order("sort_order"),
+    supabase.from("provider_weekly").select("provider_id, metrics").eq("week_ending", week),
+  ]);
+  const metricsByProvider = new Map(
+    (weeklyResult.data ?? []).map((r) => [r.provider_id as string, (r.metrics as Record<string, unknown>) ?? {}])
+  );
+  return ((providersResult.data ?? []) as { id: string; name: string }[]).map((p) => {
+    const metrics = metricsByProvider.get(p.id) ?? {};
+    return {
+      providerId: p.id,
+      providerName: p.name,
+      metrics: { ...metrics, retention_pct: retentionPct(metrics) },
+    };
+  });
 }
 
 export interface NewPatientRetention {

@@ -11,7 +11,10 @@ import {
   getNewClientsByProvider,
   getProviderMetricHistory,
   getNewPatientRetention,
+  getAdminTeamComparison,
+  getRoleTargets,
 } from "@/lib/clinicData";
+import { AdminTeamTable } from "@/components/clinic/AdminTeamTable";
 import { clinicStatTile, toTrendSeries, providerSeriesToWideRows } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
@@ -34,16 +37,27 @@ export default async function ClinicHealthPage({
   // use two different windows.
   const historyWeeks = clinicHistoryWeeks(week);
   const providerHistoryWeeks = Math.min(trackingHistoryWeeks(week), 8);
-  const [history, clinicTargets, cvaRollup, newClientsByProvider, providerCvaHistory, providerNcvaHistory, newPatientRetention] =
-    await Promise.all([
-      getClinicHistory(week, historyWeeks),
-      getClinicTargets(),
-      getClinicWideCvaRollup(week),
-      getNewClientsByProvider(week),
-      getProviderMetricHistory(week, providerHistoryWeeks, "ucva"),
-      getProviderMetricHistory(week, providerHistoryWeeks, "ncva"),
-      getNewPatientRetention(week, 4),
-    ]);
+  const [
+    history,
+    clinicTargets,
+    cvaRollup,
+    newClientsByProvider,
+    providerCvaHistory,
+    providerNcvaHistory,
+    newPatientRetention,
+    adminTeam,
+    roleTargets,
+  ] = await Promise.all([
+    getClinicHistory(week, historyWeeks),
+    getClinicTargets(),
+    getClinicWideCvaRollup(week),
+    getNewClientsByProvider(week),
+    getProviderMetricHistory(week, providerHistoryWeeks, "ucva"),
+    getProviderMetricHistory(week, providerHistoryWeeks, "ncva"),
+    getNewPatientRetention(week, 4),
+    getAdminTeamComparison(week),
+    getRoleTargets(),
+  ]);
   const providerCvaWide = providerSeriesToWideRows(providerCvaHistory);
   const providerNcvaWide = providerSeriesToWideRows(providerNcvaHistory);
 
@@ -265,6 +279,11 @@ export default async function ClinicHealthPage({
               />
             </Card>
           </div>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Admin Team</h2>
+          <AdminTeamTable rows={adminTeam} targets={roleTargets.admin ?? {}} />
         </div>
 
         {newClientsByProvider.length > 0 && (

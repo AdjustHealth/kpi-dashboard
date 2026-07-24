@@ -9,7 +9,7 @@ import { WeekMetrics } from "@/components/provider/PerformanceTable";
  * field a role actually has (clinicians: not_rebooked_pct, admin:
  * cancellations_not_rebooked_pct).
  */
-function retentionPct(metrics: Record<string, unknown>): number | undefined {
+export function retentionPct(metrics: Record<string, unknown>): number | undefined {
   const notRebooked = metrics.not_rebooked_pct ?? metrics.cancellations_not_rebooked_pct;
   return typeof notRebooked === "number" ? 1 - notRebooked : undefined;
 }
