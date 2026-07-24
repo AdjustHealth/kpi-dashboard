@@ -273,7 +273,7 @@ describe("parseCancellationsReport", () => {
     expect(alex.bookedWithin7DaysPct).toBeCloseTo(1 / 3, 4);
   });
 
-  it("recognises RSX/RX tags written inline after the client's name (the real convention), not just as a leading tag — and excludes negated 'doesn't want to rsx' notes", () => {
+  it("recognises RSX/RX tags written inline after the client's name (the real convention), only when tied to a specific day/time, and excludes declines", () => {
     const csv = `Cancellations Report
 
 Parameters
@@ -287,21 +287,23 @@ Details
 Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
 13/07/2026,Adjust Physiotherapy,Client Inline,0400 000 010,Jordan Real,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,Client Inline rsx to Thurs 3.30pm,13/07/2026,9:00am,Staff Two,2001
 14/07/2026,Adjust Physiotherapy,Client Declined,0400 000 011,Jordan Real,Private - Physio,Service,Cancelled,2026-07-07 10:00:00,,Client Declined cnx doesn't want to rsx,14/07/2026,9:00am,Staff Two,2002
-15/07/2026,Adjust Physiotherapy,Client Bare Rx,0400 000 012,Jordan Real,Private - Physio,Service,Cancelled,2026-07-08 10:00:00,,rx Client Bare Rx,15/07/2026,9:00am,Staff Two,2003
+15/07/2026,Adjust Physiotherapy,Client Bare Rx,0400 000 012,Jordan Real,Private - Physio,Service,Cancelled,2026-07-08 10:00:00,,rsx,15/07/2026,9:00am,Staff Two,2003
 16/07/2026,Adjust Physiotherapy,Client Offered Declined,0400 000 013,Jordan Real,Private - Physio,Service,Cancelled,2026-07-09 10:00:00,,Client Offered Declined cnx unable to make it offered rsx but declined,16/07/2026,9:00am,Staff Two,2004
 17/07/2026,Adjust Physiotherapy,Client Not Able,0400 000 014,Jordan Real,Private - Physio,Service,Cancelled,2026-07-10 10:00:00,,Client Not Able cnx busy with work not able to rsx any time before her next one,17/07/2026,9:00am,Staff Two,2005
+18/07/2026,Adjust Physiotherapy,Client Weeks,0400 000 015,Jordan Real,Private - Physio,Service,Cancelled,2026-07-11 10:00:00,,rsx tentatively for 5 weeks time,18/07/2026,9:00am,Staff Two,2006
 
 `;
     const result = parseCancellationsReport(csv);
     const jordan = result.byProvider["Jordan Real"];
-    expect(jordan.eventsCount).toBe(5);
-    // "Client Inline rsx to Thurs 3.30pm" and "rx Client Bare Rx" both tag as rescheduled even
-    // though "rsx"/"rx" isn't the first word — real staff notes lead with the client's name.
-    // "doesn't want to rsx", "offered rsx but declined", and "not able to rsx" must NOT count
-    // as rescheduled despite containing "rsx" — confirmed against real 18/7 data where these
-    // exact decline phrasings were being miscounted as successful reschedules.
+    expect(jordan.eventsCount).toBe(6);
+    // "Client Inline rsx to Thurs 3.30pm" and "rsx tentatively for 5 weeks time" both tie the
+    // tag to an actual day/time and count as rescheduled. A bare "rsx" with nothing else does
+    // NOT count — a tag alone isn't good evidence a reschedule really happened (confirmed
+    // against real 18/7 data: most of one admin's inflated count was bare "rsx" notes with no
+    // day or time at all). "doesn't want to rsx", "offered rsx but declined", and "not able to
+    // rsx" must NOT count either, despite containing "rsx".
     expect(jordan.rescheduledCount).toBe(2);
-    expect(jordan.notRebooked).toBe(3);
+    expect(jordan.notRebooked).toBe(4);
   });
 });
 

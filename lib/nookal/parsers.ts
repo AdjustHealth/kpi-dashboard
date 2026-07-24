@@ -214,8 +214,24 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN =
   /declin\w*|(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+)?to\s+(?:rsx|rx)\b/i;
+
+// A bare "rsx" with nothing else isn't good enough evidence a reschedule
+// actually happened — it could mean anything from "confirmed for Thursday"
+// to a placeholder someone meant to fill in later. Confirmed against the
+// real 18/7 data: 12 of Koreena's 15 rsx-tagged notes that week were just
+// the word "rsx" alone, no day or time — director's own read was these
+// numbers were implausibly high, and this was most of why. Require an
+// actual day-of-week, relative day ("tomorrow"), date, time, or "X weeks"
+// reference somewhere in the note before counting it as a real reschedule.
+const SPECIFIC_TIME_REFERENCE_PATTERN =
+  /\b(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day)?\b|\btomorrow\b|\btoday\b|\btonight\b|\bnext\s+\w+|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b|\d+\s*weeks?\b|\bfortnight\b/i;
+
 export function isRescheduleNote(note: string): boolean {
-  return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
+  return (
+    RESCHEDULE_TAG_PATTERN.test(note) &&
+    !RESCHEDULE_NEGATION_PATTERN.test(note) &&
+    SPECIFIC_TIME_REFERENCE_PATTERN.test(note)
+  );
 }
 
 // Corporate Pre-Employment screening partners (Village Road Show, Move OT,
