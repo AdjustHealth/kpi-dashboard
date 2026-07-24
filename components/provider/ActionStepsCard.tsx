@@ -92,8 +92,8 @@ export function ActionStepsCard({
       {categorized ? (
         <div className="flex flex-col gap-4">
           {ACTION_PLAN_CATEGORIES.map((category) => (
-            <div key={category.key}>
-              <div className="mb-1.5 text-xs font-medium text-muted">{category.label}</div>
+            <div key={category.key} className="rounded-lg border-2 border-accent/40 bg-accent/[0.06] p-3">
+              <div className="mb-1.5 text-xs font-semibold text-accent">{category.label}</div>
               <Textarea
                 value={notes.action_plan?.[category.key] ?? ""}
                 placeholder={`Notes for ${category.label}`}
