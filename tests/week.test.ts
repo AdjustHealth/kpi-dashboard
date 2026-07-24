@@ -24,10 +24,18 @@ describe("trackingHistoryWeeks", () => {
     expect(TRACKING_START_WEEK_ENDING).toBe("2026-07-04");
   });
 
-  it("grows as more weeks elapse since rollout", () => {
+  it("grows only up to the rollout floor, then holds at the default 4-week window", () => {
     expect(trackingHistoryWeeks("2026-07-04")).toBe(1);
     expect(trackingHistoryWeeks("2026-07-11")).toBe(2);
-    expect(trackingHistoryWeeks("2026-09-19")).toBeGreaterThan(10);
+    // Charts default to a fixed trailing 4-week window (not an ever-growing
+    // one) so they don't stretch further right as more weeks accumulate —
+    // a page that genuinely needs the full history (e.g. a senior physio's
+    // cumulative turnover pacing) passes an explicit larger `max`.
+    expect(trackingHistoryWeeks("2026-09-19")).toBe(4);
+  });
+
+  it("still honours an explicit larger max, for calculations that need full history", () => {
+    expect(trackingHistoryWeeks("2026-09-19", 52)).toBeGreaterThan(10);
   });
 
   it("is capped at max for far-future weeks", () => {
@@ -41,9 +49,13 @@ describe("clinicHistoryWeeks", () => {
     expect(CLINIC_HISTORY_START_WEEK_ENDING).toBe("2026-01-03");
   });
 
-  it("covers far more weeks than trackingHistoryWeeks for the same current week", () => {
+  it("defaults to the same fixed 4-week window as trackingHistoryWeeks, not the full backfilled history", () => {
+    expect(clinicHistoryWeeks("2026-09-19")).toBe(4);
+  });
+
+  it("can still reach much further back than trackingHistoryWeeks when an explicit max is passed", () => {
     const week = "2026-07-18";
-    expect(clinicHistoryWeeks(week)).toBeGreaterThan(trackingHistoryWeeks(week));
+    expect(clinicHistoryWeeks(week, 52)).toBeGreaterThan(trackingHistoryWeeks(week, 52));
   });
 
   it("is capped at max for far-future weeks", () => {
