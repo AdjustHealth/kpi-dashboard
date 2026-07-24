@@ -199,9 +199,10 @@ export function WeeklyInputForm({
 
           <Card title="Clinic — UCVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
-              UCVA by tier is entered manually (needs the Business Performance Report — not yet auto-filled).
-              JBV and Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent all auto-fill from the
-              Activity Report by counting rows whose service item matches each keyword.
+              UCVA by tier auto-fills from the Business Performance Report upload above, averaged by experience
+              tier. JBV and Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent all auto-fill from the
+              Activity Report by counting rows whose service item matches each keyword. Every field below is still
+              editable if you need to correct one.
             </p>
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Clinic").filter(
