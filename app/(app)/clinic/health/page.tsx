@@ -4,6 +4,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { OccupancyBars } from "@/components/charts/OccupancyBars";
+import { RankedBarChart } from "@/components/charts/RankedBarChart";
 import {
   getClinicHistory,
   getClinicTargets,
@@ -15,7 +16,7 @@ import {
   getRoleTargets,
 } from "@/lib/clinicData";
 import { AdminTeamTable } from "@/components/clinic/AdminTeamTable";
-import { clinicStatTile, toTrendSeries, providerSeriesToWideRows } from "@/components/dashboard/statHelpers";
+import { clinicStatTile, toTrendSeries, latestProviderValues, tierColorIndex } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
 
@@ -58,8 +59,6 @@ export default async function ClinicHealthPage({
     getAdminTeamComparison(week),
     getRoleTargets(),
   ]);
-  const providerCvaWide = providerSeriesToWideRows(providerCvaHistory);
-  const providerNcvaWide = providerSeriesToWideRows(providerNcvaHistory);
 
   const latest = history[history.length - 1];
   const prior = history[history.length - 2];
@@ -190,39 +189,41 @@ export default async function ClinicHealthPage({
               />
             </Card>
           </div>
-          {providerCvaWide.rows.length > 0 && (
+          {providerCvaHistory.length > 0 && (
             <div className="mt-4">
-              <Card title="UCVA by Individual Provider">
+              <Card title="UCVA by Individual Provider — This Week">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician&apos;s UCVA on one chart, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
-                  same-tier providers share a colour.
+                  Every clinician ranked by UCVA, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
+                  same-tier providers share a colour. Trend over time is the tier chart above.
                 </p>
-                <MultiLineChart
+                <RankedBarChart
                   title="UCVA by Provider"
-                  data={providerCvaWide.rows}
-                  seriesKeys={providerCvaWide.keys}
-                  colors={providerCvaWide.colors}
+                  rows={latestProviderValues(providerCvaHistory).map((r) => ({
+                    label: r.providerName,
+                    value: r.value,
+                    colorIndex: tierColorIndex(r.tier),
+                  }))}
                   format="decimal"
                   decimals={1}
-                  height={280}
                 />
               </Card>
             </div>
           )}
-          {providerNcvaWide.rows.length > 0 && (
+          {providerNcvaHistory.length > 0 && (
             <div className="mt-4">
-              <Card title="NCVA by Individual Provider">
+              <Card title="NCVA by Individual Provider — This Week">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician&apos;s NCVA on one chart, coloured by tier the same way as the UCVA chart above.
+                  Every clinician ranked by NCVA, coloured by tier the same way as the UCVA chart above.
                 </p>
-                <MultiLineChart
+                <RankedBarChart
                   title="NCVA by Provider"
-                  data={providerNcvaWide.rows}
-                  seriesKeys={providerNcvaWide.keys}
-                  colors={providerNcvaWide.colors}
+                  rows={latestProviderValues(providerNcvaHistory).map((r) => ({
+                    label: r.providerName,
+                    value: r.value,
+                    colorIndex: tierColorIndex(r.tier),
+                  }))}
                   format="decimal"
                   decimals={1}
-                  height={280}
                 />
               </Card>
             </div>

@@ -61,3 +61,23 @@ export function providerSeriesToWideRows(series: ProviderCvaSeries[]): {
   const colors = series.map((s) => CATEGORICAL[(s.tier ? TIER_COLOR_INDEX[s.tier] : FALLBACK_COLOR_INDEX) % CATEGORICAL.length]);
   return { rows, keys: series.map((s) => s.providerName), colors };
 }
+
+/** Same tier-colour grouping as providerSeriesToWideRows, exposed for other chart types (e.g. RankedBarChart). */
+export function tierColorIndex(tier: CvaTier | null): number {
+  return tier ? TIER_COLOR_INDEX[tier] : FALLBACK_COLOR_INDEX;
+}
+
+/**
+ * Every provider's most recent value, sorted highest first — for comparing
+ * everyone against each other right now (a ranking), rather than plotting
+ * everyone's full trend on one line chart, which reads as noise once there
+ * are more than a handful of providers.
+ */
+export function latestProviderValues(
+  series: ProviderCvaSeries[]
+): { providerName: string; tier: CvaTier | null; value: number }[] {
+  return series
+    .map((s) => ({ providerName: s.providerName, tier: s.tier, value: s.points[s.points.length - 1]?.value ?? null }))
+    .filter((r): r is { providerName: string; tier: CvaTier | null; value: number } => r.value !== null)
+    .sort((a, b) => b.value - a.value);
+}
