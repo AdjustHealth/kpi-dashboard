@@ -81,6 +81,17 @@ export interface PerformanceReviewRecord {
   bonus_summary: Record<string, unknown>;
 }
 
+/** Every stored week for this provider, oldest first — used to draw sparklines next to the review's rollup numbers. Real history is short (this system rolled out July 2026), so no windowing needed. */
+export async function getProviderWeeklySeries(providerId: string): Promise<{ week_ending: string; metrics: Record<string, unknown> }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("provider_weekly")
+    .select("week_ending, metrics")
+    .eq("provider_id", providerId)
+    .order("week_ending", { ascending: true });
+  return (data ?? []) as { week_ending: string; metrics: Record<string, unknown> }[];
+}
+
 export async function getPerformanceReview(id: string): Promise<{
   review: PerformanceReviewRecord | null;
   provider: Provider | null;

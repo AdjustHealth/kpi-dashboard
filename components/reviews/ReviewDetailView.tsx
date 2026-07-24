@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Input, Textarea } from "@/components/ui/Field";
+import { Sparkline } from "@/components/charts/Sparkline";
+import { KpaRadarChart, RadarRow } from "@/components/charts/KpaRadarChart";
+import { KpiProgressBar } from "@/components/charts/KpiProgressBar";
 import { targetColor } from "@/lib/targetColor";
 import { formatValue } from "@/lib/format";
 import { formatWeekLabel } from "@/lib/week";
@@ -71,12 +74,15 @@ export function ReviewDetailView({
   history,
   cadenceMonths,
   targets,
+  weeklySeries,
 }: {
   review: PerformanceReviewRecord;
   provider: Provider;
   history: ReviewHistoryRow[];
   cadenceMonths: number;
   targets: Record<string, unknown>;
+  /** Every stored week for this provider, oldest first — for the sparkline next to each rollup number. */
+  weeklySeries: { week_ending: string; metrics: Record<string, unknown> }[];
 }) {
   const router = useRouter();
   const [reviewer, setReviewer] = useState(review.reviewer ?? "");
@@ -138,6 +144,12 @@ export function ReviewDetailView({
   }
 
   const hasBonusSummary = typeof bonusSummary.cumulative_turnover === "number";
+
+  function sparklineValues(fieldKey: string): (number | null)[] {
+    return weeklySeries.map((w) => (typeof w.metrics[fieldKey] === "number" ? (w.metrics[fieldKey] as number) : null));
+  }
+
+  const kpiFieldsWithTargets = metricFields.filter((f) => typeof targets[f.key] === "number" && f.betterWhen);
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -240,11 +252,17 @@ export function ReviewDetailView({
         </Card>
       )}
 
-      {kpaGroups.map((group) => (
+      {kpaGroups.map((group) => {
+        const radarRows: RadarRow[] = group.fields.map((field) => ({
+          behaviour: field.label,
+          ratingsByWindow: kpaRollups[field.key] ?? {},
+        }));
+        return (
         <Card key={group.title} title={`${group.title} — Rolling Averages`}>
           <p className="mb-3 text-xs text-muted">
             Auto-computed from the most common weekly rating in each window — click any rating to override it.
           </p>
+          {group.fields.length >= 3 && <KpaRadarChart rows={radarRows} windows={windows} />}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -275,7 +293,8 @@ export function ReviewDetailView({
             </table>
           </div>
         </Card>
-      ))}
+        );
+      })}
 
       <Card title="KPI Scorecard — Rolling Averages">
         <div className="overflow-x-auto">
@@ -283,6 +302,7 @@ export function ReviewDetailView({
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3 font-medium">KPI</th>
+                <th className="py-2 px-3 font-medium">Trend</th>
                 {windows.map((w) => (
                   <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
                     {w.label}
@@ -291,11 +311,14 @@ export function ReviewDetailView({
               </tr>
             </thead>
             <tbody>
-              {metricFields.map((field) => {
+              {metricFields.map((field, i) => {
                 const target = targets[field.key];
                 return (
                   <tr key={field.key} className="border-b border-border/60 last:border-0">
                     <td className="py-2 pr-3 text-foreground">{field.label}</td>
+                    <td className="py-2 px-3">
+                      <Sparkline values={sparklineValues(field.key)} colorIndex={i} />
+                    </td>
                     {windows.map((w) => {
                       const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
                       const color = targetColor(value, target, field.betterWhen);
@@ -315,6 +338,25 @@ export function ReviewDetailView({
         </div>
       </Card>
 
+      {kpiFieldsWithTargets.length > 0 && (
+        <Card title="KPI Progress vs Target">
+          <p className="mb-3 text-xs text-muted">Same numbers as the table above, shown against target — the {windows[0].label.toLowerCase()} window.</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {kpiFieldsWithTargets.map((field) => (
+              <KpiProgressBar
+                key={field.key}
+                label={field.label}
+                value={review.kpi_rollups[field.key]?.[windows[0].key] ?? null}
+                target={targets[field.key] as number}
+                betterWhen={field.betterWhen}
+                format={field.type === "boolean" || field.type === "rating" ? "number" : field.type}
+                decimals={field.decimals}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
+
       {specialtyFields.length > 0 && (
         <Card title="⭐ Specialty KPIs — Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
           <div className="overflow-x-auto">
@@ -322,6 +364,7 @@ export function ReviewDetailView({
               <thead>
                 <tr className="border-b border-accent-secondary/25 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="py-2 pr-3 font-medium">Metric</th>
+                  <th className="py-2 px-3 font-medium">Trend</th>
                   {windows.map((w) => (
                     <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
                       {w.label}
@@ -330,11 +373,14 @@ export function ReviewDetailView({
                 </tr>
               </thead>
               <tbody>
-                {specialtyFields.map((field) => {
+                {specialtyFields.map((field, i) => {
                   const target = provider.targets[field.key];
                   return (
                     <tr key={field.key} className="border-b border-accent-secondary/15 last:border-0">
                       <td className="py-2 pr-3 text-foreground">{field.label}</td>
+                      <td className="py-2 px-3">
+                        <Sparkline values={sparklineValues(field.key)} colorIndex={i + 3} />
+                      </td>
                       {windows.map((w) => {
                         const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
                         const color = targetColor(value, target, "higher");
