@@ -139,7 +139,7 @@ export function ProviderDetailView({
 
         <div className="flex flex-col gap-4">
           <SectionLabel>Action Plan</SectionLabel>
-          <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" categorized />
+          <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" categorized showGoals={false} />
         </div>
 
         <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
