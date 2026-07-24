@@ -22,20 +22,27 @@ function rollingSeries(history: WeekMetrics[], key: string, window = 4): TrendPo
 }
 
 export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
-  // CVA (all clients seen) and NCVA (new clients only) are both "visits per
+  // UCVA (all clients seen) and NCVA (new clients only) are both "visits per
   // client" metrics, just with a different denominator — one chart makes the
   // relationship between them visible instead of two charts that have to be
   // compared by eye.
   const cvaVsNcvaData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
-    CVA: typeof h.metrics.ucva === "number" ? h.metrics.ucva : null,
+    UCVA: typeof h.metrics.ucva === "number" ? h.metrics.ucva : null,
     NCVA: typeof h.metrics.ncva === "number" ? h.metrics.ncva : null,
   }));
 
   return (
     <Card title="Performance Charts">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <MultiLineChart title="CVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["CVA", "NCVA"]} format="decimal" decimals={1} height={160} />
+        <div className="flex flex-col gap-1.5">
+          <MultiLineChart title="UCVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["UCVA", "NCVA"]} format="decimal" decimals={1} height={160} />
+          <p className="text-[11px] text-muted">
+            UCVA: visits per client across the whole caseload (overall efficiency). NCVA: visits per new client only — a
+            retention indicator. If NCVA runs below UCVA, new clients aren&apos;t rebooking as often as existing ones and
+            the provider needs more new clients to sustain the same volume.
+          </p>
+        </div>
         <LineTrendChart
           title="NCVA — 4wk Rolling Avg"
           data={rollingSeries(history, "ncva")}

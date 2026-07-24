@@ -46,7 +46,7 @@ export function RoleTargetsCard({ group, initialValues }: { group: RoleTargetGro
 
       {group.cvaTierFields && (
         <div className="mt-4 border-t border-border pt-4">
-          <p className="mb-3 text-xs font-medium text-muted">CVA Target by Experience Tier</p>
+          <p className="mb-3 text-xs font-medium text-muted">UCVA Target by Experience Tier</p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {group.cvaTierFields.map((field) => (
               <NumberField

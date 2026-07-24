@@ -197,9 +197,9 @@ export function WeeklyInputForm({
             />
           </Card>
 
-          <Card title="Clinic — CVA, JBV &amp; Specialty Consults">
+          <Card title="Clinic — UCVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
-              CVA by tier is entered manually (needs the Business Performance Report — not yet auto-filled).
+              UCVA by tier is entered manually (needs the Business Performance Report — not yet auto-filled).
               JBV and Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent all auto-fill from the
               Activity Report by counting rows whose service item matches each keyword.
             </p>

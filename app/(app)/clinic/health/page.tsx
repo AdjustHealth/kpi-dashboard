@@ -158,7 +158,7 @@ export default async function ClinicHealthPage({
           <h2 className="mb-3 text-sm font-semibold text-foreground">Retention / Value</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
-              label="Clinic-wide CVA"
+              label="Clinic-wide UCVA"
               value={formatValue(cvaRollup.avgCva, "decimal", 1)}
               sublabel={`avg across ${cvaRollup.providerCount} clinicians`}
             />
@@ -170,12 +170,12 @@ export default async function ClinicHealthPage({
             />
           </div>
           <div className="mt-4">
-            <Card title="CVA by Provider Tier">
+            <Card title="UCVA by Provider Tier">
               <p className="mb-3 text-xs text-muted">
-                Client visit average by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
+                Unique client visit average by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
               </p>
               <MultiLineChart
-                title="CVA by Tier"
+                title="UCVA by Tier"
                 data={history.map((h) => ({
                   label: formatWeekLabel(h.week_ending),
                   "New Grad": h.cva_new_grads ?? null,
@@ -192,13 +192,13 @@ export default async function ClinicHealthPage({
           </div>
           {providerCvaWide.rows.length > 0 && (
             <div className="mt-4">
-              <Card title="CVA by Individual Provider">
+              <Card title="UCVA by Individual Provider">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician&apos;s CVA on one chart, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
+                  Every clinician&apos;s UCVA on one chart, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
                   same-tier providers share a colour.
                 </p>
                 <MultiLineChart
-                  title="CVA by Provider"
+                  title="UCVA by Provider"
                   data={providerCvaWide.rows}
                   seriesKeys={providerCvaWide.keys}
                   colors={providerCvaWide.colors}
@@ -213,7 +213,7 @@ export default async function ClinicHealthPage({
             <div className="mt-4">
               <Card title="NCVA by Individual Provider">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician&apos;s NCVA on one chart, coloured by tier the same way as the CVA chart above.
+                  Every clinician&apos;s NCVA on one chart, coloured by tier the same way as the UCVA chart above.
                 </p>
                 <MultiLineChart
                   title="NCVA by Provider"

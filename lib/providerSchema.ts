@@ -62,13 +62,13 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
   { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 1, betterWhen: "higher" },
-  // Labelled "CVA" (not "UCVA") per the director — this Business Performance
-  // Report figure IS the client-visit-average metric she tracks; there's no
+  // Labelled "UCVA" per the director — this Business Performance Report
+  // figure IS the unique-client-visit-average metric she tracks; there's no
   // separate lower-value "weekly ratio" CVA in her real methodology, and
   // showing one (as this app briefly did, sourced from the Providers &
   // Practice Report's very different "Client Visit Average" column) read as
   // a second, much-lower, wrong number next to this one.
-  { key: "ucva", label: "CVA", type: "decimal", decimals: 1, betterWhen: "higher" },
+  { key: "ucva", label: "UCVA", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "ncva", label: "NCVA", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },

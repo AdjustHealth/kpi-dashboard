@@ -26,7 +26,7 @@ export const CLINIC_TARGET_FIELDS: TargetField[] = [
 
 /** Fixed provider target fields, on top of any per-provider specialty_metrics targets. */
 export const PROVIDER_TARGET_FIELDS: TargetField[] = [
-  { key: "personal_cva", label: "Personal CVA Target", type: "decimal" },
+  { key: "personal_cva", label: "Personal UCVA Target", type: "decimal" },
   { key: "annual_turnover_target", label: "Annual Turnover Target", type: "currency" },
   { key: "working_weeks", label: "Working Weeks in Year", type: "number" },
 ];
@@ -81,8 +81,8 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
     description: "Physio, Massage, EP — every regular clinician shares these targets.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
     cvaTierFields: [
-      { key: "cva_target_new_grad", label: "CVA Target — New Grad" },
-      { key: "cva_target_2_5yr", label: "CVA Target — 2-5yr" },
+      { key: "cva_target_new_grad", label: "UCVA Target — New Grad" },
+      { key: "cva_target_2_5yr", label: "UCVA Target — 2-5yr" },
     ],
   },
   {
@@ -90,7 +90,7 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
     label: "Senior Physio",
     description: "Shared KPI Scorecard targets for every senior physio — bonus tiers and specialty targets stay individual below.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
-    cvaTierFields: [{ key: "cva_target_senior", label: "CVA Target — Senior (6+yr)" }],
+    cvaTierFields: [{ key: "cva_target_senior", label: "UCVA Target — Senior (6+yr)" }],
   },
   {
     id: "admin",
