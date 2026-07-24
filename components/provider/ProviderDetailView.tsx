@@ -89,6 +89,7 @@ export function ProviderDetailView({
             specialtyMetrics={provider.specialty_metrics}
             targets={provider.targets}
             initialValues={currentMetrics}
+            history={history}
           />
           {clinicHistory && <ClinicAnalysisCard history={clinicHistory} />}
         </div>
