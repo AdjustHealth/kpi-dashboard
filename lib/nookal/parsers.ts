@@ -201,8 +201,19 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 // of ~15 genuine "rsx" notes in the file. A few notes use the tag to say
 // the client declined ("doesn't want to rsx", "didn't want to rsx") —
 // those must NOT count as rescheduled, hence the negation exclusion.
+//
+// The negation pattern originally only caught "don't/doesn't/didn't want to
+// rsx" — but real notes just as often say "offered rsx but declined",
+// "declined rsx", or "not able to rsx" (no "want to" at all), which all
+// slipped through as false positives and inflated admin Reschedule Rate
+// well past anything the director had seen historically (which is exactly
+// why the 30% target existed). Confirmed against the real 18/7 Cancellations
+// data: 4 of 48 rsx-tagged notes were explicit declines being miscounted as
+// successful reschedules. "declin(ed/ing)" is now its own unconditional
+// trigger, anywhere in the note, since every real decline note contains it.
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
-const RESCHEDULE_NEGATION_PATTERN = /(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+to\s+)?(?:rsx|rx)\b/i;
+const RESCHEDULE_NEGATION_PATTERN =
+  /declin\w*|(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+)?to\s+(?:rsx|rx)\b/i;
 export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
 }
