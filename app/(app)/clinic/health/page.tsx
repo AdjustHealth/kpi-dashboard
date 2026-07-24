@@ -261,7 +261,7 @@ export default async function ClinicHealthPage({
               sublabel="100% − Not Rebooked %"
             />
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card title="Cancellations Trend">
               <MultiLineChart
                 title="Number of Cancellations"
@@ -275,6 +275,18 @@ export default async function ClinicHealthPage({
                 title="Reschedule Rate"
                 data={history.map((h) => ({ label: formatWeekLabel(h.week_ending), "Reschedule Rate": h.cx_rsx_pct ?? null }))}
                 seriesKeys={["Reschedule Rate"]}
+                format="percent"
+              />
+            </Card>
+            <Card title="Retention Rate Trend">
+              <MultiLineChart
+                title="Retention Rate"
+                data={history.map((h) => ({
+                  label: formatWeekLabel(h.week_ending),
+                  "Retention Rate": typeof h.cx_nr_pct === "number" ? 1 - (h.cx_nr_pct as number) : null,
+                  Target: 0.7,
+                }))}
+                seriesKeys={["Retention Rate", "Target"]}
                 format="percent"
               />
             </Card>

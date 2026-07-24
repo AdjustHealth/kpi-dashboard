@@ -2,7 +2,10 @@
 
 import { Card } from "@/components/ui/Card";
 import { LineTrendChart, TrendPoint } from "@/components/charts/LineTrendChart";
+import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { BarTrendChart } from "@/components/charts/BarTrendChart";
 import { rollingAverage } from "@/lib/calc";
+import { formatWeekLabel } from "@/lib/week";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
 function series(history: WeekMetrics[], key: string): TrendPoint[] {
@@ -19,11 +22,20 @@ function rollingSeries(history: WeekMetrics[], key: string, window = 4): TrendPo
 }
 
 export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
+  // CVA (all clients seen) and NCVA (new clients only) are both "visits per
+  // client" metrics, just with a different denominator — one chart makes the
+  // relationship between them visible instead of two charts that have to be
+  // compared by eye.
+  const cvaVsNcvaData = history.map((h) => ({
+    label: formatWeekLabel(h.week_ending),
+    CVA: typeof h.metrics.ucva === "number" ? h.metrics.ucva : null,
+    NCVA: typeof h.metrics.ncva === "number" ? h.metrics.ncva : null,
+  }));
+
   return (
     <Card title="Performance Charts">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <LineTrendChart title="CVA" data={series(history, "ucva")} format="decimal" decimals={1} colorIndex={0} accent />
-        <LineTrendChart title="NCVA" data={series(history, "ncva")} format="decimal" decimals={1} colorIndex={1} accent />
+        <MultiLineChart title="CVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["CVA", "NCVA"]} format="decimal" decimals={1} height={160} />
         <LineTrendChart
           title="NCVA — 4wk Rolling Avg"
           data={rollingSeries(history, "ncva")}
@@ -32,6 +44,7 @@ export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
           colorIndex={6}
           accent
         />
+        <BarTrendChart title="TPR (Total Patient Revenue)" data={series(history, "tpr")} format="currency" colorIndex={5} accent />
         <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} accent />
         <LineTrendChart
           title="New Patient Booking Rate"
