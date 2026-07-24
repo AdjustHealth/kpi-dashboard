@@ -203,35 +203,28 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 // those must NOT count as rescheduled, hence the negation exclusion.
 //
 // The negation pattern originally only caught "don't/doesn't/didn't want to
-// rsx" — but real notes just as often say "offered rsx but declined",
-// "declined rsx", or "not able to rsx" (no "want to" at all), which all
+// rsx" — real notes have several other ways of saying a reschedule was
+// discussed/offered/planned but never actually confirmed, which all
 // slipped through as false positives and inflated admin Reschedule Rate
 // well past anything the director had seen historically (which is exactly
-// why the 30% target existed). Confirmed against the real 18/7 Cancellations
-// data: 4 of 48 rsx-tagged notes were explicit declines being miscounted as
-// successful reschedules. "declin(ed/ing)" is now its own unconditional
-// trigger, anywhere in the note, since every real decline note contains it.
+// why the 30% target existed). Confirmed against the real 18/7
+// Cancellations data — every one of these phrasings showed up for real:
+//   - explicit declines: "declined rsx", "offered rsx but declined"
+//   - "can't/not able/not wanting ... rsx" (with or without "to" — real
+//     notes write both "can't rsx" and "not able to rsx")
+//   - "offering/offered [a] rsx" — an offer, not a confirmed outcome
+//   - "to rsx" as an infinitive ("will call back tomorrow to rsx", "lm to
+//     rsx to Tuesday") — the "to" sits BEFORE the tag, meaning "planning
+//     to reschedule", the opposite of the confirmed "rsx to Thurs 3.30pm"
+//     construction where "to" comes AFTER the tag naming the actual day.
+// A bare "rsx" with nothing else DOES still count — the director confirmed
+// that's a real (if terse) reschedule note, not a placeholder.
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN =
-  /declin\w*|(?:don'?t|didn'?t|doesn'?t|did\s+not|won'?t|not\s+(?:able|wanting))\s+(?:want(?:ing)?\s+)?to\s+(?:rsx|rx)\b/i;
-
-// A bare "rsx" with nothing else isn't good enough evidence a reschedule
-// actually happened — it could mean anything from "confirmed for Thursday"
-// to a placeholder someone meant to fill in later. Confirmed against the
-// real 18/7 data: 12 of Koreena's 15 rsx-tagged notes that week were just
-// the word "rsx" alone, no day or time — director's own read was these
-// numbers were implausibly high, and this was most of why. Require an
-// actual day-of-week, relative day ("tomorrow"), date, time, or "X weeks"
-// reference somewhere in the note before counting it as a real reschedule.
-const SPECIFIC_TIME_REFERENCE_PATTERN =
-  /\b(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day)?\b|\btomorrow\b|\btoday\b|\btonight\b|\bnext\s+\w+|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b|\d+\s*weeks?\b|\bfortnight\b/i;
+  /declin\w*|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
 
 export function isRescheduleNote(note: string): boolean {
-  return (
-    RESCHEDULE_TAG_PATTERN.test(note) &&
-    !RESCHEDULE_NEGATION_PATTERN.test(note) &&
-    SPECIFIC_TIME_REFERENCE_PATTERN.test(note)
-  );
+  return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
 }
 
 // Corporate Pre-Employment screening partners (Village Road Show, Move OT,
