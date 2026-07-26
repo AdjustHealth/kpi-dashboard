@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
-import { PieChart } from "@/components/charts/PieChart";
+import { StackedBarChart } from "@/components/charts/StackedBarChart";
 import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatValue } from "@/lib/format";
@@ -69,12 +69,17 @@ export default async function RevenuePage({
   const latest = history[history.length - 1] ?? {};
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
 
-  const payerData = (["private", "medicare", "dva", "workcover", "ndis", "other"] as const)
-    .map((key) => ({
-      name: PAYER_CATEGORY_LABELS[key],
-      value: (latest[`rev_${key}`] as number | null) ?? 0,
-    }))
-    .filter((d) => d.value > 0);
+  // Only include payer categories with at least one real week of revenue —
+  // an all-zero series just adds legend noise for categories this clinic
+  // doesn't bill (e.g. no NDIS clients).
+  const payerKeys = (["private", "medicare", "dva", "workcover", "ndis", "other"] as const).filter((key) =>
+    history.some((h) => typeof h[`rev_${key}`] === "number" && (h[`rev_${key}`] as number) > 0)
+  );
+  const payerSeriesKeys = payerKeys.map((key) => PAYER_CATEGORY_LABELS[key]);
+  const payerTrendData = history.map((h) => ({
+    label: formatWeekLabel(h.week_ending),
+    ...Object.fromEntries(payerKeys.map((key) => [PAYER_CATEGORY_LABELS[key], (h[`rev_${key}`] as number | null) ?? 0])),
+  }));
 
   return (
     <>
@@ -108,11 +113,11 @@ export default async function RevenuePage({
             )}
 
             <Card title="Revenue By Payer" action={<span className="text-xs text-muted">Auto-fills from the Activity Report upload</span>}>
-              {payerData.length > 0 ? (
-                <PieChart title={`Payer Mix — week ending ${formatWeekLabel(week)}`} data={payerData} format="currency" />
+              {payerSeriesKeys.length > 0 ? (
+                <StackedBarChart title="Payer Mix Over Time" data={payerTrendData} seriesKeys={payerSeriesKeys} format="currency" />
               ) : (
                 <p className="text-xs text-muted">
-                  No revenue-by-payer data for this week yet — upload the Activity Report on Weekly Input to populate it.
+                  No revenue-by-payer data yet — upload the Activity Report on Weekly Input to populate it.
                 </p>
               )}
             </Card>
