@@ -10,6 +10,7 @@ import { Sparkline } from "@/components/charts/Sparkline";
 import { KpiProgressBar } from "@/components/charts/KpiProgressBar";
 import { STATUS } from "@/components/charts/palette";
 import { targetColor } from "@/lib/targetColor";
+import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { formatValue } from "@/lib/format";
 import { formatWeekLabel } from "@/lib/week";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
@@ -122,8 +123,17 @@ export function ReviewDetailView({
 
   const hasBonusSummary = typeof bonusSummary.cumulative_turnover === "number";
 
+  // A calc-source specialty metric (e.g. Marcio's Headache Total = Init + Sub)
+  // is never itself written to provider_weekly.metrics — recompute it into
+  // each week before drawing its sparkline, same as the rollups above.
+  const specialtyMetricsList = provider.specialty_metrics ?? [];
+  const hasCalcSpecialty = specialtyMetricsList.some((m) => m.source === "calc");
+  const augmentedWeeklySeries = hasCalcSpecialty
+    ? weeklySeries.map((w) => ({ ...w, metrics: { ...w.metrics, ...computeSpecialtyCalcMetrics(specialtyMetricsList, w.metrics) } }))
+    : weeklySeries;
+
   function sparklineValues(fieldKey: string): (number | null)[] {
-    return weeklySeries.map((w) => (typeof w.metrics[fieldKey] === "number" ? (w.metrics[fieldKey] as number) : null));
+    return augmentedWeeklySeries.map((w) => (typeof w.metrics[fieldKey] === "number" ? (w.metrics[fieldKey] as number) : null));
   }
 
   const kpiFieldsWithTargets = metricFields.filter((f) => typeof targets[f.key] === "number" && f.betterWhen);

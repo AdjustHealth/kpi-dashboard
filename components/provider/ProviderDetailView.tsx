@@ -7,12 +7,14 @@ import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { AdminPerformanceCharts } from "@/components/provider/AdminPerformanceCharts";
 import { SpecialtyKpiCard } from "@/components/provider/SpecialtyKpiCard";
+import { ProgrammingPrepCard } from "@/components/provider/ProgrammingPrepCard";
 import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
 import { GoalsCard } from "@/components/provider/GoalsCard";
 import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
+import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Provider } from "@/lib/types";
 import { ClinicWeekRow } from "@/lib/clinicData";
 
@@ -56,12 +58,28 @@ export function ProviderDetailView({
   if (variant === "senior") {
     const weeklyTurnover = bonusHistory.map((h) => (typeof h.metrics.turnover === "number" ? h.metrics.turnover : null));
     const bonusMetricKey = typeof provider.targets.bonus_metric_key === "string" ? provider.targets.bonus_metric_key : null;
+    // A calc-source specialty metric (e.g. Marcio's Headache Total = Init + Sub)
+    // is never itself written to provider_weekly.metrics — only its manual
+    // inputs are. Reading it straight off stored metrics would silently come
+    // back null for every week, so recompute it per week the same way
+    // SpecialtyKpiCard does for the current week.
+    const bonusMetricIsCalc = provider.specialty_metrics?.some((m) => m.key === bonusMetricKey && m.source === "calc") ?? false;
     const bonusMetricHistory = bonusMetricKey
-      ? bonusHistory.map((h) => (typeof h.metrics[bonusMetricKey] === "number" ? (h.metrics[bonusMetricKey] as number) : null))
+      ? bonusHistory.map((h) => {
+          if (bonusMetricIsCalc) {
+            const calc = computeSpecialtyCalcMetrics(provider.specialty_metrics ?? [], h.metrics);
+            return typeof calc[bonusMetricKey] === "number" ? calc[bonusMetricKey] : null;
+          }
+          return typeof h.metrics[bonusMetricKey] === "number" ? (h.metrics[bonusMetricKey] as number) : null;
+        })
       : undefined;
     return (
       <div className="flex flex-col gap-6 p-8">
         <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+
+        {provider.targets.show_programming_prep === true && (
+          <ProgrammingPrepCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+        )}
 
         <SeniorHeroSummary
           targets={provider.targets}

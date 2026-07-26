@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { computeKpiRollups, computeKpaRollups, WeeklyRow } from "@/lib/performanceReview";
 import { metricFieldsForRole, kpaGroupsForRole, ProviderRole } from "@/lib/providerSchema";
-import { weeklyBaseTarget, cumulativeTurnoverSeries, turnoverPacingPct } from "@/lib/providerCalc";
+import { weeklyBaseTarget, cumulativeTurnoverSeries, turnoverPacingPct, computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Goal, SpecialtyMetricDef } from "@/lib/types";
 
 /**
@@ -70,12 +70,18 @@ export async function POST(request: NextRequest) {
   // A senior's own specialty metrics (e.g. Sam's Memberships, Marcio's
   // Headache Total) aren't in the fixed KPI Scorecard schema — merge their
   // rollups in alongside the regular KPIs so the review shows one table.
+  // A calc-source field (e.g. Headache Total = Init + Sub) is never itself
+  // written to provider_weekly.metrics, so recompute it into each row first —
+  // same as ProviderDetailView does for the live Bonus Tier chart.
   const specialtyMetrics = (provider.specialty_metrics ?? []) as SpecialtyMetricDef[];
+  const rowsWithCalc: WeeklyRow[] = specialtyMetrics.some((m) => m.source === "calc")
+    ? rows.map((r) => ({ ...r, metrics: { ...r.metrics, ...computeSpecialtyCalcMetrics(specialtyMetrics, r.metrics) } }))
+    : rows;
   if (specialtyMetrics.length > 0) {
-    Object.assign(kpiRollups, computeKpiRollups(rows, specialtyMetrics, asOf));
+    Object.assign(kpiRollups, computeKpiRollups(rowsWithCalc, specialtyMetrics, asOf));
   }
 
-  const bonusSummary = computeBonusSummary(provider.targets as Record<string, unknown> | null, rows);
+  const bonusSummary = computeBonusSummary(provider.targets as Record<string, unknown> | null, rowsWithCalc);
 
   const goals = (provider.goals ?? []) as Goal[];
   const goalsReflection = goals

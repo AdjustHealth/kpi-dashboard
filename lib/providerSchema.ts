@@ -313,4 +313,6 @@ export interface ProviderMeetingNotes {
   /** Senior physio only: one note per ACTION_PLAN_CATEGORIES key, matching the real worksheet's Action Plan tab. */
   action_plan?: Record<string, string>;
   performance_review_goals?: string;
+  /** Sam Johnston only (providers.targets.show_programming_prep) — prep notes for his separate Programming Meeting. */
+  programming_prep?: string;
 }
