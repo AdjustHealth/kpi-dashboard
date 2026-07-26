@@ -144,7 +144,6 @@ export const COMPLIANCE_FIELDS: ProviderField[] = [
   { key: "third_party_approvals", label: "Third Party Approvals Completed", type: "boolean" },
   { key: "pd_fund_utilised", label: "PD Fund Utilised", type: "boolean" },
   { key: "meeting_prep_completed", label: "Meeting Prep Completed", type: "boolean" },
-  { key: "cx_report_completed", label: "CX Report Completed", type: "boolean" },
 ];
 
 /**

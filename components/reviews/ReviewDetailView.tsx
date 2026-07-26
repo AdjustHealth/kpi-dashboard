@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, CSSProperties } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Sparkline } from "@/components/charts/Sparkline";
-import { KpaRadarChart, RadarRow } from "@/components/charts/KpaRadarChart";
 import { KpiProgressBar } from "@/components/charts/KpiProgressBar";
+import { STATUS } from "@/components/charts/palette";
 import { targetColor } from "@/lib/targetColor";
 import { formatValue } from "@/lib/format";
 import { formatWeekLabel } from "@/lib/week";
@@ -17,6 +17,12 @@ import { ROLLING_WINDOWS } from "@/lib/performanceReview";
 import { metricFieldsForRole, kpaGroupsForRole, KPA_RATING_LABELS, KPA_RATINGS, KpaRating } from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
 import { PerformanceReviewRecord, ReviewHistoryRow } from "@/lib/reviewsData";
+
+const RATING_COLOR: Record<KpaRating, string> = {
+  above_and_beyond: STATUS.good,
+  demonstrated: STATUS.warning,
+  not_met: STATUS.critical,
+};
 
 interface NewGoal {
   text: string;
@@ -37,36 +43,6 @@ function pad3<T>(arr: T[] | undefined, empty: T): T[] {
   return [0, 1, 2].map((i) => a[i] ?? empty);
 }
 
-function ratingPillStyle(rating: KpaRating): CSSProperties {
-  return rating === "above_and_beyond"
-    ? { color: "var(--color-success)", backgroundColor: "color-mix(in srgb, var(--color-success) 15%, transparent)" }
-    : rating === "demonstrated"
-      ? { color: "var(--color-warning)", backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)" }
-      : { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" };
-}
-
-/** Click cycles Not Met -> Demonstrated -> Above & Beyond -> Not Met — starts from the auto-computed rating, director can override to match their own judgement. */
-function EditableRatingPill({ rating, onChange }: { rating: KpaRating | null; onChange: (next: KpaRating) => void }) {
-  function cycle() {
-    if (!rating) {
-      onChange(KPA_RATINGS[0]);
-      return;
-    }
-    const idx = KPA_RATINGS.indexOf(rating);
-    onChange(KPA_RATINGS[(idx + 1) % KPA_RATINGS.length]);
-  }
-  return (
-    <button
-      type="button"
-      onClick={cycle}
-      title="Click to change rating"
-      className="rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80"
-      style={rating ? ratingPillStyle(rating) : { color: "var(--color-muted)", backgroundColor: "var(--color-surface-raised)" }}
-    >
-      {rating ? KPA_RATING_LABELS[rating] : "Not enough data"}
-    </button>
-  );
-}
 
 export function ReviewDetailView({
   review,
@@ -101,6 +77,7 @@ export function ReviewDetailView({
   const [completedAt, setCompletedAt] = useState(review.completed_at);
   const [kpaRollups, setKpaRollups] = useState(review.kpa_rollups);
   const [bonusSummary, setBonusSummary] = useState<Record<string, unknown>>(review.bonus_summary ?? {});
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
   const { status, set, flush } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/performance-reviews", {
@@ -252,49 +229,73 @@ export function ReviewDetailView({
         </Card>
       )}
 
-      {kpaGroups.map((group) => {
-        const radarRows: RadarRow[] = group.fields.map((field) => ({
-          behaviour: field.label,
-          ratingsByWindow: kpaRollups[field.key] ?? {},
-        }));
-        return (
+      {kpaGroups.map((group) => (
         <Card key={group.title} title={`${group.title} — Rolling Averages`}>
           <p className="mb-3 text-xs text-muted">
-            Auto-computed from the most common weekly rating in each window — click any rating to override it.
+            Auto-computed from the most common weekly rating in each window — click a dot to override it.
           </p>
-          {group.fields.length >= 3 && <KpaRadarChart rows={radarRows} windows={windows} />}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="py-2 pr-3 font-medium">Behaviour</th>
-                  {windows.map((w) => (
-                    <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
-                      {w.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {group.fields.map((field) => (
-                  <tr key={field.key} className="border-b border-border/60 last:border-0">
-                    <td className="py-2 pr-3 text-foreground">{field.label}</td>
-                    {windows.map((w) => (
-                      <td key={w.key} className="py-2 px-3 text-right whitespace-nowrap">
-                        <EditableRatingPill
-                          rating={kpaRollups[field.key]?.[w.key] ?? null}
-                          onChange={(rating) => updateKpaRating(field.key, w.key, rating)}
+          <div className="flex flex-col divide-y divide-border/60">
+            {group.fields.map((field) => (
+              <div
+                key={field.key}
+                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+              >
+                <div className="max-w-xl">
+                  <div className="text-sm font-bold text-foreground">{field.label}</div>
+                  {field.sublabel && <div className="mt-0.5 text-xs text-muted">{field.sublabel}</div>}
+                </div>
+                <div className="flex flex-shrink-0 items-center gap-1.5">
+                  {windows.map((w, i) => {
+                    const cellKey = `${field.key}:${w.key}`;
+                    const rating = kpaRollups[field.key]?.[w.key] ?? null;
+                    const color = rating ? RATING_COLOR[rating] : undefined;
+                    return (
+                      <div key={w.key} className="relative flex items-center">
+                        {i > 0 && <span className="mr-1.5 h-px w-3 bg-border" aria-hidden />}
+                        <button
+                          type="button"
+                          title={`${w.label}${rating ? ` — ${KPA_RATING_LABELS[rating]}` : ""}`}
+                          onClick={() => setOpenKey(openKey === cellKey ? null : cellKey)}
+                          className={`h-3.5 w-3.5 cursor-pointer rounded-full border-2 transition-transform hover:scale-125 ${!rating ? "border-dashed" : ""}`}
+                          style={{ backgroundColor: color ?? "transparent", borderColor: color ?? "var(--color-border)" }}
                         />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {openKey === cellKey && (
+                          <div className="absolute right-0 top-6 z-10 flex gap-1 rounded-lg border border-border bg-surface-raised p-1.5 shadow-lg">
+                            {KPA_RATINGS.map((r) => (
+                              <button
+                                key={r}
+                                type="button"
+                                title={KPA_RATING_LABELS[r]}
+                                onClick={() => {
+                                  updateKpaRating(field.key, w.key, r);
+                                  setOpenKey(null);
+                                }}
+                                className="h-5 w-5 rounded-full border-2 hover:scale-110"
+                                style={{
+                                  backgroundColor: rating === r ? RATING_COLOR[r] : "transparent",
+                                  borderColor: RATING_COLOR[r],
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-4 border-t border-border/60 pt-3 text-[11px] text-muted">
+            {KPA_RATINGS.map((r) => (
+              <span key={r} className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RATING_COLOR[r] }} />
+                {KPA_RATING_LABELS[r]}
+              </span>
+            ))}
           </div>
         </Card>
-        );
-      })}
+      ))}
 
       <Card title="KPI Scorecard — Rolling Averages">
         <div className="overflow-x-auto">
