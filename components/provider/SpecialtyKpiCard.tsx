@@ -45,7 +45,13 @@ export function SpecialtyKpiCard({
   const manualMetrics = specialtyMetrics.filter((m) => m.source !== "calc");
   const calcMetrics = specialtyMetrics.filter((m) => m.source === "calc");
   const calcValues = computeSpecialtyCalcMetrics(specialtyMetrics, values);
-  const chartableMetrics = specialtyMetrics.filter((m) => CHART_FORMATS.has(m.type));
+  // The provider's designated bonus metric (e.g. Marcio's Headache Total,
+  // Sam's Memberships) already gets its own "vs Target" chart in the Bonus
+  // & Growth section above — charting it again here would just be a
+  // double-up of the same series. Its current-week value/target still show
+  // as a tile above, just without the redundant second graph.
+  const bonusMetricKey = typeof targets.bonus_metric_key === "string" ? targets.bonus_metric_key : null;
+  const chartableMetrics = specialtyMetrics.filter((m) => CHART_FORMATS.has(m.type) && m.key !== bonusMetricKey);
 
   function update(key: string, value: number | null) {
     const next = { ...values, [key]: value };
