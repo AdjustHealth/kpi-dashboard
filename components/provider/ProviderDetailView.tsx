@@ -3,6 +3,8 @@ import { ActionStepsCard } from "@/components/provider/ActionStepsCard";
 import { WeeklyScorecardTable, WeekMetrics } from "@/components/provider/PerformanceTable";
 import { KpaScorecardTable } from "@/components/provider/KpaScorecardTable";
 import { AdminSharedComplianceTable } from "@/components/provider/AdminSharedComplianceTable";
+import { CancellationsTable, CancellationEventRow } from "@/components/clinic/CancellationsTable";
+import { Card } from "@/components/ui/Card";
 import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
 import { ProviderCharts } from "@/components/provider/ProviderCharts";
 import { AdminPerformanceCharts } from "@/components/provider/AdminPerformanceCharts";
@@ -30,6 +32,7 @@ export function ProviderDetailView({
   clinicHistory,
   seniorSince,
   roleTargets,
+  adminCancellations,
   variant,
 }: {
   provider: Provider;
@@ -41,6 +44,8 @@ export function ProviderDetailView({
   seniorSince?: string | null;
   /** Role-level target groups (Providers/Senior/Admin) — see lib/targetsSchema.ts. */
   roleTargets?: Record<string, Record<string, unknown>>;
+  /** This admin's own cancellation/DNA rows for the week — variant "admin" only. */
+  adminCancellations?: CancellationEventRow[];
   variant: "standard" | "senior" | "admin";
 }) {
   const metricFields = metricFieldsForRole(provider.role);
@@ -190,6 +195,16 @@ export function ProviderDetailView({
 
       {variant === "admin" && clinicHistory && (
         <AdminSharedComplianceTable clinicHistory={clinicHistory} targets={effectiveTargets} />
+      )}
+
+      {variant === "admin" && (
+        <Card title="This Week's Cancellations Handled">
+          {adminCancellations && adminCancellations.length > 0 ? (
+            <CancellationsTable rows={adminCancellations} hideHandledBy />
+          ) : (
+            <p className="text-xs text-muted">No cancellations or DNAs handled by {provider.name} this week.</p>
+          )}
+        </Card>
       )}
 
       {variant !== "admin" && (

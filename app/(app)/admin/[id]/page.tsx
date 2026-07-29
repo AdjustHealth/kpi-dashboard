@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
 import { getClinicHistory, getRoleTargets } from "@/lib/clinicData";
+import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
+import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
 
 export default async function AdminDetailPage({
   params,
@@ -24,6 +26,16 @@ export default async function AdminDetailPage({
   ]);
   if (!provider || provider.role !== "admin") notFound();
 
+  const supabase = await createClient();
+  const { data: cxData } = await supabase
+    .from("cancellation_events")
+    .select("*")
+    .eq("week_ending", week)
+    .eq("modified_user", provider.name)
+    .order("appointment_date", { ascending: true })
+    .order("client", { ascending: true });
+  const adminCancellations = (cxData ?? []) as CancellationEventRow[];
+
   return (
     <>
       <PageHeader title={provider.name} subtitle="Admin" backTo="history" />
@@ -34,6 +46,7 @@ export default async function AdminDetailPage({
         currentMeetingNotes={currentMeetingNotes}
         clinicHistory={clinicHistory}
         roleTargets={roleTargets}
+        adminCancellations={adminCancellations}
         variant="admin"
       />
     </>

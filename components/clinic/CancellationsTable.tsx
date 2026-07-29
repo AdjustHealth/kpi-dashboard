@@ -18,7 +18,7 @@ export interface CancellationEventRow {
 
 type SortKey = "appointment_date" | "client" | "provider" | "status" | "next_booking" | "modified_user";
 
-const COLUMNS: { key: SortKey; label: string }[] = [
+const ALL_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "appointment_date", label: "Date" },
   { key: "client", label: "Client" },
   { key: "provider", label: "Provider" },
@@ -34,7 +34,15 @@ function compareValues(a: string | null, b: string | null): number {
   return a.localeCompare(b);
 }
 
-export function CancellationsTable({ rows }: { rows: CancellationEventRow[] }) {
+export function CancellationsTable({
+  rows,
+  hideHandledBy,
+}: {
+  rows: CancellationEventRow[];
+  /** Omit the "Handled By" column — every row already shares the same value on a single admin's own page. */
+  hideHandledBy?: boolean;
+}) {
+  const COLUMNS = hideHandledBy ? ALL_COLUMNS.filter((c) => c.key !== "modified_user") : ALL_COLUMNS;
   // Default sort matches the server's own order (date, then client).
   const [sortKey, setSortKey] = useState<SortKey>("appointment_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -109,7 +117,9 @@ export function CancellationsTable({ rows }: { rows: CancellationEventRow[] }) {
               <td className="py-2 px-3 whitespace-nowrap text-muted">
                 {row.next_booking ? formatWeekLabel(row.next_booking) : "Not rebooked"}
               </td>
-              <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
+              {!hideHandledBy && (
+                <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
+              )}
               <td className="max-w-md py-2 px-3 text-foreground">{row.note ?? "—"}</td>
             </tr>
             );
