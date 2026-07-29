@@ -21,7 +21,14 @@ function rollingSeries(history: WeekMetrics[], key: string, window = 4): TrendPo
   return history.map((h, i) => ({ week_ending: h.week_ending, value: avg[i] }));
 }
 
-export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
+export function ProviderCharts({
+  history,
+  showTpr = false,
+}: {
+  history: WeekMetrics[];
+  /** TPR (and Turnover) are senior-physio-only on the meeting sheet — director's call. */
+  showTpr?: boolean;
+}) {
   // UCVA (all clients seen) and NCVA (new clients only) are both "visits per
   // client" metrics, just with a different denominator — one chart makes the
   // relationship between them visible instead of two charts that have to be
@@ -51,7 +58,9 @@ export function ProviderCharts({ history }: { history: WeekMetrics[] }) {
           colorIndex={6}
           accent
         />
-        <BarTrendChart title="TPR (Total Patient Revenue)" data={series(history, "tpr")} format="currency" colorIndex={5} accent />
+        {showTpr && (
+          <BarTrendChart title="TPR (Total Patient Revenue)" data={series(history, "tpr")} format="currency" colorIndex={5} accent />
+        )}
         <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} accent />
         <LineTrendChart
           title="New Patient Booking Rate"

@@ -78,6 +78,12 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
 ];
 
+// Turnover and TPR stay off the standard physio/massage/EP scorecard —
+// director's call, since senior physios already track turnover in depth via
+// the Bonus Tier Tracker and these two read as noise on the regular
+// providers' meeting sheet.
+const CLINICIAN_METRIC_FIELDS_EXCLUDED_FOR_STANDARD = new Set(["turnover", "tpr"]);
+
 /** Extra KPI Scorecard fields for senior physios only — not regular physio/massage/EP. */
 export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
   { key: "sm_reel", label: "Social Media Reel Posted", type: "boolean" },
@@ -126,7 +132,7 @@ export const ADMIN_SHARED_COMPLIANCE_FIELDS: AdminSharedField[] = [
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
   if (role === "admin") return ADMIN_METRIC_FIELDS;
   if (role === "senior_physio") return [...CLINICIAN_METRIC_FIELDS, ...SENIOR_ONLY_METRIC_FIELDS];
-  return CLINICIAN_METRIC_FIELDS;
+  return CLINICIAN_METRIC_FIELDS.filter((f) => !CLINICIAN_METRIC_FIELDS_EXCLUDED_FOR_STANDARD.has(f.key));
 }
 
 /**

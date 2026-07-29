@@ -39,6 +39,7 @@ export function BonusTierCard({
     label: formatWeekLabel(week_ending),
     "Cumulative Turnover": cumTO[i],
     "Base Target": baseTgt[i],
+    "Weekly Revenue": weeklyTurnover[i],
   }));
 
   const firstJbv = jbvHistory.find((v): v is number => typeof v === "number");
@@ -127,6 +128,7 @@ export function BonusTierCard({
             seriesKeys={["Cumulative Turnover", "Base Target"]}
             colors={[onTarget ? STATUS.good : STATUS.critical, "#8b93a5"]}
             format="currency"
+            pointLabelKeys={["Weekly Revenue", undefined]}
           />
         </div>
         {firstJbv !== undefined && (

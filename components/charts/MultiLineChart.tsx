@@ -23,6 +23,7 @@ export function MultiLineChart({
   decimals,
   height = 200,
   colors,
+  pointLabelKeys,
 }: {
   title: string;
   data: Record<string, unknown>[];
@@ -33,6 +34,13 @@ export function MultiLineChart({
   height?: number;
   /** Explicit color per series (parallel to seriesKeys) — overrides the default categorical cycling, e.g. to group series by tier instead of assigning each its own hue. */
   colors?: string[];
+  /**
+   * Parallel to seriesKeys — when set for a series, prints that data point's
+   * value from this alternate field (e.g. that week's raw revenue) above
+   * each point on the line, instead of leaving the number hover-only. Pass
+   * undefined for a series to leave it unlabeled.
+   */
+  pointLabelKeys?: (string | undefined)[];
 }) {
   return (
     <div className="rounded-lg border border-border bg-surface-raised p-3">
@@ -67,6 +75,7 @@ export function MultiLineChart({
             <Legend wrapperStyle={{ fontSize: 11, color: CHART_CHROME.secondaryInk }} />
             {seriesKeys.map((key, i) => {
               const color = colors?.[i] ?? CATEGORICAL[i % CATEGORICAL.length];
+              const labelKey = pointLabelKeys?.[i];
               return (
                 <Line
                   key={key}
@@ -76,6 +85,28 @@ export function MultiLineChart({
                   strokeWidth={2}
                   dot={{ r: 3, fill: color, strokeWidth: 0 }}
                   connectNulls
+                  label={
+                    labelKey
+                      ? (props: { x?: string | number; y?: string | number; payload?: Record<string, unknown> }) => {
+                          const raw = props.payload?.[labelKey];
+                          const x = Number(props.x);
+                          const y = Number(props.y);
+                          if (typeof raw !== "number") return <g key={`${x}-${y}`} />;
+                          return (
+                            <text
+                              key={`${x}-${y}`}
+                              x={x}
+                              y={y - 10}
+                              textAnchor="middle"
+                              fontSize={10}
+                              fill={CHART_CHROME.secondaryInk}
+                            >
+                              {formatValue(raw, format, decimals)}
+                            </text>
+                          );
+                        }
+                      : undefined
+                  }
                 />
               );
             })}

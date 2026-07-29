@@ -309,6 +309,29 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(jordan.notRebooked).toBe(5);
   });
 
+  it("excludes HotDoc placeholder rows from cancellation stats, matched on either Case or Client", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,13/07/2026 - 19/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Jordan Real,3,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+13/07/2026,Adjust Physiotherapy,Real Client,0400 000 020,Jordan Real,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,no rebook needed,13/07/2026,9:00am,Staff Two,3001
+14/07/2026,Adjust Physiotherapy,Real Client Two,0400 000 021,Jordan Real,HotDoc Widget Booking,Service,Cancelled,2026-07-07 10:00:00,,no rebook needed,14/07/2026,9:00am,Staff Two,3002
+15/07/2026,Adjust Physiotherapy,HotDoc Placeholder,0400 000 022,Jordan Real,Private - Physio,Service,Cancelled,2026-07-08 10:00:00,,no rebook needed,15/07/2026,9:00am,Staff Two,3003
+
+`;
+    const result = parseCancellationsReport(csv);
+    const jordan = result.byProvider["Jordan Real"];
+    expect(jordan.eventsCount).toBe(1);
+    expect(jordan.cancellations).toBe(1);
+  });
+
   it("accepts an injected isReschedule classifier (e.g. the LLM classifier) instead of the regex default", () => {
     const csv = `Cancellations Report
 

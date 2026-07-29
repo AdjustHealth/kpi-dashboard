@@ -240,6 +240,11 @@ export function hasRescheduleTag(note: string): boolean {
 // population PRE_EMPLOYMENT_PATTERN excludes from each provider's NPBR.
 const CORPORATE_SCREENING_PATTERN = /village|move\s*ot|biosym|pre[\s-]?employment/i;
 
+// HotDoc's online booking widget can leave behind a placeholder appointment/
+// client record (e.g. before it's matched to a real client) — not a real
+// cancellation event, so it shouldn't count toward cancellation stats either.
+const HOTDOC_PLACEHOLDER_PATTERN = /hotdoc/i;
+
 // Notes matching these patterns mean the whole booking plan was cancelled
 // in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
 // produce one Details row per future appointment in that plan, which would
@@ -373,6 +378,7 @@ export function parseCancellationsReport(
       if (status !== "Cancelled" || !client) continue;
       if (isBulkCancelNote(note)) continue;
       if (CORPORATE_SCREENING_PATTERN.test(r["Case"] ?? "")) continue;
+      if (HOTDOC_PLACEHOLDER_PATTERN.test(r["Case"] ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(client ?? "")) continue;
       const apptDate = parseNookalDate(r["Appointment Date"]);
       const modifiedDate = parseNookalDate(r["Modifed Date"]);
       if (isStaleCancellation(apptDate, modifiedDate)) continue;

@@ -152,7 +152,7 @@ export function ProviderDetailView({
 
         <div className="flex flex-col gap-4">
           <SectionLabel>Performance Trends</SectionLabel>
-          <ProviderCharts history={history} />
+          <ProviderCharts history={history} showTpr />
         </div>
 
         <div className="flex flex-col gap-4">

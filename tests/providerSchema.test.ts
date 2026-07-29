@@ -16,10 +16,14 @@ import {
 describe("providerSchema", () => {
   it("metricFieldsForRole returns the right field set per role", () => {
     expect(metricFieldsForRole("admin")).toBe(ADMIN_METRIC_FIELDS);
-    expect(metricFieldsForRole("physio")).toBe(CLINICIAN_METRIC_FIELDS);
-    expect(metricFieldsForRole("massage")).toBe(CLINICIAN_METRIC_FIELDS);
-    expect(metricFieldsForRole("ep")).toBe(CLINICIAN_METRIC_FIELDS);
-    // Senior physios get the base clinician fields plus sm_reel/blog.
+    // Turnover and TPR are senior-physio-only on the meeting sheet — director's
+    // call, since seniors already track turnover in depth via the Bonus Tier
+    // Tracker and these two read as noise for regular physio/massage/EP.
+    const nonSeniorClinicianFields = CLINICIAN_METRIC_FIELDS.filter((f) => f.key !== "turnover" && f.key !== "tpr");
+    expect(metricFieldsForRole("physio")).toEqual(nonSeniorClinicianFields);
+    expect(metricFieldsForRole("massage")).toEqual(nonSeniorClinicianFields);
+    expect(metricFieldsForRole("ep")).toEqual(nonSeniorClinicianFields);
+    // Senior physios get the full base clinician fields (incl. turnover/tpr) plus sm_reel/blog.
     const seniorFields = metricFieldsForRole("senior_physio");
     for (const f of CLINICIAN_METRIC_FIELDS) expect(seniorFields).toContainEqual(f);
     for (const f of SENIOR_ONLY_METRIC_FIELDS) expect(seniorFields).toContainEqual(f);
