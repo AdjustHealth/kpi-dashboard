@@ -106,19 +106,11 @@ export function WeeklyInputForm({
 
           <Card title="Ageing Debts — still manual">
             <p className="mb-4 text-xs text-muted">
-              Off the Aged Debtors report. The Adjust-side totals now auto-fill from the upload above
-              (see Auto-Filled section below) — these two can&apos;t: Nookal has no way to tell a true
-              Private balance from an NDIS client invoiced as Private, and no location column to split
-              Adjust from Podiatry.
+              Off the Aged Debtors report. The rest now auto-fills from the upload above (see
+              Auto-Filled section below) — this one can&apos;t: Nookal has no way to tell a true
+              Private balance from an NDIS client invoiced as Private.
             </p>
-            <p className="mb-2 text-xs font-medium text-foreground">Adjust Physiotherapy</p>
             <ClinicFieldGrid fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id === "ad_actual_private")} values={weekly} onChange={onChange} />
-            <p className="mb-2 mt-4 text-xs font-medium text-foreground">Podiatry</p>
-            <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id.startsWith("ad_pod_"))}
-              values={weekly}
-              onChange={onChange}
-            />
           </Card>
 
           <Card title="Diary Management">
@@ -191,7 +183,7 @@ export function WeeklyInputForm({
               categorization as Revenue by Payer above.
             </p>
             <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id !== "ad_actual_private" && !f.id.startsWith("ad_pod_"))}
+              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id !== "ad_actual_private")}
               values={weekly}
               onChange={onChange}
             />
