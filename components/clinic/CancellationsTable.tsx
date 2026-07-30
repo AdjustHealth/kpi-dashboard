@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { formatWeekLabel } from "@/lib/week";
 import { isRescheduleNote } from "@/lib/nookal/parsers";
 
@@ -14,6 +14,7 @@ export interface CancellationEventRow {
   note: string | null;
   next_booking: string | null;
   modified_user: string | null;
+  flagged_for_discussion?: boolean;
 }
 
 type SortKey = "appointment_date" | "client" | "provider" | "status" | "next_booking" | "modified_user";
@@ -43,9 +44,27 @@ export function CancellationsTable({
   hideHandledBy?: boolean;
 }) {
   const COLUMNS = hideHandledBy ? ALL_COLUMNS.filter((c) => c.key !== "modified_user") : ALL_COLUMNS;
+  // Local copy so a flag toggle can update the UI immediately — flags are
+  // saved independently of the CSV-sourced columns via /api/cancellation-events.
+  const [localRows, setLocalRows] = useState(rows);
+  useEffect(() => setLocalRows(rows), [rows]);
   // Default sort matches the server's own order (date, then client).
   const [sortKey, setSortKey] = useState<SortKey>("appointment_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  async function toggleFlag(row: CancellationEventRow) {
+    const next = !row.flagged_for_discussion;
+    setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, flagged_for_discussion: next } : r)));
+    const res = await fetch("/api/cancellation-events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, flagged_for_discussion: next }),
+    });
+    if (!res.ok) {
+      // Revert on failure.
+      setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, flagged_for_discussion: !next } : r)));
+    }
+  }
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -58,15 +77,16 @@ export function CancellationsTable({
 
   const sortedRows = useMemo(() => {
     const withNulls = (r: CancellationEventRow) => (r[sortKey] === null ? null : String(r[sortKey]));
-    const sorted = [...rows].sort((a, b) => compareValues(withNulls(a), withNulls(b)));
+    const sorted = [...localRows].sort((a, b) => compareValues(withNulls(a), withNulls(b)));
     return sortDir === "asc" ? sorted : sorted.reverse();
-  }, [rows, sortKey, sortDir]);
+  }, [localRows, sortKey, sortDir]);
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+            <th className="w-8 py-2 pl-0 pr-1 font-medium" title="Flag for discussion" />
             {COLUMNS.map((col) => (
               <th key={col.key} className="py-2 px-3 font-medium whitespace-nowrap first:pl-0">
                 <button
@@ -90,13 +110,27 @@ export function CancellationsTable({
             // — only meaningful for real cancellations, not DNAs.
             const rescheduled = row.status === "Cancelled" && Boolean(row.note && isRescheduleNote(row.note));
             const notRebooked = row.status === "Cancelled" && !row.next_booking && !rescheduled;
-            const rowStyle = rescheduled
-              ? { backgroundColor: "color-mix(in srgb, var(--color-success) 10%, transparent)" }
-              : notRebooked
-                ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 8%, transparent)" }
-                : undefined;
+            const rowStyle: CSSProperties = {
+              ...(rescheduled
+                ? { backgroundColor: "color-mix(in srgb, var(--color-success) 10%, transparent)" }
+                : notRebooked
+                  ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 8%, transparent)" }
+                  : {}),
+              ...(row.flagged_for_discussion ? { boxShadow: "inset 3px 0 0 var(--color-warning)" } : {}),
+            };
             return (
             <tr key={row.id} className="border-b border-border/60 last:border-0 align-top" style={rowStyle}>
+              <td className="w-8 py-2 pl-0 pr-1">
+                <button
+                  type="button"
+                  onClick={() => toggleFlag(row)}
+                  title={row.flagged_for_discussion ? "Unflag" : "Flag to discuss in the meeting"}
+                  className="text-base leading-none"
+                  style={{ color: row.flagged_for_discussion ? "var(--color-warning)" : "var(--color-muted)" }}
+                >
+                  {row.flagged_for_discussion ? "★" : "☆"}
+                </button>
+              </td>
               <td className="py-2 pr-3 pl-0 whitespace-nowrap text-muted">
                 {row.appointment_date ? formatWeekLabel(row.appointment_date) : "—"}
               </td>
