@@ -104,15 +104,6 @@ export function WeeklyInputForm({
             />
           </Card>
 
-          <Card title="Ageing Debts — still manual">
-            <p className="mb-4 text-xs text-muted">
-              Off the Aged Debtors report. The rest now auto-fills from the upload above (see
-              Auto-Filled section below) — this one can&apos;t: Nookal has no way to tell a true
-              Private balance from an NDIS client invoiced as Private.
-            </p>
-            <ClinicFieldGrid fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id === "ad_actual_private")} values={weekly} onChange={onChange} />
-          </Card>
-
           <Card title="Diary Management">
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Diary").filter((f) => f.id !== "diary_mgmt_pct")}
@@ -182,11 +173,7 @@ export function WeeklyInputForm({
               Bucketed from the Aged Debtors report by payer (Private / NDIS / 3rd Party / Medicare-DVA), same
               categorization as Revenue by Payer above.
             </p>
-            <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("AgeingDebt").filter((f) => f.id !== "ad_actual_private")}
-              values={weekly}
-              onChange={onChange}
-            />
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("AgeingDebt")} values={weekly} onChange={onChange} />
           </Card>
 
           <Card title="Clinic — UCVA, JBV &amp; Specialty Consults">

@@ -87,9 +87,7 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // (they're clinic-level admin-team metrics, not each admin's own number).
   { idx: 38, id: "admin_followup_calls", label: "Follow-up Calls Completed %", source: "manual", type: "percent", category: "Admin" },
   { idx: 39, id: "admin_onboarding_video_pct", label: "Onboarding Videos Sent %", source: "manual", type: "percent", category: "Admin" },
-  { idx: 40, id: "admin_email_optin_pct", label: "Email Opt-In %", source: "manual", type: "percent", category: "Admin" },
-  { idx: 41, id: "admin_website_optin_pct", label: "Website Opt-In %", source: "manual", type: "percent", category: "Admin" },
-  { idx: 42, id: "admin_new_client_emails", label: "New Client Emails Collected", source: "manual", type: "number", category: "Admin" },
+  { idx: 40, id: "admin_email_optin_pct", label: "% of New Clients Subscribed (Email Opt-In)", source: "manual", type: "percent", category: "Admin" },
 
   // Revenue by payer (auto-populated from the Nookal Activity Report; see lib/nookal/payerCategories.ts)
   { idx: 43, id: "rev_private", label: "Revenue — Private", source: "calc", type: "currency", category: "Payer" },
@@ -118,11 +116,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // Ageing Debts — from the director's "C. Ageing Debts" sheet section. Auto-fills from the Aged
   // Debtors report using the same payer categorization as the Revenue page (see
   // parseAgedDebtorsReport in lib/nookal/parsers.ts) — bucketed by payer, since the report groups
-  // rows by payer type rather than individual client. ad_actual_private (can't tell a true
-  // private-pay client from an NDIS self-managed client invoiced as Private) still can't be
-  // auto-derived and stays manual. Podiatry ageing debt isn't tracked here at all.
+  // rows by payer type rather than individual client. No manual fields remain here — Podiatry
+  // ageing debt isn't tracked here at all, and the director confirmed the manual Actual Private
+  // entry isn't needed either.
   { idx: 60, id: "ad_total_private", label: "Ageing Debt — Total Private", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 61, id: "ad_actual_private", label: "Ageing Debt — Actual Private", source: "manual", type: "currency", category: "AgeingDebt" },
   { idx: 62, id: "ad_ndis", label: "Ageing Debt — NDIS", source: "calc", type: "currency", category: "AgeingDebt" },
   { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt — 3rd Party 61-90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
   { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt — 3rd Party >90 Days", source: "calc", type: "currency", category: "AgeingDebt" },

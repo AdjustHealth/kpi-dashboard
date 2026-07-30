@@ -53,21 +53,22 @@ export default async function RevenuePage({
     ...(costFull !== null ? { "+ Loan": costFull } : {}),
   }));
 
-  // Gym 3rd Party revenue is already included within Glofox Income (Glofox
-  // reconciles 3rd-party-collected payments into the same total) — it's
-  // shown here as a breakdown of Gym Total, not summed on top of it.
-  const gymSeriesKeys = ["Gym Total", "Gym 3rd Party (of which)"];
+  // Total Gym Income = Glofox Income + 3rd Party Gym Income — both manual
+  // entries on Weekly Input, summed (not a subset of one another).
+  const gymSeriesKeys = ["Gym Total", "Glofox Income", "3rd Party"];
   if (gymTarget !== null) gymSeriesKeys.push("Target");
 
   const gymData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Gym Total": h.gym_total ?? null,
-    "Gym 3rd Party (of which)": h.m_gym3p ?? null,
+    "Glofox Income": h.m_glofox ?? null,
+    "3rd Party": h.m_gym3p ?? null,
     ...(gymTarget !== null ? { Target: gymTarget } : {}),
   }));
 
   const latest = history[history.length - 1] ?? {};
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
+  const glofoxLatest = typeof latest.m_glofox === "number" ? latest.m_glofox : 0;
 
   // Only include payer categories with at least one real week of revenue —
   // an all-zero series just adds legend noise for categories this clinic
@@ -126,16 +127,20 @@ export default async function RevenuePage({
 
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Gym</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatTile {...clinicStatTile(history, "gym_total")} label="Gym Revenue" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatTile {...clinicStatTile(history, "gym_total")} label="Total Gym Income" />
             <div className="flex flex-col justify-center rounded-xl border border-border bg-surface p-5">
-              <span className="text-xs text-muted">of which — 3rd Party</span>
+              <span className="text-xs text-muted">Glofox Income</span>
+              <span className="mt-1 text-lg font-semibold text-foreground">{formatValue(glofoxLatest, "currency")}</span>
+            </div>
+            <div className="flex flex-col justify-center rounded-xl border border-border bg-surface p-5">
+              <span className="text-xs text-muted">3rd Party Gym Income</span>
               <span className="mt-1 text-lg font-semibold text-foreground">{formatValue(gym3pLatest, "currency")}</span>
             </div>
           </div>
           <div className="mt-4">
-            <Card title="Gym Revenue Trend vs Target">
-              <MultiLineChart title="Gym Total vs Private vs 3rd Party vs Target" data={gymData} seriesKeys={gymSeriesKeys} format="currency" />
+            <Card title="Gym Income Trend vs Target">
+              <MultiLineChart title="Gym Total = Glofox Income + 3rd Party vs Target" data={gymData} seriesKeys={gymSeriesKeys} format="currency" />
               {gymTarget === null && (
                 <p className="mt-2 text-[11px] text-muted">
                   Set a Weekly Gym Revenue Target on the Targets page to show it here.

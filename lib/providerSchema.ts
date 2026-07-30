@@ -284,12 +284,17 @@ export const ROLE_LABELS: Record<ProviderRole, string> = {
   admin: "Admin",
 };
 
-/** Hydro / EP+Massage / Remedial Massage / Gym — per the paper's Multi-D Team Utilisation row. */
+/**
+ * Hydro / EP+Massage / Remedial Massage / Gym — per the paper's Multi-D Team
+ * Utilisation row. Each is the list of client names referred to that
+ * discipline this week, not just a count, so the meeting can talk through
+ * who they actually are.
+ */
 export interface MultiDiscUtilisation {
-  hydro?: number;
-  ep_ms?: number;
-  rmt?: number;
-  gym?: number;
+  hydro?: string[];
+  ep_ms?: string[];
+  rmt?: string[];
+  gym?: string[];
 }
 
 export const MULTI_DISC_LABELS: Record<keyof MultiDiscUtilisation, string> = {

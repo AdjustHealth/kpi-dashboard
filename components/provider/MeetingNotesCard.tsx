@@ -6,9 +6,20 @@ import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Field, Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
-import { MULTI_DISC_LABELS, ProviderMeetingNotes } from "@/lib/providerSchema";
+import { MULTI_DISC_LABELS, MultiDiscUtilisation, ProviderMeetingNotes } from "@/lib/providerSchema";
 
 const DISC_KEYS = ["hydro", "ep_ms", "rmt", "gym"] as const;
+
+function namesToText(names: string[] | undefined): string {
+  return Array.isArray(names) ? names.join("\n") : "";
+}
+
+function textToNames(text: string): string[] {
+  return text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export function MeetingNotesCard({
   providerId,
@@ -31,6 +42,12 @@ export function MeetingNotesCard({
     ...initialNotes,
   });
 
+  const [discText, setDiscText] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const key of DISC_KEYS) init[key] = namesToText(initialNotes.multi_disc_utilisation?.[key]);
+    return init;
+  });
+
   const { status, set } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/provider-weekly", {
       method: "PATCH",
@@ -42,6 +59,16 @@ export function MeetingNotesCard({
 
   const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
     setNotes((prev) => ({ ...prev, ...remote }));
+    if (remote.multi_disc_utilisation) {
+      const remoteDisc = remote.multi_disc_utilisation as MultiDiscUtilisation;
+      setDiscText((prev) => {
+        const next = { ...prev };
+        for (const key of DISC_KEYS) {
+          if (remoteDisc[key] !== undefined) next[key] = namesToText(remoteDisc[key]);
+        }
+        return next;
+      });
+    }
   });
   function fieldFocusHandlers(key: string) {
     return {
@@ -64,9 +91,10 @@ export function MeetingNotesCard({
     });
   }
 
-  function updateDisc(key: (typeof DISC_KEYS)[number], value: number | null) {
+  function updateDisc(key: (typeof DISC_KEYS)[number], text: string) {
+    setDiscText((prev) => ({ ...prev, [key]: text }));
     setNotes((prev) => {
-      const util = { ...(prev.multi_disc_utilisation ?? {}), [key]: value };
+      const util = { ...(prev.multi_disc_utilisation ?? {}), [key]: textToNames(text) };
       set("multi_disc_utilisation", util);
       return { ...prev, multi_disc_utilisation: util };
     });
@@ -120,19 +148,21 @@ export function MeetingNotesCard({
         {showMultiDisc && (
           <div>
             <span className="text-xs font-medium text-muted">Multi-Disciplinary Team Utilisation</span>
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {DISC_KEYS.map((key) => (
-                <Field key={key} label={MULTI_DISC_LABELS[key]}>
-                  <Input
-                    type="number"
-                    value={notes.multi_disc_utilisation?.[key] ?? ""}
-                    onChange={(e) =>
-                      updateDisc(key, e.target.value === "" ? null : Number(e.target.value))
-                    }
-                    {...fieldFocusHandlers("multi_disc_utilisation")}
-                  />
-                </Field>
-              ))}
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {DISC_KEYS.map((key) => {
+                const count = notes.multi_disc_utilisation?.[key]?.length ?? 0;
+                return (
+                  <Field key={key} label={count > 0 ? `${MULTI_DISC_LABELS[key]} (${count})` : MULTI_DISC_LABELS[key]}>
+                    <Textarea
+                      rows={3}
+                      placeholder="One client name per line"
+                      value={discText[key] ?? ""}
+                      onChange={(e) => updateDisc(key, e.target.value)}
+                      {...fieldFocusHandlers("multi_disc_utilisation")}
+                    />
+                  </Field>
+                );
+              })}
             </div>
           </div>
         )}
