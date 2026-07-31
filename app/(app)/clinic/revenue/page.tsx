@@ -33,17 +33,24 @@ export default async function RevenuePage({
   const latest = history[history.length - 1] ?? {};
   const latestRevenue = typeof latest.total_rev === "number" ? latest.total_rev : null;
   const latestGymTotal = typeof latest.gym_total === "number" ? latest.gym_total : null;
+  const latestTurnover = latestRevenue !== null ? latestRevenue + (latestGymTotal ?? 0) : null;
 
-  const trendSeriesKeys = ["Total Revenue"];
-  if (weeklyTarget !== null) trendSeriesKeys.push("Target");
-  if (breakeven !== null) trendSeriesKeys.push("Break-Even");
-
-  const trendData = history.map((h) => ({
-    label: formatWeekLabel(h.week_ending),
-    "Total Revenue": h.total_rev ?? null,
-    ...(weeklyTarget !== null ? { Target: weeklyTarget } : {}),
-    ...(breakeven !== null ? { "Break-Even": breakeven } : {}),
-  }));
+  // Total Turnover = Adjust clinic revenue + Gym revenue combined — matches
+  // the director's own weekly finance sheet, where Target/Break-Even are set
+  // against this combined figure, not clinic revenue alone.
+  const turnoverData = history.map((h) => {
+    const rev = typeof h.total_rev === "number" ? h.total_rev : null;
+    const gym = typeof h.gym_total === "number" ? h.gym_total : null;
+    return {
+      label: formatWeekLabel(h.week_ending),
+      "Total Turnover": rev !== null ? rev + (gym ?? 0) : null,
+      ...(weeklyTarget !== null ? { Target: weeklyTarget } : {}),
+      ...(breakeven !== null ? { "Break-Even": breakeven } : {}),
+    };
+  });
+  const turnoverSeriesKeys = ["Total Turnover"];
+  if (weeklyTarget !== null) turnoverSeriesKeys.push("Target");
+  if (breakeven !== null) turnoverSeriesKeys.push("Break-Even");
 
   const costSeriesKeys: string[] = [];
   if (costStaff !== null) costSeriesKeys.push("Staff");
@@ -91,28 +98,30 @@ export default async function RevenuePage({
       <PageHeader title="Revenue" subtitle="Everything displayed chronologically." />
       <div className="flex flex-col gap-8 p-8">
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Adjust</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Total Turnover</h2>
+          <p className="mb-3 text-xs text-muted">Adjust clinic revenue + Gym revenue combined — matches the weekly finance sheet.</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
-              {...clinicStatTile(
-                history,
-                "total_rev",
-                "up",
-                weeklyTarget !== null ? { target: weeklyTarget, betterWhen: "higher" } : undefined
-              )}
-              label="Adjust Revenue"
+              label="Total Turnover"
+              value={formatValue(latestTurnover, "currency")}
+              rawValue={latestTurnover}
+              target={weeklyTarget}
+              betterWhen="higher"
+              sublabel={breakeven !== null ? `break-even ${formatValue(breakeven, "currency")}` : undefined}
             />
+            <StatTile {...clinicStatTile(history, "total_rev")} label="Adjust Revenue" />
+            <StatTile {...clinicStatTile(history, "gym_total")} label="Gym Revenue" />
           </div>
-          <div className="mt-4 flex flex-col gap-4">
-            <Card title="Weekly Revenue Trend vs Target & Break-Even">
+          <div className="mt-4">
+            <Card title="Total Turnover vs Target & Break-Even">
               <MultiLineChart
-                title="Total Revenue vs Target vs Break-Even"
-                data={trendData}
-                seriesKeys={trendSeriesKeys}
+                title="Total Turnover (Adjust + Gym) vs Target vs Break-Even"
+                data={turnoverData}
+                seriesKeys={turnoverSeriesKeys}
                 format="currency"
                 height={260}
                 colors={[
-                  targetColor(latestRevenue, weeklyTarget, "higher") ?? CATEGORICAL[0],
+                  targetColor(latestTurnover, weeklyTarget, "higher") ?? CATEGORICAL[0],
                   ...(weeklyTarget !== null ? [CHART_CHROME.mutedInk] : []),
                   ...(breakeven !== null ? [CATEGORICAL[2]] : []),
                 ]}
@@ -123,7 +132,12 @@ export default async function RevenuePage({
                 </p>
               )}
             </Card>
+          </div>
+        </div>
 
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Adjust</h2>
+          <div className="flex flex-col gap-4">
             {costSeriesKeys.length > 0 && (
               <Card title="Revenue vs Cost Lines">
                 <MultiLineChart
