@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { ClinicFieldGrid } from "@/components/inputs/ClinicFieldGrid";
+import { NumberField } from "@/components/inputs/NumberField";
 import { NookalUpload } from "@/components/inputs/NookalUpload";
 import { ChecklistCard } from "@/components/provider/ChecklistCard";
 import { getClinicFieldsByCategory } from "@/lib/schema";
@@ -139,10 +140,32 @@ export function WeeklyInputForm({
             </p>
             <Card title="Admin">
               <ClinicFieldGrid
-                fields={getClinicFieldsByCategory("Admin").filter((f) => f.id !== "admin_answered_calls_pct")}
+                fields={getClinicFieldsByCategory("Admin").filter(
+                  (f) => f.id !== "admin_answered_calls_pct" && !f.id.startsWith("admin_answered_calls_")
+                )}
                 values={weekly}
                 onChange={onChange}
               />
+              <div className="mt-5 rounded-lg border border-dashed border-accent/40 bg-accent/5 p-4">
+                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-accent">
+                  Answered Calls — Daily
+                </h4>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {getClinicFieldsByCategory("Admin")
+                    .filter((f) => f.id.startsWith("admin_answered_calls_") && f.id !== "admin_answered_calls_pct")
+                    .map((f) => (
+                      <NumberField
+                        key={f.id}
+                        label={f.label.replace("Answered Calls % — ", "").slice(0, 3)}
+                        type={f.type === "date" ? "number" : f.type}
+                        decimals={f.decimals}
+                        value={weekly[f.id] as number | null | undefined}
+                        onChange={(v) => onChange(f.id, v)}
+                        source="manual"
+                      />
+                    ))}
+                </div>
+              </div>
             </Card>
           </div>
         </div>
