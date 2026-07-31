@@ -1,0 +1,39 @@
+import { formatValue } from "@/lib/format";
+import { QuarterlyProviderBreakdown } from "@/lib/quarterlyData";
+
+/**
+ * Per-provider and per-tier quarterly averages, one row per metric — same
+ * shape as the director's old Quarterly Retention Stats sheet (Clinic
+ * Average / New Grads / 2-5yr / Seniors / Massage / EP / per-provider),
+ * just computed from this app's own data instead of hand-maintained.
+ */
+export function QuarterlyProviderTable({ data }: { data: QuarterlyProviderBreakdown }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+            <th className="sticky left-0 z-10 bg-surface-raised py-2 pr-3 pl-0 font-medium">Metric</th>
+            {data.columns.map((col) => (
+              <th key={col.key} className="whitespace-nowrap py-2 px-3 font-medium">
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.metrics.map((metric) => (
+            <tr key={metric.key} className="border-b border-border/60 last:border-0">
+              <td className="sticky left-0 z-10 bg-surface py-2 pr-3 pl-0 font-medium text-foreground">{metric.label}</td>
+              {data.columns.map((col) => (
+                <td key={col.key} className="whitespace-nowrap py-2 px-3 text-muted">
+                  {formatValue(data.values[metric.key]?.[col.key] ?? null, metric.type, metric.decimals)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

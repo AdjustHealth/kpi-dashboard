@@ -24,6 +24,7 @@ export const NAV: NavGroup[] = [
       { label: "Clinic Health", href: "/clinic/health" },
       { label: "Specialty Services", href: "/clinic/specialty" },
       { label: "Cancellations", href: "/clinic/cancellations" },
+      { label: "Quarterly Review", href: "/clinic/quarterly" },
     ],
   },
   {
