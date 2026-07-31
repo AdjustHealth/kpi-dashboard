@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { quarterDateRange, parseQuarterKey, quarterKeyString, quarterOfWeek } from "@/lib/quarter";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
 import { retentionPct } from "@/lib/providerData";
+import { getEffectiveTargets } from "@/lib/defaultTargets";
+import { CLINICIAN_METRIC_FIELDS } from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
 import { ClinicFieldType } from "@/lib/schema";
 
@@ -77,20 +79,40 @@ export interface QuarterlyMetricDef {
   decimals?: number;
   /** "retention" reads not_rebooked_pct (or the admin equivalent) and inverts it, same as retentionPct(). */
   derived?: "retention";
+  betterWhen?: "higher" | "lower";
+}
+
+function betterWhenFor(key: string): "higher" | "lower" | undefined {
+  return CLINICIAN_METRIC_FIELDS.find((f) => f.key === key)?.betterWhen;
 }
 
 const PROVIDER_METRICS: QuarterlyMetricDef[] = [
-  { key: "turnover", label: "Turnover (avg/wk)", type: "currency" },
-  { key: "fba", label: "Forward Booking Average", type: "decimal", decimals: 1 },
-  { key: "occupancy_pct", label: "Occupancy", type: "percent" },
-  { key: "ucva", label: "UCVA", type: "decimal", decimals: 1 },
-  { key: "ncva", label: "NCVA", type: "decimal", decimals: 1 },
-  { key: "tpr", label: "TPR", type: "currency" },
-  { key: "new_patients", label: "New Patients (avg/wk)", type: "decimal", decimals: 1 },
-  { key: "cancellations", label: "Cancellations (avg/wk)", type: "decimal", decimals: 1 },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent", derived: "retention" },
+  { key: "turnover", label: "Turnover (avg/wk)", type: "currency", betterWhen: betterWhenFor("turnover") },
+  { key: "fba", label: "Forward Booking Average", type: "decimal", decimals: 1, betterWhen: betterWhenFor("fba") },
+  { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: betterWhenFor("occupancy_pct") },
+  { key: "ucva", label: "UCVA", type: "decimal", decimals: 1, betterWhen: betterWhenFor("ucva") },
+  { key: "ncva", label: "NCVA", type: "decimal", decimals: 1, betterWhen: betterWhenFor("ncva") },
+  { key: "tpr", label: "TPR", type: "currency", betterWhen: betterWhenFor("tpr") },
+  { key: "new_patients", label: "New Patients (avg/wk)", type: "decimal", decimals: 1, betterWhen: betterWhenFor("new_patients") },
+  { key: "cancellations", label: "Cancellations (avg/wk)", type: "decimal", decimals: 1, betterWhen: betterWhenFor("cancellations") },
+  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: betterWhenFor("reschedule_rate_pct") },
+  { key: "retention_pct", label: "Retention Rate", type: "percent", derived: "retention", betterWhen: betterWhenFor("retention_pct") },
 ];
+
+/**
+ * One representative "provider" per tier, purely to reuse getEffectiveTargets'
+ * existing role-group + tier resolution — not a real person. "Senior" tier is
+ * genuinely a mix of role:senior_physio and experienced role:physio providers
+ * with potentially different individual overrides; senior_physio is used as
+ * the tier's representative since that's the primary/canonical case.
+ */
+const TIER_REPRESENTATIVE: Record<CvaTier, Pick<Provider, "role" | "targets">> = {
+  new_grad: { role: "physio", targets: { experience_tier: "new_grad" } },
+  "2_5yr": { role: "physio", targets: { experience_tier: "2_5yr" } },
+  senior: { role: "senior_physio", targets: {} },
+  massage: { role: "massage", targets: {} },
+  ep: { role: "ep", targets: {} },
+};
 
 const TIERS: { key: CvaTier; label: string }[] = [
   { key: "new_grad", label: "New Grads" },
@@ -106,6 +128,8 @@ export interface QuarterlyProviderBreakdown {
   columns: { key: string; label: string }[];
   /** metricKey -> columnKey -> quarter average */
   values: Record<string, Record<string, number | null>>;
+  /** metricKey -> columnKey -> target, for red/green colouring. No target for "clinic" — a blended average across people with different individual targets doesn't have one coherent target to colour against. */
+  targets: Record<string, Record<string, number | null>>;
 }
 
 function metricValueForRows(metric: QuarterlyMetricDef, rows: Record<string, unknown>[]): number | null {
@@ -124,12 +148,17 @@ function metricValueForRows(metric: QuarterlyMetricDef, rows: Record<string, unk
 export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise<QuarterlyProviderBreakdown> {
   const { start, end } = quarterDateRange(parseQuarterKey(quarterKey));
   const supabase = await createClient();
-  const [providersResult, weeklyResult] = await Promise.all([
+  const [providersResult, weeklyResult, roleTargetsResult] = await Promise.all([
     supabase.from("providers").select("*").neq("role", "admin").eq("active", true).order("sort_order", { ascending: true }),
     supabase.from("provider_weekly").select("provider_id, week_ending, metrics").gte("week_ending", start).lte("week_ending", end),
+    supabase.from("role_targets").select("id, values"),
   ]);
   const providers = (providersResult.data ?? []) as Provider[];
   const weeklyRows = (weeklyResult.data ?? []) as { provider_id: string; week_ending: string; metrics: Record<string, unknown> | null }[];
+  const roleTargets: Record<string, Record<string, unknown>> = {};
+  for (const row of roleTargetsResult.data ?? []) {
+    roleTargets[row.id as string] = (row.values as Record<string, unknown>) ?? {};
+  }
 
   const rowsByProvider = new Map<string, Record<string, unknown>[]>();
   for (const row of weeklyRows) {
@@ -167,5 +196,19 @@ export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise
     values[metric.key] = col;
   }
 
-  return { quarter: quarterKey, metrics: PROVIDER_METRICS, columns, values };
+  const targets: Record<string, Record<string, number | null>> = {};
+  for (const metric of PROVIDER_METRICS) {
+    const col: Record<string, number | null> = { clinic: null };
+    for (const tier of TIERS) {
+      const t = getEffectiveTargets(TIER_REPRESENTATIVE[tier.key], roleTargets)[metric.key];
+      col[tier.key] = typeof t === "number" ? t : null;
+    }
+    for (const p of providers) {
+      const t = getEffectiveTargets(p, roleTargets)[metric.key];
+      col[p.id] = typeof t === "number" ? t : null;
+    }
+    targets[metric.key] = col;
+  }
+
+  return { quarter: quarterKey, metrics: PROVIDER_METRICS, columns, values, targets };
 }
