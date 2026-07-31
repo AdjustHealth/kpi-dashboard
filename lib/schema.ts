@@ -128,12 +128,20 @@ export const CLINIC_SCHEMA: ClinicField[] = [
 
   { idx: 74, id: "specialty_womens_health_initial", label: "Women's Health Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 75, id: "specialty_womens_health_sub", label: "Women's Health Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
-  { idx: 76, id: "admin_obv_not_sent", label: "OBV Number Not Sent", source: "manual", type: "number", category: "Admin" },
-  { idx: 77, id: "admin_rx_notes_pct", label: "Rx Notes Made in Therapist Diary %", source: "manual", type: "percent", category: "Admin" },
-  { idx: 78, id: "admin_answered_calls_pct", label: "Answered Calls %", source: "manual", type: "percent", category: "Admin" },
+  // OBV Number Not Sent and Rx Notes Made moved back to per-admin (provider_weekly,
+  // via ADMIN_METRIC_FIELDS) — director confirmed they're each admin's own individual
+  // number, not one shared clinic-wide figure. Answered Calls stays shared/clinic-wide
+  // but is calculated + entered daily (Mon-Sat), not as one weekly number.
+  { idx: 78, id: "admin_answered_calls_pct", label: "Answered Calls % (week avg)", source: "calc", type: "percent", category: "Admin" },
   { idx: 79, id: "specialty_hydro_initial", label: "Hydro Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 80, id: "specialty_hydro_sub", label: "Hydro Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 81, id: "specialty_hydro_total", label: "Hydro Total Consults", source: "calc", type: "number", category: "Clinic" },
+  { idx: 82, id: "admin_answered_calls_mon", label: "Answered Calls % — Monday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 83, id: "admin_answered_calls_tue", label: "Answered Calls % — Tuesday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 84, id: "admin_answered_calls_wed", label: "Answered Calls % — Wednesday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 85, id: "admin_answered_calls_thu", label: "Answered Calls % — Thursday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 86, id: "admin_answered_calls_fri", label: "Answered Calls % — Friday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 87, id: "admin_answered_calls_sat", label: "Answered Calls % — Saturday", source: "manual", type: "percent", category: "Admin" },
 ];
 
 export function getClinicHeaders(): string[] {
@@ -165,6 +173,7 @@ export const GENERATED_CLINIC_FIELD_IDS = [
   "specialty_headaches_total",
   "specialty_paeds_total",
   "specialty_womens_health_total",
+  "admin_answered_calls_pct",
 ] as const;
 
 /**

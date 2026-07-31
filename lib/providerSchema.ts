@@ -91,13 +91,15 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
 ];
 
 /**
- * Admin staff's KPI Scorecard — just the per-admin cancellation-handling
- * stats that genuinely differ by person, auto-filled from the Cancellations
- * report grouped by "Modified User" (the admin who actioned it). The
- * clinic-wide admin fields every admin shares identically (Diary
- * Management, Follow Up Phone Calls, OBV Number Not Sent, Rx Notes Made,
- * Answered Calls) live in ADMIN_SHARED_COMPLIANCE_FIELDS instead — typed
- * once on Weekly Input, not tracked per-person.
+ * Admin staff's KPI Scorecard — the per-admin stats that genuinely differ by
+ * person. cancellations_handled through avg_days_to_next_booking auto-fill
+ * from the Cancellations report grouped by "Modified User" (the admin who
+ * actioned it); obv_not_sent and rx_notes_made_pct are each admin's own
+ * manual entry, edited directly here (director confirmed these are each
+ * person's own individual number, not a shared clinic-wide figure — moved
+ * back from ADMIN_SHARED_COMPLIANCE_FIELDS). Diary Management, Follow Up
+ * Phone Calls, and Answered Calls stay genuinely shared/clinic-wide in
+ * ADMIN_SHARED_COMPLIANCE_FIELDS — typed once on Weekly Input.
  */
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
@@ -108,6 +110,8 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
   { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
+  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower" },
+  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher" },
 ];
 
 export interface AdminSharedField extends ProviderField {
@@ -119,14 +123,13 @@ export interface AdminSharedField extends ProviderField {
  * Admin "Compliance" — entered once on Weekly Input's Admin Meeting Prep
  * section and shown identically on every admin staff member's page (they're
  * clinic/admin-team-level numbers, not each person's own individual figure).
- * Read-only here; edit on Weekly Input.
+ * Read-only here; edit on Weekly Input. Answered Calls is itself a weekly
+ * average of 6 daily entries (Mon-Sat) — see admin_answered_calls_mon..sat.
  */
 export const ADMIN_SHARED_COMPLIANCE_FIELDS: AdminSharedField[] = [
   { key: "diary_management_pct", label: "Diary Management", type: "percent", betterWhen: "higher", clinicFieldId: "diary_mgmt_pct" },
   { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher", clinicFieldId: "admin_followup_calls" },
-  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower", clinicFieldId: "admin_obv_not_sent" },
-  { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher", clinicFieldId: "admin_rx_notes_pct" },
-  { key: "answered_calls_pct", label: "Answered Calls", type: "percent", betterWhen: "higher", clinicFieldId: "admin_answered_calls_pct" },
+  { key: "answered_calls_pct", label: "Answered Calls (week avg)", type: "percent", betterWhen: "higher", clinicFieldId: "admin_answered_calls_pct" },
 ];
 
 export function metricFieldsForRole(role: ProviderRole): ProviderField[] {

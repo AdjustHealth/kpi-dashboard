@@ -134,10 +134,15 @@ export function WeeklyInputForm({
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-semibold text-foreground">Admin Meeting Prep</h3>
             <p className="text-xs text-muted">
-              Entered once, shown identically on every admin staff member&apos;s page.
+              Entered once, shown identically on every admin staff member&apos;s page. OBV Number Not Sent and Rx
+              Notes Made are each admin&apos;s own number now — edit those on their individual page instead.
             </p>
             <Card title="Admin">
-              <ClinicFieldGrid fields={getClinicFieldsByCategory("Admin")} values={weekly} onChange={onChange} />
+              <ClinicFieldGrid
+                fields={getClinicFieldsByCategory("Admin").filter((f) => f.id !== "admin_answered_calls_pct")}
+                values={weekly}
+                onChange={onChange}
+              />
             </Card>
           </div>
         </div>

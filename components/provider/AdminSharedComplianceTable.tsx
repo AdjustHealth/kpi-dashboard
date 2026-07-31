@@ -7,12 +7,14 @@ import { ClinicWeekRow } from "@/lib/clinicData";
 
 /**
  * Read-only view of the admin-team fields every admin staff member shares
- * identically (Diary Management, Follow Up Phone Calls, OBV Number Not
- * Sent, Rx Notes Made, Answered Calls) — sourced straight from clinic-wide
- * weekly_kpis, not this provider's own metrics. Edited on Weekly Input's
- * Admin Meeting Prep section, not here. Coloured red/green against the
- * same "admin" role_targets group the KPI Scorecard above uses, keyed by
- * field.key (not clinicFieldId — that's only for reading the raw value).
+ * identically (Diary Management, Follow Up Phone Calls, Answered Calls) —
+ * sourced straight from clinic-wide weekly_kpis, not this provider's own
+ * metrics. Edited on Weekly Input's Admin Meeting Prep section, not here.
+ * OBV Number Not Sent and Rx Notes Made are each admin's own individual
+ * number now, so they live on the KPI Scorecard (ADMIN_METRIC_FIELDS)
+ * above instead. Coloured red/green against the same "admin" role_targets
+ * group the KPI Scorecard above uses, keyed by field.key (not
+ * clinicFieldId — that's only for reading the raw value).
  */
 export function AdminSharedComplianceTable({
   clinicHistory,
