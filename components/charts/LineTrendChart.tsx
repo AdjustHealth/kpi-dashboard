@@ -10,13 +10,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
+import { NEUTRAL_CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { trendTargetColor } from "@/lib/chartTarget";
 
 export interface TrendPoint {
-  week_ending: string;
+  /** A week-ending date, formatted via formatWeekLabel — omit and set `label` directly for non-weekly axes (e.g. quarters). */
+  week_ending?: string;
+  /** Pre-formatted x-axis label, overriding week_ending's date formatting — for categories that aren't a week. */
+  label?: string;
   value: number | null;
 }
 
@@ -65,9 +68,9 @@ export function LineTrendChart({
   target?: number | null;
   betterWhen?: "higher" | "lower";
 }) {
-  const chartData = data.map((d) => ({ ...d, label: formatWeekLabel(d.week_ending) }));
+  const chartData = data.map((d) => ({ ...d, label: d.label ?? (d.week_ending ? formatWeekLabel(d.week_ending) : "") }));
   const dynamicColor = trendTargetColor(data, target, betterWhen);
-  const color = dynamicColor ?? CATEGORICAL[colorIndex % CATEGORICAL.length];
+  const color = dynamicColor ?? NEUTRAL_CATEGORICAL[colorIndex % NEUTRAL_CATEGORICAL.length];
   const onTrack = dynamicColor === undefined ? null : dynamicColor === STATUS.good;
 
   return (

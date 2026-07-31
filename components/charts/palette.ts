@@ -11,6 +11,15 @@ export const CATEGORICAL = [
   "#e66767", // 8 red
 ] as const;
 
+/**
+ * CATEGORICAL minus green/red — for any chart whose fallback colour could be
+ * mistaken for an on-target/off-target signal (a target-capable chart with no
+ * target set, e.g. no target configured yet on the Targets page). STATUS.good
+ * (#0ca30c) and CATEGORICAL's green (#008300) read as the same colour at a
+ * glance, so an untargeted series must never land on either reserved hue.
+ */
+export const NEUTRAL_CATEGORICAL = [CATEGORICAL[0], CATEGORICAL[2], CATEGORICAL[3], CATEGORICAL[4], CATEGORICAL[5], CATEGORICAL[6]] as const;
+
 export const SEQUENTIAL_BLUE = [
   "#cde2fb",
   "#9ec5f4",

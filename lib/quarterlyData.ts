@@ -21,6 +21,15 @@ function nums(rows: Record<string, unknown>[], key: string): number[] {
   return rows.map((r) => r[key]).filter((v): v is number => typeof v === "number");
 }
 
+/** For balance-style fields (ageing debt) — the most recent week's figure, not a sum or average across weeks. Rows must already be ordered oldest-to-newest. */
+function latestNonNull(rows: Record<string, unknown>[], key: string): number | null {
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const v = rows[i][key];
+    if (typeof v === "number") return v;
+  }
+  return null;
+}
+
 /** Every quarter with at least one weekly_kpis row, oldest first. */
 export async function getAvailableQuarters(): Promise<string[]> {
   const supabase = await createClient();
@@ -42,13 +51,24 @@ export interface QuarterlyClinicStats {
   rescheduleRate: number | null;
   diaryMgmtPct: number | null;
   onlineBookingPct: number | null;
+  totalGymRevenue: number | null;
+  totalPodiatryRevenue: number | null;
+  /** End-of-quarter snapshot, not a sum — ageing debt is a balance, summing weeks would double-count the same debt. */
+  agedDebtEndOfQuarter: number | null;
+  totalJbv: number | null;
+  totalSpecialtyConsults: number | null;
 }
 
-/** Clinic-wide quarter rollup — $/count fields summed for the quarter, rate/% fields averaged across its weeks. */
+/** Clinic-wide quarter rollup — $/count fields summed for the quarter, rate/% fields averaged across its weeks, balances (ageing debt) taken as of the last week. */
 export async function getQuarterlyClinicStats(quarterKey: string): Promise<QuarterlyClinicStats> {
   const { start, end } = quarterDateRange(parseQuarterKey(quarterKey));
   const supabase = await createClient();
-  const { data } = await supabase.from("weekly_kpis").select("*").gte("week_ending", start).lte("week_ending", end);
+  const { data } = await supabase
+    .from("weekly_kpis")
+    .select("*")
+    .gte("week_ending", start)
+    .lte("week_ending", end)
+    .order("week_ending", { ascending: true });
   const rows = (data ?? []) as Record<string, unknown>[];
 
   const onlineTotal = sum(nums(rows, "online_bookings_total"));
@@ -56,6 +76,16 @@ export async function getQuarterlyClinicStats(quarterKey: string): Promise<Quart
   const retentionValues = rows
     .map((r) => (typeof r.cx_nr_pct === "number" ? 1 - (r.cx_nr_pct as number) : null))
     .filter((v): v is number => v !== null);
+  const specialtyKeys = [
+    "specialty_vestibular_total",
+    "specialty_headaches_total",
+    "specialty_paeds_total",
+    "specialty_womens_health_total",
+    "specialty_hydro_total",
+  ];
+  const totalSpecialtyConsults = rows.length
+    ? sum(rows.map((r) => specialtyKeys.reduce((acc, k) => acc + (typeof r[k] === "number" ? (r[k] as number) : 0), 0)))
+    : null;
 
   return {
     quarter: quarterKey,
@@ -68,6 +98,11 @@ export async function getQuarterlyClinicStats(quarterKey: string): Promise<Quart
     cancellationPct: average(nums(rows, "cx_pct")),
     rescheduleRate: average(nums(rows, "cx_rsx_pct")),
     diaryMgmtPct: average(nums(rows, "diary_mgmt_pct")),
+    totalGymRevenue: sum(nums(rows, "gym_total")),
+    totalPodiatryRevenue: sum(nums(rows, "m_pod_rev")),
+    agedDebtEndOfQuarter: latestNonNull(rows, "ad_total"),
+    totalJbv: sum(nums(rows, "jbv_total")),
+    totalSpecialtyConsults,
     onlineBookingPct: onlineTotal !== null && onlineTotal > 0 && onlineNew !== null ? onlineNew / onlineTotal : null,
   };
 }

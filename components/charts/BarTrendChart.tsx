@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
+import { NEUTRAL_CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { ChartFormat, TrendPoint } from "@/components/charts/LineTrendChart";
@@ -63,9 +63,9 @@ export function BarTrendChart({
   target?: number | null;
   betterWhen?: "higher" | "lower";
 }) {
-  const chartData = data.map((d) => ({ ...d, label: formatWeekLabel(d.week_ending) }));
+  const chartData = data.map((d) => ({ ...d, label: d.label ?? (d.week_ending ? formatWeekLabel(d.week_ending) : "") }));
   const dynamicColor = trendTargetColor(data, target, betterWhen);
-  const color = dynamicColor ?? CATEGORICAL[colorIndex % CATEGORICAL.length];
+  const color = dynamicColor ?? NEUTRAL_CATEGORICAL[colorIndex % NEUTRAL_CATEGORICAL.length];
   const onTrack = dynamicColor === undefined ? null : dynamicColor === STATUS.good;
 
   return (

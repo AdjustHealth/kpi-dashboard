@@ -2,7 +2,8 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { QuarterSelector } from "@/components/nav/QuarterSelector";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
-import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { BarTrendChart } from "@/components/charts/BarTrendChart";
+import { TrendPoint, ChartFormat } from "@/components/charts/LineTrendChart";
 import { QuarterlyProviderTable } from "@/components/clinic/QuarterlyProviderTable";
 import {
   getAvailableQuarters,
@@ -24,6 +25,27 @@ function deltaPct(current: number | null, previous: number | null): number | nul
 function perWeek(total: number | null, weeks: number): number | null {
   if (total === null || weeks === 0) return null;
   return total / weeks;
+}
+
+/** One bar per quarter — sum-type fields are shown as their per-week rate (perWeek=true) so a still-in-progress quarter is directly comparable to a completed one; rate fields (occupancy, %s) are already comparable as-is. */
+function toBars(
+  allStats: QuarterlyClinicStats[],
+  pick: (s: QuarterlyClinicStats) => number | null,
+  perWeekRate: boolean
+): TrendPoint[] {
+  return allStats.map((s) => ({
+    label: quarterLabel(s.quarter),
+    value: perWeekRate ? perWeek(pick(s), s.weeksCount) : pick(s),
+  }));
+}
+
+interface MetricCard {
+  title: string;
+  format: ChartFormat;
+  decimals?: number;
+  data: TrendPoint[];
+  target?: number | null;
+  betterWhen?: "higher" | "lower";
 }
 
 export default async function QuarterlyReviewPage({
@@ -59,20 +81,29 @@ export default async function QuarterlyReviewPage({
   ]);
 
   const weeklyRevenueTarget = typeof clinicTargets.weekly_revenue_target === "number" ? clinicTargets.weekly_revenue_target : null;
+  const weeklyGymTarget = typeof clinicTargets.weekly_gym_revenue_target === "number" ? clinicTargets.weekly_gym_revenue_target : null;
   const quarterlyRevenueTarget = weeklyRevenueTarget !== null ? weeklyRevenueTarget * stats.weeksCount : null;
   const clinicOccTarget = typeof clinicTargets.clinic_occ_target === "number" ? clinicTargets.clinic_occ_target : 0.85;
   const cxPctTarget = typeof clinicTargets.cx_pct_target === "number" ? clinicTargets.cx_pct_target : null;
   const rsxTarget = 0.3;
   const retentionTarget = 0.7;
 
-  const trendData = allQuarterStats.map((s: QuarterlyClinicStats) => ({
-    label: quarterLabel(s.quarter),
-    "Total Revenue": s.totalRevenue,
-    Occupancy: s.occupancy,
-    "Retention Rate": s.retentionRate,
-    "Reschedule Rate": s.rescheduleRate,
-    "Cancellation %": s.cancellationPct,
-  }));
+  const metricCards: MetricCard[] = [
+    { title: "Total Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalRevenue, true), target: weeklyRevenueTarget, betterWhen: "higher" },
+    { title: "Gym Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalGymRevenue, true), target: weeklyGymTarget, betterWhen: "higher" },
+    { title: "Podiatry Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalPodiatryRevenue, true) },
+    { title: "Ageing Debt (end of quarter)", format: "currency", data: toBars(allQuarterStats, (s) => s.agedDebtEndOfQuarter, false) },
+    { title: "Occupancy", format: "percent", data: toBars(allQuarterStats, (s) => s.occupancy, false), target: clinicOccTarget, betterWhen: "higher" },
+    { title: "Retention Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.retentionRate, false), target: retentionTarget, betterWhen: "higher" },
+    { title: "Reschedule Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.rescheduleRate, false), target: rsxTarget, betterWhen: "higher" },
+    { title: "Cancellation %", format: "percent", data: toBars(allQuarterStats, (s) => s.cancellationPct, false), target: cxPctTarget, betterWhen: "lower" },
+    { title: "Diary Management", format: "percent", data: toBars(allQuarterStats, (s) => s.diaryMgmtPct, false) },
+    { title: "Online Booking %", format: "percent", data: toBars(allQuarterStats, (s) => s.onlineBookingPct, false) },
+    { title: "New Patients (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalNewPatients, true) },
+    { title: "Completed Appointments (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalConsults, true) },
+    { title: "JBV Consults (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalJbv, true) },
+    { title: "Specialty Consults Total (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalSpecialtyConsults, true) },
+  ];
 
   return (
     <>
@@ -174,18 +205,24 @@ export default async function QuarterlyReviewPage({
         {quarters.length > 1 && (
           <div>
             <h2 className="mb-3 text-sm font-semibold text-foreground">Quarter over Quarter</h2>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card title="Total Revenue by Quarter">
-                <MultiLineChart title="Total Revenue" data={trendData} seriesKeys={["Total Revenue"]} format="currency" />
-              </Card>
-              <Card title="Occupancy, Retention &amp; Reschedule Rate by Quarter">
-                <MultiLineChart
-                  title="Occupancy vs Retention vs Reschedule Rate"
-                  data={trendData}
-                  seriesKeys={["Occupancy", "Retention Rate", "Reschedule Rate"]}
-                  format="percent"
+            <p className="mb-3 text-xs text-muted">
+              One bar per quarter, oldest to newest. $/count metrics are shown as a per-week average so an
+              in-progress quarter is comparable to a completed one — the totals themselves are in the cards above.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {metricCards.map((card, i) => (
+                <BarTrendChart
+                  key={card.title}
+                  title={card.title}
+                  data={card.data}
+                  format={card.format}
+                  decimals={card.decimals}
+                  colorIndex={i}
+                  target={card.target}
+                  betterWhen={card.betterWhen}
+                  accent
                 />
-              </Card>
+              ))}
             </div>
           </div>
         )}
