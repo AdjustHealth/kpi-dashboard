@@ -3,6 +3,7 @@
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { formatWeekLabel } from "@/lib/week";
 import { isRescheduleNote } from "@/lib/nookal/parsers";
+import { Input } from "@/components/ui/Field";
 
 export interface CancellationEventRow {
   id: string;
@@ -15,6 +16,7 @@ export interface CancellationEventRow {
   next_booking: string | null;
   modified_user: string | null;
   flagged_for_discussion?: boolean;
+  discussion_note?: string | null;
 }
 
 type SortKey = "appointment_date" | "client" | "provider" | "status" | "next_booking" | "modified_user";
@@ -66,6 +68,18 @@ export function CancellationsTable({
     }
   }
 
+  function editNote(id: string, text: string) {
+    setLocalRows((prev) => prev.map((r) => (r.id === id ? { ...r, discussion_note: text } : r)));
+  }
+
+  async function saveNote(row: CancellationEventRow) {
+    await fetch("/api/cancellation-events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, discussion_note: row.discussion_note ?? "" }),
+    });
+  }
+
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -101,6 +115,7 @@ export function CancellationsTable({
               </th>
             ))}
             <th className="py-2 px-3 font-medium">Note</th>
+            <th className="py-2 px-3 font-medium">Meeting Note</th>
           </tr>
         </thead>
         <tbody>
@@ -155,6 +170,15 @@ export function CancellationsTable({
                 <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
               )}
               <td className="max-w-md py-2 px-3 text-foreground">{row.note ?? "—"}</td>
+              <td className="min-w-48 py-2 px-3">
+                <Input
+                  value={row.discussion_note ?? ""}
+                  placeholder="What to raise…"
+                  onChange={(e) => editNote(row.id, e.target.value)}
+                  onBlur={() => saveNote(row)}
+                  className="py-1 text-xs"
+                />
+              </td>
             </tr>
             );
           })}
