@@ -7,6 +7,8 @@ export interface OccupancyRow {
   value: number | null;
   /** Percentage-point change vs. the prior week, so this weekly snapshot still reads chronologically. */
   deltaPts?: number | null;
+  /** Per-row target, overriding the shared `target` prop — each service line can have its own occupancy target. */
+  target?: number | null;
 }
 
 /**
@@ -19,10 +21,11 @@ export function OccupancyBars({ rows, target = 0.85 }: { rows: OccupancyRow[]; t
   return (
     <div className="flex flex-col gap-4">
       {rows.map((row, i) => {
+        const rowTarget = typeof row.target === "number" ? row.target : target;
         const pct = row.value ?? 0;
         const barPct = Math.min(100, pct * 100);
-        const targetPct = Math.min(100, target * 100);
-        const met = row.value !== null && row.value >= target;
+        const targetPct = Math.min(100, rowTarget * 100);
+        const met = row.value !== null && row.value >= rowTarget;
         const color = row.value === null ? CATEGORICAL[i % CATEGORICAL.length] : met ? STATUS.good : STATUS.critical;
         return (
           <div key={row.label}>
@@ -35,6 +38,7 @@ export function OccupancyBars({ rows, target = 0.85 }: { rows: OccupancyRow[]; t
                     {row.deltaPts.toFixed(1)}pt vs last week
                   </span>
                 )}
+                <span className="text-[11px] text-muted">target {(rowTarget * 100).toFixed(0)}%</span>
                 <span className="font-semibold" style={{ color }}>
                   {row.value === null ? "—" : `${(row.value * 100).toFixed(1)}%`}
                 </span>
@@ -48,14 +52,14 @@ export function OccupancyBars({ rows, target = 0.85 }: { rows: OccupancyRow[]; t
               <div
                 className="absolute top-0 h-full w-0.5 bg-foreground/70"
                 style={{ left: `${targetPct}%` }}
-                title={`Target ${(target * 100).toFixed(0)}%`}
+                title={`Target ${(rowTarget * 100).toFixed(0)}%`}
               />
             </div>
           </div>
         );
       })}
       <div className="flex items-center gap-1.5 text-[11px] text-muted">
-        <span className="inline-block h-3 w-0.5 bg-foreground/70" /> Target {(target * 100).toFixed(0)}%
+        <span className="inline-block h-3 w-0.5 bg-foreground/70" /> Target (varies by service line — see above)
       </div>
     </div>
   );

@@ -24,11 +24,17 @@ function rollingSeries(history: WeekMetrics[], key: string, window = 4): TrendPo
 export function ProviderCharts({
   history,
   showTpr = false,
+  targets = {},
 }: {
   history: WeekMetrics[];
   /** TPR (and Turnover) are senior-physio-only on the meeting sheet — director's call. */
   showTpr?: boolean;
+  /** Effective targets (role defaults + this provider's overrides) — same object already passed to the KPI Scorecard table, reused here so the trend charts show the same on-track/off-track signal. */
+  targets?: Record<string, unknown>;
 }) {
+  const ncvaTarget = typeof targets.ncva === "number" ? targets.ncva : null;
+  const tprTarget = typeof targets.tpr === "number" ? targets.tpr : null;
+  const occupancyTarget = typeof targets.occupancy_pct === "number" ? targets.occupancy_pct : null;
   // UCVA (all clients seen) and NCVA (new clients only) are both "visits per
   // client" metrics, just with a different denominator — one chart makes the
   // relationship between them visible instead of two charts that have to be
@@ -57,11 +63,29 @@ export function ProviderCharts({
           decimals={1}
           colorIndex={6}
           accent
+          target={ncvaTarget}
+          betterWhen="higher"
         />
         {showTpr && (
-          <BarTrendChart title="TPR (Total Patient Revenue)" data={series(history, "tpr")} format="currency" colorIndex={5} accent />
+          <BarTrendChart
+            title="TPR (Total Patient Revenue)"
+            data={series(history, "tpr")}
+            format="currency"
+            colorIndex={5}
+            accent
+            target={tprTarget}
+            betterWhen="higher"
+          />
         )}
-        <LineTrendChart title="Occupancy" data={series(history, "occupancy_pct")} format="percent" colorIndex={2} accent />
+        <LineTrendChart
+          title="Occupancy"
+          data={series(history, "occupancy_pct")}
+          format="percent"
+          colorIndex={2}
+          accent
+          target={occupancyTarget}
+          betterWhen="higher"
+        />
         <LineTrendChart
           title="New Patient Booking Rate"
           data={series(history, "new_pt_booking_rate")}

@@ -28,6 +28,18 @@ const CVA_TARGET_BY_TIER: Partial<Record<ReturnType<typeof cvaTierBucket> & stri
   senior: 7,
 };
 
+/** Same tier-target lookup getEffectiveTargets uses per-provider, exposed for clinic-wide (not per-provider) tier figures like ClinicAnalysisCard's UCVA-by-tier tiles. */
+export function cvaTierTarget(
+  tier: "new_grad" | "2_5yr" | "senior",
+  roleTargets: Record<string, Record<string, unknown>> = {}
+): number | null {
+  const t =
+    (roleTargets.providers?.[`cva_target_${tier}`] as number | undefined) ??
+    (roleTargets.senior?.[`cva_target_${tier}`] as number | undefined) ??
+    CVA_TARGET_BY_TIER[tier];
+  return typeof t === "number" ? t : null;
+}
+
 /**
  * Merges, lowest to highest precedence: hardcoded fallback defaults, then
  * the provider's role_targets group (Providers/Senior/Admin — one shared

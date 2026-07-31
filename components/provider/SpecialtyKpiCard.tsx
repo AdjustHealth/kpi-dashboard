@@ -5,9 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { NumberField } from "@/components/inputs/NumberField";
 import { LineTrendChart, TrendPoint } from "@/components/charts/LineTrendChart";
-import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { formatValue } from "@/lib/format";
-import { formatWeekLabel } from "@/lib/week";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { SpecialtyMetricDef } from "@/lib/types";
@@ -106,23 +104,18 @@ export function SpecialtyKpiCard({
               week_ending: h.week_ending,
               value: typeof h.metrics[metric.key] === "number" ? (h.metrics[metric.key] as number) : null,
             }));
-            if (typeof target !== "number") {
-              return (
-                <LineTrendChart key={metric.key} title={metric.label} data={trend} format={format} colorIndex={i} accent />
-              );
-            }
-            const data = history.map((h, idx) => ({
-              label: formatWeekLabel(h.week_ending),
-              [metric.label]: trend[idx].value,
-              Target: target,
-            }));
+            // Every specialty metric here is a volume/growth figure (consult counts,
+            // memberships, etc.) — higher is always the direction that matters.
             return (
-              <MultiLineChart
+              <LineTrendChart
                 key={metric.key}
-                title={`${metric.label} vs Target`}
-                data={data}
-                seriesKeys={[metric.label, "Target"]}
+                title={typeof target === "number" ? `${metric.label} vs Target` : metric.label}
+                data={trend}
                 format={format}
+                colorIndex={i}
+                accent
+                target={typeof target === "number" ? target : null}
+                betterWhen="higher"
               />
             );
           })}

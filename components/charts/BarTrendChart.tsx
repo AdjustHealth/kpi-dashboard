@@ -4,15 +4,17 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
+import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { ChartFormat, TrendPoint } from "@/components/charts/LineTrendChart";
+import { trendTargetColor } from "@/lib/chartTarget";
 
 function TooltipContent({
   active,
@@ -47,6 +49,8 @@ export function BarTrendChart({
   colorIndex = 0,
   height = 160,
   accent = false,
+  target,
+  betterWhen,
 }: {
   title: string;
   data: TrendPoint[];
@@ -55,16 +59,34 @@ export function BarTrendChart({
   colorIndex?: number;
   height?: number;
   accent?: boolean;
+  /** When set alongside betterWhen, draws a neutral dashed reference line at this value and colors the bars green/red based on the latest point vs target — same convention as StatTile/table cells. */
+  target?: number | null;
+  betterWhen?: "higher" | "lower";
 }) {
   const chartData = data.map((d) => ({ ...d, label: formatWeekLabel(d.week_ending) }));
-  const color = CATEGORICAL[colorIndex % CATEGORICAL.length];
+  const dynamicColor = trendTargetColor(data, target, betterWhen);
+  const color = dynamicColor ?? CATEGORICAL[colorIndex % CATEGORICAL.length];
+  const onTrack = dynamicColor === undefined ? null : dynamicColor === STATUS.good;
 
   return (
     <div
       className="rounded-lg border border-border bg-surface-raised p-3"
       style={accent ? { borderTopColor: color, borderTopWidth: 3 } : undefined}
     >
-      <div className="mb-1 text-xs font-medium text-muted">{title}</div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-muted">{title}</span>
+        {onTrack !== null && (
+          <span
+            className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{
+              color: onTrack ? STATUS.good : STATUS.critical,
+              backgroundColor: `color-mix(in srgb, ${onTrack ? "var(--color-success)" : "var(--color-danger)"} 15%, transparent)`,
+            }}
+          >
+            {onTrack ? "On Target" : "Off Target"}
+          </span>
+        )}
+      </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -87,6 +109,9 @@ export function BarTrendChart({
               content={<TooltipContent format={format} decimals={decimals} />}
               cursor={{ fill: CHART_CHROME.gridline }}
             />
+            {typeof target === "number" && (
+              <ReferenceLine y={target} stroke={CHART_CHROME.mutedInk} strokeDasharray="4 4" strokeWidth={1.5} />
+            )}
             <Bar dataKey="value" fill={color} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

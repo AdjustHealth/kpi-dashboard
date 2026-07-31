@@ -2,9 +2,10 @@
 
 import { Card } from "@/components/ui/Card";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
-import { STATUS } from "@/components/charts/palette";
+import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue } from "@/lib/format";
+import { targetColor } from "@/lib/targetColor";
 import {
   baseTargetSeries,
   compoundingTrendSeries,
@@ -145,6 +146,10 @@ export function BonusTierCard({
             data={bonusMetricChartData}
             seriesKeys={bonusMetricTarget !== null ? [bonusMetricLabel, "Target"] : [bonusMetricLabel]}
             format="number"
+            colors={[
+              targetColor(latestBonusMetric, bonusMetricTarget, "higher") ?? CATEGORICAL[0],
+              ...(bonusMetricTarget !== null ? [CHART_CHROME.mutedInk] : []),
+            ]}
           />
         )}
       </div>

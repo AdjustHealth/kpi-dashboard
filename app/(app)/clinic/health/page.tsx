@@ -63,28 +63,42 @@ export default async function ClinicHealthPage({
   const latest = history[history.length - 1];
   const prior = history[history.length - 2];
   const cxPctTarget = typeof clinicTargets.cx_pct_target === "number" ? clinicTargets.cx_pct_target : null;
+  // Reschedule Rate and Retention Rate don't have dedicated Targets-page fields yet — these two
+  // are the same reference values already used to colour their stat tiles below, just also now
+  // driving the trend charts' target line/colour so the two stay consistent with each other.
+  const rsxTarget = 0.3;
+  const retentionTarget = 0.7;
   const retentionRate = typeof latest?.cx_nr_pct === "number" ? 1 - (latest.cx_nr_pct as number) : null;
+
+  const clinicOccTarget = typeof clinicTargets.clinic_occ_target === "number" ? clinicTargets.clinic_occ_target : 0.85;
+  const physioOccTarget = typeof clinicTargets.physio_occ_target === "number" ? clinicTargets.physio_occ_target : 0.85;
+  const massageOccTarget = typeof clinicTargets.massage_occ_target === "number" ? clinicTargets.massage_occ_target : 0.85;
+  const epOccTarget = typeof clinicTargets.ep_occ_target === "number" ? clinicTargets.ep_occ_target : 0.85;
 
   const occupancyRows = [
     {
       label: "Clinic",
       value: typeof latest?.clinic_occ === "number" ? (latest.clinic_occ as number) : null,
       deltaPts: pctPointDelta(latest?.clinic_occ, prior?.clinic_occ),
+      target: clinicOccTarget,
     },
     {
       label: "Physio",
       value: typeof latest?.physio_occ === "number" ? (latest.physio_occ as number) : null,
       deltaPts: pctPointDelta(latest?.physio_occ, prior?.physio_occ),
+      target: physioOccTarget,
     },
     {
       label: "Massage",
       value: typeof latest?.massage_occ === "number" ? (latest.massage_occ as number) : null,
       deltaPts: pctPointDelta(latest?.massage_occ, prior?.massage_occ),
+      target: massageOccTarget,
     },
     {
       label: "EP",
       value: typeof latest?.ep_occ === "number" ? (latest.ep_occ as number) : null,
       deltaPts: pctPointDelta(latest?.ep_occ, prior?.ep_occ),
+      target: epOccTarget,
     },
   ];
 
@@ -108,7 +122,7 @@ export default async function ClinicHealthPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile {...clinicStatTile(history, "total_consults")} label="Completed Appointments" />
             <StatTile {...clinicStatTile(history, "total_nc")} label="New Patients" />
-            <StatTile {...clinicStatTile(history, "clinic_occ", "up", { target: 0.85, betterWhen: "higher" })} label="Clinic Occupancy" />
+            <StatTile {...clinicStatTile(history, "clinic_occ", "up", { target: clinicOccTarget, betterWhen: "higher" })} label="Clinic Occupancy" />
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
@@ -150,7 +164,7 @@ export default async function ClinicHealthPage({
         </Card>
 
         <Card title="Occupancy by Service Line — this week">
-          <OccupancyBars rows={occupancyRows} target={0.85} />
+          <OccupancyBars rows={occupancyRows} />
         </Card>
 
         <div>
@@ -252,12 +266,12 @@ export default async function ClinicHealthPage({
               label="Cancellation %"
             />
             <StatTile {...clinicStatTile(history, "cx_dnas", "down")} label="DNAs" />
-            <StatTile {...clinicStatTile(history, "cx_rsx_pct", "up", { target: 0.3, betterWhen: "higher" })} label="Reschedule Rate" />
+            <StatTile {...clinicStatTile(history, "cx_rsx_pct", "up", { target: rsxTarget, betterWhen: "higher" })} label="Reschedule Rate" />
             <StatTile
               label="Retention Rate"
               value={formatValue(retentionRate, "percent")}
               rawValue={retentionRate}
-              target={0.7}
+              target={retentionTarget}
               betterWhen="higher"
               sublabel="100% − Not Rebooked %"
             />
@@ -272,23 +286,24 @@ export default async function ClinicHealthPage({
               />
             </Card>
             <Card title="Reschedule Rate Trend">
-              <MultiLineChart
+              <LineTrendChart
                 title="Reschedule Rate"
-                data={history.map((h) => ({ label: formatWeekLabel(h.week_ending), "Reschedule Rate": h.cx_rsx_pct ?? null }))}
-                seriesKeys={["Reschedule Rate"]}
+                data={toTrendSeries(history, "cx_rsx_pct")}
                 format="percent"
+                target={rsxTarget}
+                betterWhen="higher"
               />
             </Card>
             <Card title="Retention Rate Trend">
-              <MultiLineChart
+              <LineTrendChart
                 title="Retention Rate"
                 data={history.map((h) => ({
-                  label: formatWeekLabel(h.week_ending),
-                  "Retention Rate": typeof h.cx_nr_pct === "number" ? 1 - (h.cx_nr_pct as number) : null,
-                  Target: 0.7,
+                  week_ending: h.week_ending,
+                  value: typeof h.cx_nr_pct === "number" ? 1 - (h.cx_nr_pct as number) : null,
                 }))}
-                seriesKeys={["Retention Rate", "Target"]}
                 format="percent"
+                target={retentionTarget}
+                betterWhen="higher"
               />
             </Card>
           </div>

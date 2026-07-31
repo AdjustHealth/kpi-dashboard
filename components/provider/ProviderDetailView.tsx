@@ -114,7 +114,7 @@ export function ProviderDetailView({
             initialValues={currentMetrics}
             history={history}
           />
-          {clinicHistory && <ClinicAnalysisCard history={clinicHistory} />}
+          {clinicHistory && <ClinicAnalysisCard history={clinicHistory} roleTargets={roleTargets} />}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -157,7 +157,7 @@ export function ProviderDetailView({
 
         <div className="flex flex-col gap-4">
           <SectionLabel>Performance Trends</SectionLabel>
-          <ProviderCharts history={history} showTpr />
+          <ProviderCharts history={history} showTpr targets={effectiveTargets} />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -233,7 +233,11 @@ export function ProviderDetailView({
 
       <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
 
-      {variant === "admin" ? <AdminPerformanceCharts history={history} /> : <ProviderCharts history={history} />}
+      {variant === "admin" ? (
+        <AdminPerformanceCharts history={history} targets={effectiveTargets} />
+      ) : (
+        <ProviderCharts history={history} targets={effectiveTargets} />
+      )}
     </div>
   );
 }

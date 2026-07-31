@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
-import { getClinicHistory } from "@/lib/clinicData";
+import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 
@@ -24,7 +24,12 @@ export default async function DashboardPage({
 }) {
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const history = await getClinicHistory(week, clinicHistoryWeeks(week));
+  const [history, clinicTargets] = await Promise.all([
+    getClinicHistory(week, clinicHistoryWeeks(week)),
+    getClinicTargets(),
+  ]);
+  const weeklyTarget = typeof clinicTargets.weekly_revenue_target === "number" ? clinicTargets.weekly_revenue_target : null;
+  const clinicOccTarget = typeof clinicTargets.clinic_occ_target === "number" ? clinicTargets.clinic_occ_target : null;
 
   return (
     <>
@@ -33,7 +38,10 @@ export default async function DashboardPage({
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Revenue</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatTile {...clinicStatTile(history, "total_rev")} label="Adjust Revenue" />
+            <StatTile
+              {...clinicStatTile(history, "total_rev", "up", weeklyTarget !== null ? { target: weeklyTarget, betterWhen: "higher" } : undefined)}
+              label="Adjust Revenue"
+            />
             <StatTile {...clinicStatTile(history, "gym_total")} label="Gym Revenue" />
             <StatTile {...clinicStatTile(history, "m_pod_rev")} label="Podiatry Revenue" />
           </div>
@@ -42,7 +50,9 @@ export default async function DashboardPage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatTile {...clinicStatTile(history, "total_consults")} />
           <StatTile {...clinicStatTile(history, "total_nc")} />
-          <StatTile {...clinicStatTile(history, "clinic_occ")} />
+          <StatTile
+            {...clinicStatTile(history, "clinic_occ", "up", clinicOccTarget !== null ? { target: clinicOccTarget, betterWhen: "higher" } : undefined)}
+          />
         </div>
 
         <Card title="Revenue Trend">
