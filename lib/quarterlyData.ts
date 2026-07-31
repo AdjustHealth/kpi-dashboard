@@ -130,7 +130,6 @@ const PROVIDER_METRICS: QuarterlyMetricDef[] = [
   { key: "tpr", label: "TPR", type: "currency", betterWhen: betterWhenFor("tpr") },
   { key: "new_patients", label: "New Patients (avg/wk)", type: "decimal", decimals: 1, betterWhen: betterWhenFor("new_patients") },
   { key: "cancellations", label: "Cancellations (avg/wk)", type: "decimal", decimals: 1, betterWhen: betterWhenFor("cancellations") },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: betterWhenFor("reschedule_rate_pct") },
   { key: "retention_pct", label: "Retention Rate", type: "percent", derived: "retention", betterWhen: betterWhenFor("retention_pct") },
 ];
 
@@ -160,7 +159,9 @@ const TIERS: { key: CvaTier; label: string }[] = [
 export interface QuarterlyProviderBreakdown {
   quarter: string;
   metrics: QuarterlyMetricDef[];
-  columns: { key: string; label: string }[];
+  /** Clinic Average + the 5 experience tiers — kept separate from providerColumns since averaging a tier and averaging one real person are different things. */
+  tierColumns: { key: string; label: string }[];
+  providerColumns: { key: string; label: string }[];
   /** metricKey -> columnKey -> quarter average */
   values: Record<string, Record<string, number | null>>;
   /** metricKey -> columnKey -> target, for red/green colouring. No target for "clinic" — a blended average across people with different individual targets doesn't have one coherent target to colour against. */
@@ -202,11 +203,8 @@ export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise
     rowsByProvider.set(row.provider_id, arr);
   }
 
-  const columns: { key: string; label: string }[] = [
-    { key: "clinic", label: "Clinic Average" },
-    ...TIERS,
-    ...providers.map((p) => ({ key: p.id, label: p.name })),
-  ];
+  const tierColumns: { key: string; label: string }[] = [{ key: "clinic", label: "Clinic Average" }, ...TIERS];
+  const providerColumns: { key: string; label: string }[] = providers.map((p) => ({ key: p.id, label: p.name }));
 
   const values: Record<string, Record<string, number | null>> = {};
   for (const metric of PROVIDER_METRICS) {
@@ -245,5 +243,5 @@ export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise
     targets[metric.key] = col;
   }
 
-  return { quarter: quarterKey, metrics: PROVIDER_METRICS, columns, values, targets };
+  return { quarter: quarterKey, metrics: PROVIDER_METRICS, tierColumns, providerColumns, values, targets };
 }

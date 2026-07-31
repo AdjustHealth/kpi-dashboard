@@ -228,13 +228,24 @@ export default async function QuarterlyReviewPage({
         )}
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">By Provider &amp; Tier — {quarterLabel(quarter)}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Clinic &amp; Tier Averages — {quarterLabel(quarter)}</h2>
           <p className="mb-3 text-xs text-muted">
-            Quarterly average of each week&apos;s figure — same convention as the old tracking sheet. Providers with no
-            data for this quarter (e.g. before they joined, or before the July 2026 tracking rollout) show as —.
+            Quarterly average of each week&apos;s figure across everyone in that tier — New Grad / 2-5yr / Senior /
+            Massage / EP, same grouping as the KPI Scorecard targets.
           </p>
           <Card>
-            <QuarterlyProviderTable data={providerBreakdown} />
+            <QuarterlyProviderTable data={providerBreakdown} columns={providerBreakdown.tierColumns} />
+          </Card>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">By Provider — {quarterLabel(quarter)}</h2>
+          <p className="mb-3 text-xs text-muted">
+            Quarterly average of each week&apos;s figure, per person. Providers with no data for this quarter (e.g.
+            before they joined, or before the July 2026 tracking rollout) show as —.
+          </p>
+          <Card>
+            <QuarterlyProviderTable data={providerBreakdown} columns={providerBreakdown.providerColumns} />
           </Card>
         </div>
       </div>
