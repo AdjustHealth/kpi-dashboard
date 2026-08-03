@@ -14,13 +14,7 @@ import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
 import { GoalsCard } from "@/components/provider/GoalsCard";
-import {
-  COMPLIANCE_FIELDS,
-  metricFieldsForRole,
-  kpaGroupsForRole,
-  ProviderMeetingNotes,
-  ACTION_PLAN_CATEGORIES,
-} from "@/lib/providerSchema";
+import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Provider } from "@/lib/types";
@@ -30,14 +24,14 @@ function SectionLabel({ children }: { children: string }) {
   return <h2 className="text-sm font-semibold text-foreground">{children}</h2>;
 }
 
-/** Formats last week's Action Steps (or Action Plan, for seniors) as text to carry into this week's "Review from Last Week / Action Steps" field. */
-function formatCarriedOverActions(notes: ProviderMeetingNotes, categorized: boolean): string {
-  if (categorized) {
-    return ACTION_PLAN_CATEGORIES.map((c) => [c.label, notes.action_plan?.[c.key]?.trim()] as const)
-      .filter(([, text]) => !!text)
-      .map(([label, text]) => `${label}: ${text}`)
-      .join("\n");
-  }
+/**
+ * Formats last week's Action Steps as text to carry into this week's
+ * "Review from Last Week / Action Steps" field — standard/admin providers
+ * only. Senior physios carry over per-category instead, straight into the
+ * matching Action Plan box at the bottom (see ActionStepsCard), since that
+ * structure already matches the source one-to-one.
+ */
+function formatCarriedOverActions(notes: ProviderMeetingNotes): string {
   return (notes.action_steps ?? [])
     .map((s) => s.trim())
     .filter(Boolean)
@@ -75,7 +69,7 @@ export function ProviderDetailView({
   const metricFields = metricFieldsForRole(provider.role);
   const effectiveTargets = getEffectiveTargets(provider, roleTargets);
   const kpaGroups = kpaGroupsForRole(provider.role);
-  const carriedOverActionText = formatCarriedOverActions(previousMeetingNotes ?? {}, variant === "senior");
+  const carriedOverActionText = formatCarriedOverActions(previousMeetingNotes ?? {});
   // Cumulative turnover must only count weeks since this senior physio
   // actually started the role, not the whole fetched history window.
   const bonusHistory = seniorSince ? history.filter((h) => h.week_ending >= seniorSince) : history;
@@ -105,12 +99,7 @@ export function ProviderDetailView({
       : undefined;
     return (
       <div className="flex flex-col gap-6 p-8">
-        <MeetingNotesCard
-          providerId={provider.id}
-          week={week}
-          initialNotes={currentMeetingNotes}
-          carriedOverActionText={carriedOverActionText}
-        />
+        <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
 
         {provider.targets.show_programming_prep === true && (
           <ProgrammingPrepCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
@@ -192,7 +181,15 @@ export function ProviderDetailView({
 
         <div className="flex flex-col gap-4">
           <SectionLabel>Action Plan</SectionLabel>
-          <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} size="large" categorized showGoals={false} />
+          <ActionStepsCard
+            providerId={provider.id}
+            week={week}
+            initialNotes={currentMeetingNotes}
+            size="large"
+            categorized
+            showGoals={false}
+            previousActionPlan={previousMeetingNotes?.action_plan}
+          />
         </div>
 
         <GoalsCard providerId={provider.id} initialGoals={provider.goals} />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
+import { Badge } from "@/components/ui/Badge";
 import { Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
@@ -29,6 +30,7 @@ export function ActionStepsCard({
   size = "standard",
   showGoals = true,
   categorized = false,
+  previousActionPlan,
 }: {
   providerId: string;
   week: string;
@@ -36,13 +38,40 @@ export function ActionStepsCard({
   size?: "standard" | "large";
   showGoals?: boolean;
   categorized?: boolean;
+  /** Senior physios only — last week's Action Plan per category, carried into whichever categories haven't been touched yet this week. */
+  previousActionPlan?: Record<string, string>;
 }) {
-  const [notes, setNotes] = useState<ProviderMeetingNotes>({
-    action_steps: Array(ACTION_STEP_COUNT).fill(""),
-    action_plan: {},
-    performance_review_goals: "",
-    ...initialNotes,
+  // A category carries over only if it's never been saved this week (key
+  // absent, not just blank — respects an intentional clear) and last
+  // week's entry for it actually had content.
+  function shouldCarryOver(categoryKey: string): boolean {
+    return (
+      categorized &&
+      initialNotes.action_plan?.[categoryKey] === undefined &&
+      !!previousActionPlan?.[categoryKey]?.trim()
+    );
+  }
+
+  const [notes, setNotes] = useState<ProviderMeetingNotes>(() => {
+    const base: ProviderMeetingNotes = {
+      action_steps: Array(ACTION_STEP_COUNT).fill(""),
+      action_plan: {},
+      performance_review_goals: "",
+      ...initialNotes,
+    };
+    if (categorized && previousActionPlan) {
+      const plan = { ...(base.action_plan ?? {}) };
+      for (const category of ACTION_PLAN_CATEGORIES) {
+        if (shouldCarryOver(category.key)) plan[category.key] = previousActionPlan[category.key];
+      }
+      base.action_plan = plan;
+    }
+    return base;
   });
+
+  const [carriedOverCategories, setCarriedOverCategories] = useState<Set<string>>(
+    () => new Set(ACTION_PLAN_CATEGORIES.map((c) => c.key).filter(shouldCarryOver))
+  );
 
   const { status, set } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/provider-weekly", {
@@ -73,6 +102,12 @@ export function ActionStepsCard({
   }
 
   function updateActionPlan(categoryKey: string, value: string) {
+    setCarriedOverCategories((prev) => {
+      if (!prev.has(categoryKey)) return prev;
+      const next = new Set(prev);
+      next.delete(categoryKey);
+      return next;
+    });
     setNotes((prev) => {
       const plan = { ...(prev.action_plan ?? {}), [categoryKey]: value };
       set("action_plan", plan);
@@ -93,7 +128,10 @@ export function ActionStepsCard({
         <div className="flex flex-col gap-4">
           {ACTION_PLAN_CATEGORIES.map((category) => (
             <div key={category.key} className="rounded-lg border-2 border-accent/40 bg-accent/[0.06] p-3">
-              <div className="mb-1.5 text-xs font-semibold text-accent">{category.label}</div>
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-accent">
+                {category.label}
+                {carriedOverCategories.has(category.key) && <Badge tone="neutral">Carried over</Badge>}
+              </div>
               <Textarea
                 value={notes.action_plan?.[category.key] ?? ""}
                 placeholder={`Notes for ${category.label}`}
