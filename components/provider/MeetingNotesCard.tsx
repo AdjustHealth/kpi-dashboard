@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Badge } from "@/components/ui/Badge";
@@ -28,6 +28,7 @@ export function MeetingNotesCard({
   initialNotes,
   showMultiDisc = true,
   carriedOverActionText,
+  previousMultiDisc,
 }: {
   providerId: string;
   week: string;
@@ -36,21 +37,37 @@ export function MeetingNotesCard({
   showMultiDisc?: boolean;
   /** Last week's Action Steps/Action Plan, pre-formatted — prefills "Review from Last Week / Action Steps" when this week's session hasn't started yet (that field is still unset for this week). */
   carriedOverActionText?: string;
+  /** Last week's Multi-Disciplinary Team Utilisation names — kept on the list every week (not just carried once) so referral names aren't forgotten; see the mount effect below. */
+  previousMultiDisc?: MultiDiscUtilisation;
 }) {
   const isCarryOverCandidate = initialNotes.review_previous_actions === undefined && !!carriedOverActionText;
+  // Names carry indefinitely (not just a one-off suggestion like Action
+  // Steps below) — a name typed under Hydro this week should still be there
+  // next week, and the week after, until someone removes it. So unlike
+  // review_previous_actions, this is eagerly persisted (see mount effect)
+  // rather than left as a display-only default — otherwise a week nobody
+  // opens/edits would break the chain for the week after it.
+  const carriedDiscKeys = DISC_KEYS.filter(
+    (key) => initialNotes.multi_disc_utilisation?.[key] === undefined && (previousMultiDisc?.[key]?.length ?? 0) > 0
+  );
+  const mergedMultiDisc = {
+    ...initialNotes.multi_disc_utilisation,
+    ...Object.fromEntries(carriedDiscKeys.map((key) => [key, previousMultiDisc![key]])),
+  };
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
     agenda_items: "",
     review_previous_actions: isCarryOverCandidate ? carriedOverActionText : "",
     wins: ["", "", ""],
     things_to_work_on: ["", "", ""],
-    multi_disc_utilisation: {},
     ...initialNotes,
+    multi_disc_utilisation: mergedMultiDisc,
   });
   const [showCarriedOverTag, setShowCarriedOverTag] = useState(isCarryOverCandidate);
+  const [carriedOverDiscKeys, setCarriedOverDiscKeys] = useState<Set<string>>(() => new Set(carriedDiscKeys));
 
   const [discText, setDiscText] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const key of DISC_KEYS) init[key] = namesToText(initialNotes.multi_disc_utilisation?.[key]);
+    for (const key of DISC_KEYS) init[key] = namesToText(mergedMultiDisc[key]);
     return init;
   });
 
@@ -62,6 +79,13 @@ export function MeetingNotesCard({
     });
     if (!res.ok) throw new Error("save failed");
   });
+
+  useEffect(() => {
+    if (carriedDiscKeys.length > 0) set("multi_disc_utilisation", mergedMultiDisc);
+    // Runs once at mount, using the carry-over snapshot computed above —
+    // persists it as this week's real saved value (see comment above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
     setNotes((prev) => ({ ...prev, ...remote }));
@@ -99,6 +123,12 @@ export function MeetingNotesCard({
   }
 
   function updateDisc(key: (typeof DISC_KEYS)[number], text: string) {
+    setCarriedOverDiscKeys((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
     setDiscText((prev) => ({ ...prev, [key]: text }));
     setNotes((prev) => {
       const util = { ...(prev.multi_disc_utilisation ?? {}), [key]: textToNames(text) };
@@ -161,8 +191,13 @@ export function MeetingNotesCard({
             <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {DISC_KEYS.map((key) => {
                 const count = notes.multi_disc_utilisation?.[key]?.length ?? 0;
+                const label = count > 0 ? `${MULTI_DISC_LABELS[key]} (${count})` : MULTI_DISC_LABELS[key];
                 return (
-                  <Field key={key} label={count > 0 ? `${MULTI_DISC_LABELS[key]} (${count})` : MULTI_DISC_LABELS[key]}>
+                  <Field
+                    key={key}
+                    label={label}
+                    tag={carriedOverDiscKeys.has(key) ? <Badge tone="neutral">Carried over</Badge> : undefined}
+                  >
                     <Textarea
                       rows={3}
                       placeholder="One client name per line"

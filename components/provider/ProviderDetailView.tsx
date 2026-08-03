@@ -99,7 +99,12 @@ export function ProviderDetailView({
       : undefined;
     return (
       <div className="flex flex-col gap-6 p-8">
-        <MeetingNotesCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
+        <MeetingNotesCard
+          providerId={provider.id}
+          week={week}
+          initialNotes={currentMeetingNotes}
+          previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
+        />
 
         {provider.targets.show_programming_prep === true && (
           <ProgrammingPrepCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
@@ -205,6 +210,7 @@ export function ProviderDetailView({
         initialNotes={currentMeetingNotes}
         showMultiDisc={variant !== "admin"}
         carriedOverActionText={carriedOverActionText}
+        previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
       />
 
       <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
