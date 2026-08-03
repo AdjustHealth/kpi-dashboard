@@ -17,7 +17,7 @@ export default async function ProviderDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const [{ provider, history, currentMeetingNotes }, roleTargets] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes, previousMeetingNotes }, roleTargets] = await Promise.all([
     getProviderDetailData(id, week, trackingHistoryWeeks(week)),
     getRoleTargets(),
   ]);
@@ -31,6 +31,7 @@ export default async function ProviderDetailPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
+        previousMeetingNotes={previousMeetingNotes}
         roleTargets={roleTargets}
         variant="standard"
       />

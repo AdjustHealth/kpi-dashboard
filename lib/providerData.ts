@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { recentWeeks } from "@/lib/week";
+import { recentWeeks, shiftWeek } from "@/lib/week";
 import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
@@ -42,10 +42,19 @@ export async function getProviderDetailData(providerId: string, week: string, hi
 
   const current = rowsByWeek.get(week);
 
+  // Last week's Action Steps/Action Plan — carried into this week's "Review
+  // from Last Week / Action Steps" field (see MeetingNotesCard) so the team
+  // sees what they committed to at the top of the next meeting instead of
+  // starting from a blank box. Only reaches back one week (not a chain of
+  // "last non-empty week") since action_steps/action_plan is the durable
+  // per-week record this is sourced from.
+  const previousMeetingNotes = rowsByWeek.get(shiftWeek(week, -1))?.meeting_notes ?? {};
+
   return {
     provider,
     history,
     currentMeetingNotes: current?.meeting_notes ?? {},
+    previousMeetingNotes,
   };
 }
 

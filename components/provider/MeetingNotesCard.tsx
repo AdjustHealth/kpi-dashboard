@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
+import { Badge } from "@/components/ui/Badge";
 import { Field, Textarea, Input } from "@/components/ui/Field";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
@@ -26,21 +27,26 @@ export function MeetingNotesCard({
   week,
   initialNotes,
   showMultiDisc = true,
+  carriedOverActionText,
 }: {
   providerId: string;
   week: string;
   initialNotes: ProviderMeetingNotes;
   /** Admin staff don't see clients directly, so Multi-Disciplinary Team Utilisation (Hydro/EP-MS/RMT/Gym referrals) doesn't apply to their meeting. */
   showMultiDisc?: boolean;
+  /** Last week's Action Steps/Action Plan, pre-formatted — prefills "Review from Last Week / Action Steps" when this week's session hasn't started yet (that field is still unset for this week). */
+  carriedOverActionText?: string;
 }) {
+  const isCarryOverCandidate = initialNotes.review_previous_actions === undefined && !!carriedOverActionText;
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
     agenda_items: "",
-    review_previous_actions: "",
+    review_previous_actions: isCarryOverCandidate ? carriedOverActionText : "",
     wins: ["", "", ""],
     things_to_work_on: ["", "", ""],
     multi_disc_utilisation: {},
     ...initialNotes,
   });
+  const [showCarriedOverTag, setShowCarriedOverTag] = useState(isCarryOverCandidate);
 
   const [discText, setDiscText] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -78,6 +84,7 @@ export function MeetingNotesCard({
   }
 
   function updateText(key: "agenda_items" | "review_previous_actions", value: string) {
+    if (key === "review_previous_actions") setShowCarriedOverTag(false);
     setNotes((prev) => ({ ...prev, [key]: value }));
     set(key, value);
   }
@@ -110,7 +117,10 @@ export function MeetingNotesCard({
             {...fieldFocusHandlers("agenda_items")}
           />
         </Field>
-        <Field label="Review from Last Week / Action Steps">
+        <Field
+          label="Review from Last Week / Action Steps"
+          tag={showCarriedOverTag ? <Badge tone="neutral">Carried over — edit as needed</Badge> : undefined}
+        >
           <Textarea
             value={notes.review_previous_actions ?? ""}
             onChange={(e) => updateText("review_previous_actions", e.target.value)}

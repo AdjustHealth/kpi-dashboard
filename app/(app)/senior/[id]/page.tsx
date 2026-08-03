@@ -31,7 +31,7 @@ export default async function SeniorPhysioPage({
     seniorSince ? weeksBetween(seniorSince, week) + 1 : 0
   );
 
-  const [{ provider, history, currentMeetingNotes }, clinicHistory, roleTargets] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes, previousMeetingNotes }, clinicHistory, roleTargets] = await Promise.all([
     getProviderDetailData(id, week, historyWeeks),
     getClinicHistory(week, historyWeeks),
     getRoleTargets(),
@@ -46,6 +46,7 @@ export default async function SeniorPhysioPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
+        previousMeetingNotes={previousMeetingNotes}
         clinicHistory={clinicHistory}
         seniorSince={seniorSince}
         roleTargets={roleTargets}

@@ -19,7 +19,7 @@ export default async function AdminDetailPage({
   const week = weekParam ?? defaultWeekEnding();
   const historyWeeks = trackingHistoryWeeks(week);
 
-  const [{ provider, history, currentMeetingNotes }, clinicHistory, roleTargets] = await Promise.all([
+  const [{ provider, history, currentMeetingNotes, previousMeetingNotes }, clinicHistory, roleTargets] = await Promise.all([
     getProviderDetailData(id, week, historyWeeks),
     getClinicHistory(week, historyWeeks),
     getRoleTargets(),
@@ -44,6 +44,7 @@ export default async function AdminDetailPage({
         week={week}
         history={history}
         currentMeetingNotes={currentMeetingNotes}
+        previousMeetingNotes={previousMeetingNotes}
         clinicHistory={clinicHistory}
         roleTargets={roleTargets}
         adminCancellations={adminCancellations}
