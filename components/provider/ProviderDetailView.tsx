@@ -169,7 +169,7 @@ export function ProviderDetailView({
             title={`Not Rebooked — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
           >
             {notRebookedClients && notRebookedClients.length > 0 ? (
-              <CancellationsTable rows={notRebookedClients} hideProvider />
+              <CancellationsTable rows={notRebookedClients} hideProvider showResolveAction />
             ) : (
               <p className="text-xs text-muted">No clients currently sitting without a future booking.</p>
             )}
@@ -259,7 +259,7 @@ export function ProviderDetailView({
           title={`Not Rebooked — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
         >
           {notRebookedClients && notRebookedClients.length > 0 ? (
-            <CancellationsTable rows={notRebookedClients} hideProvider />
+            <CancellationsTable rows={notRebookedClients} hideProvider showResolveAction />
           ) : (
             <p className="text-xs text-muted">No clients currently sitting without a future booking.</p>
           )}

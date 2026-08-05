@@ -17,6 +17,7 @@ export interface CancellationEventRow {
   modified_user: string | null;
   flagged_for_discussion?: boolean;
   discussion_note?: string | null;
+  not_rebooked_resolved?: boolean;
 }
 
 type SortKey = "appointment_date" | "client" | "provider" | "status" | "next_booking" | "modified_user";
@@ -41,12 +42,15 @@ export function CancellationsTable({
   rows,
   hideHandledBy,
   hideProvider,
+  showResolveAction,
 }: {
   rows: CancellationEventRow[];
   /** Omit the "Handled By" column — every row already shares the same value on a single admin's own page. */
   hideHandledBy?: boolean;
   /** Omit the "Provider" column — every row already shares the same value on a single provider's own page. */
   hideProvider?: boolean;
+  /** Show a "Dealt With" button that dismisses a row (sets not_rebooked_resolved) — only meaningful on the Not Rebooked list, not the general Cancellations tab. */
+  showResolveAction?: boolean;
 }) {
   const COLUMNS = ALL_COLUMNS.filter(
     (c) => !(hideHandledBy && c.key === "modified_user") && !(hideProvider && c.key === "provider")
@@ -70,6 +74,21 @@ export function CancellationsTable({
     if (!res.ok) {
       // Revert on failure.
       setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, flagged_for_discussion: !next } : r)));
+    }
+  }
+
+  async function resolveRow(row: CancellationEventRow) {
+    // Optimistically drop it from view — this is a dismiss, not an edit, so
+    // there's no "current" value to show while the request is in flight.
+    setLocalRows((prev) => prev.filter((r) => r.id !== row.id));
+    const res = await fetch("/api/cancellation-events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, not_rebooked_resolved: true }),
+    });
+    if (!res.ok) {
+      // Revert on failure — put it back so it isn't silently lost.
+      setLocalRows((prev) => [...prev, row]);
     }
   }
 
@@ -121,6 +140,7 @@ export function CancellationsTable({
             ))}
             <th className="py-2 px-3 font-medium">Note</th>
             <th className="py-2 px-3 font-medium">Meeting Note</th>
+            {showResolveAction && <th className="py-2 px-3 font-medium" />}
           </tr>
         </thead>
         <tbody>
@@ -186,6 +206,18 @@ export function CancellationsTable({
                   className="py-1 text-xs"
                 />
               </td>
+              {showResolveAction && (
+                <td className="py-2 px-3 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => resolveRow(row)}
+                    title="Mark as dealt with — removes it from this list"
+                    className="rounded-md border border-border px-2 py-1 text-xs font-medium text-muted hover:border-accent hover:text-accent"
+                  >
+                    ✓ Dealt with
+                  </button>
+                </td>
+              )}
             </tr>
             );
           })}

@@ -233,12 +233,12 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
  * gets followed up rather than quietly forgotten.
  *
  * Not scoped to a single week — the whole point is to keep catching anyone
- * who slipped through, however long ago they cancelled. Same "Cancelled
- * status, no next_booking, not a reschedule note" definition already used
- * for the Cancellations tab's red-row styling — DNAs aren't included,
- * matching that precedent. There's no live sync back to Nookal, so a
- * client rebooked since only clears here once a later report re-upload
- * happens to refresh that same event's next_booking.
+ * who slipped through, however long ago they cancelled, until someone
+ * marks it dealt with (not_rebooked_resolved — a manual dismiss, since
+ * there's no live sync back to Nookal to know a client's been rebooked).
+ * Same "Cancelled status, no next_booking, not a reschedule note"
+ * definition already used for the Cancellations tab's red-row styling —
+ * DNAs aren't included, matching that precedent.
  */
 export async function getNotRebookedClients(providerName: string): Promise<CancellationEventRow[]> {
   const supabase = await createClient();
@@ -247,6 +247,7 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
     .select("*")
     .eq("provider", providerName)
     .eq("status", "Cancelled")
+    .eq("not_rebooked_resolved", false)
     .is("next_booking", null)
     .order("appointment_date", { ascending: false });
 
