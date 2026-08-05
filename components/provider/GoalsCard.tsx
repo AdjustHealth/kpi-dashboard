@@ -17,8 +17,10 @@ const STATUS_OPTIONS: { value: GoalStatus; label: string }[] = [
   { value: "complete", label: "Complete" },
 ];
 
+// Hardcoded hex (not the --color-muted CSS var) so the alpha-suffix trick
+// below (`${color}xx`) works the same way for all three statuses.
 const STATUS_COLOR: Record<GoalStatus, string> = {
-  not_started: "var(--color-muted)",
+  not_started: "#8b93a5",
   in_progress: STATUS.warning,
   complete: STATUS.good,
 };
@@ -77,11 +79,15 @@ export function GoalsCard({ providerId, initialGoals }: { providerId: string; in
         <select
           value={goal.status}
           onChange={(e) => updateGoal(index, { status: e.target.value as GoalStatus })}
-          className="flex-shrink-0 rounded-lg border border-border bg-surface-raised px-2 py-2 text-xs font-medium"
-          style={{ color: STATUS_COLOR[goal.status] }}
+          className="flex-shrink-0 rounded-lg border-2 px-2.5 py-2 text-xs font-bold uppercase tracking-wide"
+          style={{
+            color: STATUS_COLOR[goal.status],
+            borderColor: `${STATUS_COLOR[goal.status]}80`,
+            backgroundColor: `${STATUS_COLOR[goal.status]}26`,
+          }}
         >
           {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
+            <option key={opt.value} value={opt.value} className="text-foreground">
               {opt.label}
             </option>
           ))}
