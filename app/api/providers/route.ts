@@ -34,8 +34,8 @@ export async function PATCH(request: NextRequest) {
   const { id, targets_patch, goals, fields } = body as {
     id?: string;
     targets_patch?: Record<string, unknown>;
-    /** Full replacement — there are always exactly 3 fixed slots, so the caller just sends the whole array. */
-    goals?: { text: string; achieved: boolean }[];
+    /** Full replacement — there are always exactly 6 fixed slots (3 short_term + 3 long_term), so the caller just sends the whole array. */
+    goals?: { text: string; status: string; kind: string }[];
     fields?: Record<string, unknown>;
   };
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });

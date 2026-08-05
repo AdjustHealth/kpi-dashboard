@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
   const goals = (provider.goals ?? []) as Goal[];
   const goalsReflection = goals
     .filter((g) => g.text.trim().length > 0)
-    .map((g) => ({ text: g.text, achieved: g.achieved, note: "" }));
+    .map((g) => ({ text: g.text, achieved: (g.status ?? (g.achieved ? "complete" : "not_started")) === "complete", note: "" }));
 
   const { data, error } = await supabase
     .from("performance_reviews")
@@ -116,18 +116,18 @@ interface NewGoals {
 }
 
 /**
- * Only the first 3 non-empty new goals (short-term first) carry over to the
- * provider's persistent weekly Goals card — that card is a fixed 3-slot
- * "what to track week to week" tool, not the full review record. Every goal
- * set in the review stays on the review itself regardless.
+ * The first 3 non-empty new goals of each kind carry over to the provider's
+ * persistent weekly Goals card — that card is a fixed 3 short_term + 3
+ * long_term slot "what to track week to week" tool, not the full review
+ * record. Every goal set in the review stays on the review itself
+ * regardless. Fresh goals always start "not_started".
  */
 function newGoalsToPersistentGoals(newGoals: NewGoals): Goal[] {
-  const combined = [...(newGoals.short_term ?? []), ...(newGoals.long_term ?? [])]
-    .filter((g) => g.text.trim().length > 0)
-    .slice(0, 3)
-    .map((g) => ({ text: g.text, achieved: false }));
-  while (combined.length < 3) combined.push({ text: "", achieved: false });
-  return combined;
+  function slots(list: NewGoal[] | undefined, kind: Goal["kind"]): Goal[] {
+    const nonEmpty = (list ?? []).filter((g) => g.text.trim().length > 0).slice(0, 3);
+    return [0, 1, 2].map((i) => ({ text: nonEmpty[i]?.text ?? "", status: "not_started" as const, kind }));
+  }
+  return [...slots(newGoals.short_term, "short_term"), ...slots(newGoals.long_term, "long_term")];
 }
 
 export async function PATCH(request: NextRequest) {

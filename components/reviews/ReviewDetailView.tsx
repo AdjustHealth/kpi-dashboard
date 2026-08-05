@@ -521,8 +521,8 @@ export function ReviewDetailView({
 
       <Card title="New Performance Review Goals">
         <p className="mb-4 text-xs text-muted">
-          Only the first 3 (short-term first) carry over to {provider.name.split(" ")[0]}&apos;s weekly Goals card — every
-          goal set here stays on this review record regardless.
+          These carry over to {provider.name.split(" ")[0]}&apos;s weekly Goals card (all starting "Not Started") when
+          the review is completed — every goal set here also stays on this review record regardless.
         </p>
         {(["short_term", "long_term"] as const).map((term) => (
           <div key={term} className={term === "long_term" ? "mt-5 border-t border-border pt-5" : ""}>

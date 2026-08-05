@@ -7,9 +7,15 @@ export interface SpecialtyMetricDef {
   source?: "manual" | "calc";
 }
 
+export type GoalStatus = "not_started" | "in_progress" | "complete";
+export type GoalKind = "short_term" | "long_term";
+
 export interface Goal {
   text: string;
-  achieved: boolean;
+  status: GoalStatus;
+  kind: GoalKind;
+  /** Legacy field from before the 3-state status existed — read defensively (true meant "complete") when hydrating old data, never written going forward. */
+  achieved?: boolean;
 }
 
 export interface Provider {
@@ -20,7 +26,7 @@ export interface Provider {
   sort_order: number;
   specialty_metrics: SpecialtyMetricDef[];
   targets: Record<string, unknown>;
-  /** Persistent — stays exactly as-is week to week until edited, or "achieved" is cleared at the next performance review. Not scoped to a week. */
+  /** Persistent — stays exactly as-is week to week until edited; not scoped to a week. 3 short_term + 3 long_term goals. */
   goals: Goal[];
   created_at: string;
   updated_at: string;

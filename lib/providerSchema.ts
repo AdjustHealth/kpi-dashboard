@@ -274,11 +274,10 @@ export function kpaGroupsForRole(role: ProviderRole): KpaGroup[] {
   ];
 }
 
-// Performance Review Goals for regular (non-senior) providers now live on
-// providers.goals (lib/types.ts's Goal[]) — persistent text + achieved flag,
-// not a per-week scorecard field (see components/provider/GoalsCard.tsx).
-// Senior physios still get a free-text goals section at the bottom of their
-// page (ActionStepsCard) — different structure, unrelated to this.
+// Performance Review Goals — every role (including senior physios) — live
+// on providers.goals (lib/types.ts's Goal[]): 3 short_term + 3 long_term,
+// each with its own text + status. Persistent, not a per-week scorecard
+// field (see components/provider/GoalsCard.tsx).
 
 export const ROLE_LABELS: Record<ProviderRole, string> = {
   senior_physio: "Senior Physio",
