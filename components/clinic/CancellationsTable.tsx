@@ -40,12 +40,17 @@ function compareValues(a: string | null, b: string | null): number {
 export function CancellationsTable({
   rows,
   hideHandledBy,
+  hideProvider,
 }: {
   rows: CancellationEventRow[];
   /** Omit the "Handled By" column — every row already shares the same value on a single admin's own page. */
   hideHandledBy?: boolean;
+  /** Omit the "Provider" column — every row already shares the same value on a single provider's own page. */
+  hideProvider?: boolean;
 }) {
-  const COLUMNS = hideHandledBy ? ALL_COLUMNS.filter((c) => c.key !== "modified_user") : ALL_COLUMNS;
+  const COLUMNS = ALL_COLUMNS.filter(
+    (c) => !(hideHandledBy && c.key === "modified_user") && !(hideProvider && c.key === "provider")
+  );
   // Local copy so a flag toggle can update the UI immediately — flags are
   // saved independently of the CSV-sourced columns via /api/cancellation-events.
   const [localRows, setLocalRows] = useState(rows);
@@ -150,7 +155,9 @@ export function CancellationsTable({
                 {row.appointment_date ? formatWeekLabel(row.appointment_date) : "—"}
               </td>
               <td className="py-2 px-3 whitespace-nowrap text-foreground">{row.client}</td>
-              <td className="py-2 px-3 whitespace-nowrap text-muted">{row.provider ?? "—"}</td>
+              {!hideProvider && (
+                <td className="py-2 px-3 whitespace-nowrap text-muted">{row.provider ?? "—"}</td>
+              )}
               <td className="py-2 px-3 whitespace-nowrap">
                 <span
                   className="rounded-full px-2 py-0.5 text-[11px] font-medium"

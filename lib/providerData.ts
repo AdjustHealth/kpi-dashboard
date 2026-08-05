@@ -14,22 +14,38 @@ export function retentionPct(metrics: Record<string, unknown>): number | undefin
   return typeof notRebooked === "number" ? 1 - notRebooked : undefined;
 }
 
+/** New patients are checked in on 6 weeks after their first visit — director's own clinical follow-up cadence. */
+export const SIX_WEEK_REVIEW_OFFSET = 6;
+
 export async function getProviderDetailData(providerId: string, week: string, historyWeeks = 12) {
   const supabase = await createClient();
   const weeks = recentWeeks(week, historyWeeks);
+  const sixWeeksAgo = shiftWeek(week, -SIX_WEEK_REVIEW_OFFSET);
 
-  const [providerResult, historyResult] = await Promise.all([
+  const [providerResult, historyResult, sixWeekAgoResult] = await Promise.all([
     supabase.from("providers").select("*").eq("id", providerId).maybeSingle(),
     supabase
       .from("provider_weekly")
       .select("*")
       .eq("provider_id", providerId)
       .in("week_ending", weeks),
+    // historyWeeks is usually a short trailing window (charts only need the
+    // last few weeks) and rarely reaches back 6 weeks, so this is fetched
+    // separately rather than assumed to already be in `weeks` above.
+    supabase
+      .from("provider_weekly")
+      .select("metrics")
+      .eq("provider_id", providerId)
+      .eq("week_ending", sixWeeksAgo)
+      .maybeSingle(),
   ]);
 
   const provider = providerResult.data as Provider | null;
   const rows = (historyResult.data ?? []) as ProviderWeekly[];
   const rowsByWeek = new Map(rows.map((r) => [r.week_ending, r]));
+
+  const sixWeekAgoNames = sixWeekAgoResult.data?.metrics?.new_patient_names;
+  const sixWeekReviewNames = Array.isArray(sixWeekAgoNames) ? (sixWeekAgoNames as string[]) : [];
 
   const history: WeekMetrics[] = weeks.map((w) => {
     const metrics = rowsByWeek.get(w)?.metrics ?? {};
@@ -55,6 +71,8 @@ export async function getProviderDetailData(providerId: string, week: string, hi
     history,
     currentMeetingNotes: current?.meeting_notes ?? {},
     previousMeetingNotes,
+    sixWeekReviewNames,
+    sixWeekReviewWeek: sixWeeksAgo,
   };
 }
 

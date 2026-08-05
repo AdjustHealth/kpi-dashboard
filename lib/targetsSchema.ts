@@ -61,7 +61,6 @@ const SHARED_CLINICIAN_TARGET_FIELDS: TargetField[] = [
   { key: "cancellations", label: "Number of Cancellations", type: "number" },
   { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent" },
   { key: "retention_pct", label: "Retention Rate", type: "percent" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent" },
 ];
 
 /**

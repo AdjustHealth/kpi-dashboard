@@ -9,9 +9,11 @@
  * Field set and labels are taken directly from the real "Accountability
  * Meeting" template and the director's own paper notes — see KPI Scorecard
  * section (FBA, Occupancy, New Patient Booking Rate + its two calculation
- * inputs, UCVA/NCVA, DNAs, Cancellations, Not Rebooked, Reschedule Rate).
- * Diary Management and Booked Within 7 Days are clinic/admin-level, not
- * per-physio.
+ * inputs, UCVA/NCVA, DNAs, Cancellations, Not Rebooked). Reschedule Rate is
+ * dropped from CLINICIAN_METRIC_FIELDS (director: redundant alongside Not
+ * Rebooked/Retention Rate) — still tracked for admin, where it's genuinely
+ * useful. Diary Management and Booked Within 7 Days are clinic/admin-level,
+ * not per-physio.
  *
  * A senior physio's specialty metrics (e.g. Sam's Memberships/Programming %,
  * Marcio's Headache Init/Sub) are NOT hardcoded here — they're configured
@@ -75,7 +77,6 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
   { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent", betterWhen: "lower" },
   { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked (100% − Not Rebooked %)" },
-  { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
 ];
 
 // Turnover and TPR stay off the standard physio/massage/EP scorecard —

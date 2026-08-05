@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
-import { getRoleTargets } from "@/lib/clinicData";
+import { getRoleTargets, getNotRebookedClients } from "@/lib/clinicData";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 
@@ -17,11 +17,10 @@ export default async function ProviderDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const [{ provider, history, currentMeetingNotes, previousMeetingNotes }, roleTargets] = await Promise.all([
-    getProviderDetailData(id, week, trackingHistoryWeeks(week)),
-    getRoleTargets(),
-  ]);
+  const [{ provider, history, currentMeetingNotes, previousMeetingNotes, sixWeekReviewNames, sixWeekReviewWeek }, roleTargets] =
+    await Promise.all([getProviderDetailData(id, week, trackingHistoryWeeks(week)), getRoleTargets()]);
   if (!provider) notFound();
+  const notRebookedClients = await getNotRebookedClients(provider.name);
 
   return (
     <>
@@ -32,6 +31,9 @@ export default async function ProviderDetailPage({
         history={history}
         currentMeetingNotes={currentMeetingNotes}
         previousMeetingNotes={previousMeetingNotes}
+        sixWeekReviewNames={sixWeekReviewNames}
+        sixWeekReviewWeek={sixWeekReviewWeek}
+        notRebookedClients={notRebookedClients}
         roleTargets={roleTargets}
         variant="standard"
       />

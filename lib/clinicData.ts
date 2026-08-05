@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { recentWeeks } from "@/lib/week";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
 import { retentionPct } from "@/lib/providerData";
+import { isRescheduleNote } from "@/lib/nookal/parsers";
+import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
 
 export interface ClinicWeekRow {
   week_ending: string;
@@ -221,4 +223,43 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
     retainedCount: retained.length,
     retentionPct: newPatients.size > 0 ? retained.length / newPatients.size : null,
   };
+}
+
+/**
+ * A provider's own clients who cancelled and had no future booking at
+ * all in that cancellation's own report — i.e. they've fallen out of the
+ * diary entirely, not just rescheduled to a different day. Director
+ * request: surface this on the provider/senior physio meeting page so it
+ * gets followed up rather than quietly forgotten.
+ *
+ * Not scoped to a single week — the whole point is to keep catching anyone
+ * who slipped through, however long ago they cancelled. Same "Cancelled
+ * status, no next_booking, not a reschedule note" definition already used
+ * for the Cancellations tab's red-row styling — DNAs aren't included,
+ * matching that precedent. There's no live sync back to Nookal, so a
+ * client rebooked since only clears here once a later report re-upload
+ * happens to refresh that same event's next_booking.
+ */
+export async function getNotRebookedClients(providerName: string): Promise<CancellationEventRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("cancellation_events")
+    .select("*")
+    .eq("provider", providerName)
+    .eq("status", "Cancelled")
+    .is("next_booking", null)
+    .order("appointment_date", { ascending: false });
+
+  const rows = (data ?? []) as CancellationEventRow[];
+  const notRescheduled = rows.filter((r) => !(r.note && isRescheduleNote(r.note)));
+
+  // One row per cancellation instance — a client who's cancelled more than
+  // once without rebooking would otherwise show up repeatedly; keep just
+  // their most recent (rows are already newest-first).
+  const seen = new Set<string>();
+  return notRescheduled.filter((r) => {
+    if (seen.has(r.client)) return false;
+    seen.add(r.client);
+    return true;
+  });
 }

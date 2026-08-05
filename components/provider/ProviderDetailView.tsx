@@ -45,6 +45,9 @@ export function ProviderDetailView({
   history,
   currentMeetingNotes,
   previousMeetingNotes,
+  sixWeekReviewNames,
+  sixWeekReviewWeek,
+  notRebookedClients,
   clinicHistory,
   seniorSince,
   roleTargets,
@@ -57,6 +60,11 @@ export function ProviderDetailView({
   currentMeetingNotes: ProviderMeetingNotes;
   /** Last week's meeting_notes — carried into this week's "Review from Last Week / Action Steps" field. */
   previousMeetingNotes?: ProviderMeetingNotes;
+  /** New patient names from exactly 6 weeks ago — due for a 6 week progress check-in. */
+  sixWeekReviewNames?: string[];
+  sixWeekReviewWeek?: string;
+  /** This provider's own cancelled clients with no future booking at all — not scoped to this week. */
+  notRebookedClients?: CancellationEventRow[];
   clinicHistory?: ClinicWeekRow[];
   /** Only count weeks from this date forward toward bonus-tier cumulative turnover. */
   seniorSince?: string | null;
@@ -152,7 +160,20 @@ export function ProviderDetailView({
             history={history}
             section="metrics"
           />
-          {Array.isArray(newPatientNames) && <NewPatientsCard names={newPatientNames as string[]} />}
+          <NewPatientsCard
+            names={Array.isArray(newPatientNames) ? (newPatientNames as string[]) : []}
+            sixWeekReviewNames={sixWeekReviewNames}
+            sixWeekReviewWeek={sixWeekReviewWeek}
+          />
+          <Card
+            title={`Not Rebooked — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
+          >
+            {notRebookedClients && notRebookedClients.length > 0 ? (
+              <CancellationsTable rows={notRebookedClients} hideProvider />
+            ) : (
+              <p className="text-xs text-muted">No clients currently sitting without a future booking.</p>
+            )}
+          </Card>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -225,7 +246,25 @@ export function ProviderDetailView({
         section="metrics"
       />
 
-      {variant !== "admin" && Array.isArray(newPatientNames) && <NewPatientsCard names={newPatientNames as string[]} />}
+      {variant !== "admin" && (
+        <NewPatientsCard
+          names={Array.isArray(newPatientNames) ? (newPatientNames as string[]) : []}
+          sixWeekReviewNames={sixWeekReviewNames}
+          sixWeekReviewWeek={sixWeekReviewWeek}
+        />
+      )}
+
+      {variant !== "admin" && (
+        <Card
+          title={`Not Rebooked — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
+        >
+          {notRebookedClients && notRebookedClients.length > 0 ? (
+            <CancellationsTable rows={notRebookedClients} hideProvider />
+          ) : (
+            <p className="text-xs text-muted">No clients currently sitting without a future booking.</p>
+          )}
+        </Card>
+      )}
 
       {variant === "admin" && clinicHistory && (
         <AdminSharedComplianceTable clinicHistory={clinicHistory} targets={effectiveTargets} />
