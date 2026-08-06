@@ -9,10 +9,14 @@ import { STATUS } from "@/components/charts/palette";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
+// not_applicable's grey is a hardcoded hex (not --color-muted) so the
+// `${color}1a` alpha-suffix trick used elsewhere works the same as the
+// other three ratings.
 const RATING_COLOR: Record<KpaRating, string> = {
   above_and_beyond: STATUS.good,
   demonstrated: STATUS.warning,
   not_met: STATUS.critical,
+  not_applicable: "#8b93a5",
 };
 
 /**

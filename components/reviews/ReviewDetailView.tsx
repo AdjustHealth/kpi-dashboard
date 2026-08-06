@@ -23,6 +23,7 @@ const RATING_COLOR: Record<KpaRating, string> = {
   above_and_beyond: STATUS.good,
   demonstrated: STATUS.warning,
   not_met: STATUS.critical,
+  not_applicable: "#8b93a5",
 };
 
 interface NewGoal {

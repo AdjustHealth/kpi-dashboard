@@ -27,14 +27,17 @@ function average(values: number[]): number | null {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-/** Highest-rating-wins tiebreak order for the mode calculation below. */
-const RATING_RANK: Record<KpaRating, number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
+/** A KPA rating that actually carries a performance signal — excludes "not_applicable", which behaves like a blank/unrated week for rollup purposes (see computeKpaRollups). */
+type ScoredRating = Exclude<KpaRating, "not_applicable">;
 
-function modeRating(ratings: KpaRating[]): KpaRating | null {
+/** Highest-rating-wins tiebreak order for the mode calculation below. */
+const RATING_RANK: Record<ScoredRating, number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
+
+function modeRating(ratings: ScoredRating[]): ScoredRating | null {
   if (ratings.length === 0) return null;
-  const counts = new Map<KpaRating, number>();
+  const counts = new Map<ScoredRating, number>();
   for (const r of ratings) counts.set(r, (counts.get(r) ?? 0) + 1);
-  let best: KpaRating | null = null;
+  let best: ScoredRating | null = null;
   let bestCount = -1;
   for (const [rating, count] of counts) {
     if (count > bestCount || (count === bestCount && best !== null && RATING_RANK[rating] > RATING_RANK[best])) {
@@ -90,7 +93,10 @@ export function computeKpaRollups(rows: WeeklyRow[], fields: ProviderField[], as
       const ratings = rows
         .filter((r) => r.week_ending > start && r.week_ending <= asOf)
         .map((r) => r.kpas[field.key])
-        .filter((v): v is KpaRating => typeof v === "string" && (KPA_RATINGS as readonly string[]).includes(v));
+        .filter(
+          (v): v is ScoredRating =>
+            typeof v === "string" && v !== "not_applicable" && (KPA_RATINGS as readonly string[]).includes(v)
+        );
       result[field.key][window.key] = modeRating(ratings);
     }
   }

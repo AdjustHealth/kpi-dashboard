@@ -37,13 +37,20 @@ export interface ProviderField {
   sublabel?: string;
 }
 
-export const KPA_RATINGS = ["not_met", "demonstrated", "above_and_beyond"] as const;
+/**
+ * "not_applicable" ("N/A") is for a KPA that genuinely doesn't apply that
+ * week (e.g. a task tied to a specialty this person doesn't have) — it's
+ * not a performance signal at all, so rollups (lib/performanceReview.ts)
+ * treat it like no rating was given, the same as a blank week.
+ */
+export const KPA_RATINGS = ["not_met", "demonstrated", "above_and_beyond", "not_applicable"] as const;
 export type KpaRating = (typeof KPA_RATINGS)[number];
 
 export const KPA_RATING_LABELS: Record<KpaRating, string> = {
   not_met: "Not Met",
   demonstrated: "Demonstrated",
   above_and_beyond: "Above & Beyond",
+  not_applicable: "N/A",
 };
 
 export interface SpecialtyMetric extends ProviderField {
