@@ -254,11 +254,14 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 //     rsx to Tuesday") — the "to" sits BEFORE the tag, meaning "planning
 //     to reschedule", the opposite of the confirmed "rsx to Thurs 3.30pm"
 //     construction where "to" comes AFTER the tag naming the actual day.
+//   - "no rsx" — a flat "not rescheduled" note (e.g. "...doesn't want to
+//     commit to this, no rsx, follow up necessary"). Confirmed missed on a
+//     real Kelly White cancellation that read exactly this way.
 // A bare "rsx" with nothing else DOES still count — the director confirmed
 // that's a real (if terse) reschedule note, not a placeholder.
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN =
-  /declin\w*|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
+  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
 
 export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);

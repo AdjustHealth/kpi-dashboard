@@ -7,6 +7,7 @@ import {
   parseClientsAndCasesReport,
   parseOccupancyReport,
   parseProvidersAndPracticeReport,
+  isRescheduleNote,
 } from "@/lib/nookal/parsers";
 import { categorizePayer } from "@/lib/nookal/payerCategories";
 import { parseNookalDate, parsePercent, parseNumber, extractSection, parseCsvRows } from "@/lib/nookal/csv";
@@ -233,6 +234,32 @@ describe("parseOccupancyReport", () => {
   it("caps occupancy at 100% instead of the raw >100% figure a roster/schedule mismatch can produce in Nookal", () => {
     const result = parseOccupancyReport(OCCUPANCY_CSV);
     expect(result.byProvider["Robin Overbooked"].occupancyPct).toBe(1);
+  });
+});
+
+describe("isRescheduleNote", () => {
+  it("treats a bare rsx/rx tag as a real reschedule", () => {
+    expect(isRescheduleNote("rsx")).toBe(true);
+    expect(isRescheduleNote("rsx to Thurs 3.30pm")).toBe(true);
+  });
+
+  it("does not count 'no rsx' as a reschedule — a flat negation, not a confirmed one", () => {
+    expect(isRescheduleNote("no rsx")).toBe(false);
+    expect(isRescheduleNote("no rx")).toBe(false);
+    // The real Kelly White note that missed this case.
+    expect(
+      isRescheduleNote(
+        "Kelly White cnx mother called to book on his behalf but has just checked with him and he has too much on his plate and doesn't want to commit to this, no rsx, follow up necessary, brand new patient"
+      )
+    ).toBe(false);
+  });
+
+  it("still catches the other established negation phrasings", () => {
+    expect(isRescheduleNote("declined rsx")).toBe(false);
+    expect(isRescheduleNote("can't rsx")).toBe(false);
+    expect(isRescheduleNote("not able to rsx")).toBe(false);
+    expect(isRescheduleNote("offered a rsx")).toBe(false);
+    expect(isRescheduleNote("will call back tomorrow to rsx")).toBe(false);
   });
 });
 

@@ -5,6 +5,15 @@ import { ADMIN_SHARED_COMPLIANCE_FIELDS } from "@/lib/providerSchema";
 import { targetColor } from "@/lib/targetColor";
 import { ClinicWeekRow } from "@/lib/clinicData";
 
+const DAILY_ANSWERED_CALLS_FIELDS: { id: string; day: string }[] = [
+  { id: "admin_answered_calls_mon", day: "Mon" },
+  { id: "admin_answered_calls_tue", day: "Tue" },
+  { id: "admin_answered_calls_wed", day: "Wed" },
+  { id: "admin_answered_calls_thu", day: "Thu" },
+  { id: "admin_answered_calls_fri", day: "Fri" },
+  { id: "admin_answered_calls_sat", day: "Sat" },
+];
+
 /**
  * Read-only view of the admin-team fields every admin staff member shares
  * identically (Diary Management, Follow Up Phone Calls, Answered Calls) —
@@ -23,6 +32,8 @@ export function AdminSharedComplianceTable({
   clinicHistory: ClinicWeekRow[];
   targets: Record<string, unknown>;
 }) {
+  const currentWeek = clinicHistory[clinicHistory.length - 1];
+
   return (
     <Card title="Compliance">
       <div className="overflow-x-auto">
@@ -69,6 +80,25 @@ export function AdminSharedComplianceTable({
           </tbody>
         </table>
       </div>
+
+      {currentWeek && (
+        <div className="mt-5 rounded-lg border border-dashed border-accent/40 bg-accent/5 p-4">
+          <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-accent">
+            Answered Calls — Daily ({formatWeekLabel(currentWeek.week_ending)})
+          </h4>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {DAILY_ANSWERED_CALLS_FIELDS.map((f) => (
+              <div key={f.id} className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted">{f.day}</span>
+                <div className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-foreground">
+                  {formatValue(currentWeek[f.id] as number | null, "percent")}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-muted">
         Shared across every admin staff member — edit on Weekly Input&apos;s Admin Meeting Prep section.
       </p>
