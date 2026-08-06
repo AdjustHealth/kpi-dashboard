@@ -56,7 +56,15 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 11, id: "m_gym3p", label: "3rd Party Gym Revenue", source: "calc", type: "currency", category: "Gym" },
   { idx: 13, id: "gym_total", label: "Total Gym Revenue", source: "calc", type: "currency", category: "Gym" },
   { idx: 14, id: "m_mems", label: "Paid Memberships", source: "manual", type: "number", category: "Gym" },
-  { idx: 15, id: "m_pod_rev", label: "Podiatry Revenue (÷2)", source: "manual", type: "currency", category: "Podiatry" },
+  // Podiatry revenue is only known fortnightly (collected/reconciled every
+  // 2 weeks, in arrears) — m_pod_fortnightly is where the real, un-halved
+  // figure gets typed in once, on whichever week it comes in; the
+  // weekly-kpis PATCH handler then automatically splits it in half into
+  // that week's AND the previous week's m_pod_rev, so the weekly view
+  // still has a smooth number every week without manual division/typing it
+  // twice. m_pod_rev itself stays a normal writable column (not generated),
+  // correctable by hand if it's ever wrong.
+  { idx: 15, id: "m_pod_rev", label: "Podiatry Revenue (weekly)", source: "calc", type: "currency", category: "Podiatry" },
   { idx: 16, id: "m_pod_c", label: "Podiatry Consults", source: "manual", type: "number", category: "Podiatry" },
   { idx: 17, id: "m_pod_ytd", label: "Podiatry YTD Revenue", source: "manual", type: "currency", category: "Podiatry" },
   { idx: 18, id: "total_adjust_pod_rev", label: "Total Adjust + Podiatry Revenue", source: "calc", type: "currency", category: "Revenue" },
@@ -152,6 +160,13 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 85, id: "admin_answered_calls_thu", label: "Answered Calls % — Thursday", source: "manual", type: "percent", category: "Admin" },
   { idx: 86, id: "admin_answered_calls_fri", label: "Answered Calls % — Friday", source: "manual", type: "percent", category: "Admin" },
   { idx: 87, id: "admin_answered_calls_sat", label: "Answered Calls % — Saturday", source: "manual", type: "percent", category: "Admin" },
+  // Podiatry revenue is only known fortnightly (collected/reconciled every
+  // 2 weeks, in arrears) — the real, un-halved figure is typed in once,
+  // on whichever week it comes in; the weekly-kpis PATCH handler then
+  // automatically splits it in half into that week's AND the previous
+  // week's m_pod_rev, so the weekly view still has a smooth number every
+  // week without manual division/typing it twice.
+  { idx: 88, id: "m_pod_fortnightly", label: "Podiatry Fortnightly Revenue (actual, entered once per fortnight)", source: "manual", type: "currency", category: "Podiatry" },
 ];
 
 export function getClinicHeaders(): string[] {

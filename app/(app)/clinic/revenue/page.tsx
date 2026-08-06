@@ -208,9 +208,15 @@ export default async function RevenuePage({
 
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Podiatry</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <p className="mb-3 text-xs text-muted">
+            Revenue is only known fortnightly — entered once as the real total, then split in half automatically
+            into that week and the previous week. YTD is tracked separately (its own running total, not a sum of
+            the weekly figures here).
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile {...clinicStatTile(history, "m_pod_rev")} label="Podiatry Revenue" />
             <StatTile {...clinicStatTile(history, "m_pod_c")} label="Podiatry Consults" />
+            <StatTile {...clinicStatTile(history, "m_pod_ytd")} label="Podiatry YTD Revenue" />
           </div>
           <div className="mt-4">
             <Card title="Podiatry Revenue Trend">
