@@ -121,6 +121,7 @@ export async function applyNookalReport(
     clinicPatch.rev_other = result.revenueByPayerCategory.other;
     clinicPatch.jbv_initial = result.jbvInitialCount;
     clinicPatch.jbv_sub = result.jbvSubCount;
+    clinicPatch.m_gym3p = result.gym3pRevenue;
     clinicPatch.specialty_vestibular_initial = result.specialtyCounts.vestibular.initial;
     clinicPatch.specialty_vestibular_sub = result.specialtyCounts.vestibular.sub;
     clinicPatch.specialty_headaches_initial = result.specialtyCounts.headaches.initial;

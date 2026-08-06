@@ -56,6 +56,36 @@ const SPECIALTY_CATEGORY_PATTERNS: Record<string, RegExp> = {
 const TRAVEL_ITEM_PATTERN = /travel/i;
 
 /**
+ * 3rd-party-funded gym/group-exercise service items — the director's own
+ * fixed list of what counts as "3rd Party Gym Revenue" (previously a manual
+ * weekly figure she added up by hand from these same item names). Matched
+ * against the Item column only (not Case+Item like the specialty patterns
+ * above) since these are specific billable service names, confirmed against
+ * real exports: "Adjust Gym Membership (Weekly)"/"Adjust Move Strong
+ * Membership (Weekly)" (WC/NDIS-payer members, never seen under a Private
+ * invoice — private members bill under a differently-named "GYM Private
+ * Subs..." item, so there's no overlap with Glofox's own private-member
+ * billing), "WC Physio Group Exercise Sessions 100106", "WC EXPHYS Group
+ * Exercise Session 300401" (the trailing number is a billing code that
+ * varies — matched by prefix), and "NDIS Program Management – Physio
+ * (Non-F2F)". The remaining three (DVA EXPHYS/Physio Group Class,
+ * NDIS Core Supports Group Physio) haven't appeared in any export seen so
+ * far, so they're matched on the director's given wording as closely as
+ * possible but unverified against a real row.
+ */
+const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
+  /adjust gym membership/i,
+  /adjust move strong membership/i,
+  /dva\s*exphys\s*group\s*class/i,
+  /dva\s*physio\s*group\s*class/i,
+  /ndis\s*core\s*supports\s*group\s*physio/i,
+  /ndis\s*idl\s*virtual\s*prog/i,
+  /ndis\s*program\s*management.*non.f2f/i,
+  /wc\s*exphys\s*group\s*exercise/i,
+  /wc\s*physio\s*group\s*exercise/i,
+];
+
+/**
  * Activity Report — revenue detail, one row per invoiced line item.
  *
  * Quirk: the Details section only lists "Service" line items — Classes,
@@ -90,6 +120,7 @@ export function parseActivityReport(
       Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
     ),
     clientsSeenNames: [],
+    gym3pRevenue: 0,
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -98,6 +129,7 @@ export function parseActivityReport(
   const revenueByPayerCategory: Record<PayerCategory, number> = { ...EMPTY_PAYER_TOTALS };
   let jbvInitialCount = 0;
   let jbvSubCount = 0;
+  let gym3pRevenue = 0;
   const keywordCountsByProvider: Record<string, Record<string, number>> = {};
   for (const name of Object.keys(keywordPatterns)) keywordCountsByProvider[name] = {};
   const specialtyCounts: Record<string, { total: number; initial: number; sub: number }> = Object.fromEntries(
@@ -120,6 +152,10 @@ export function parseActivityReport(
     if (JBV_PATTERN.test(itemText)) {
       if (JBV_SUB_PATTERN.test(itemText)) jbvSubCount += 1;
       else if (JBV_INIT_PATTERN.test(itemText)) jbvInitialCount += 1;
+    }
+
+    if (amount !== null && GYM_3RD_PARTY_ITEM_PATTERNS.some((p) => p.test(r["Item"] ?? ""))) {
+      gym3pRevenue += amount;
     }
 
     for (const [key, pattern] of Object.entries(SPECIALTY_CATEGORY_PATTERNS)) {
@@ -148,6 +184,7 @@ export function parseActivityReport(
     keywordCountsByProvider,
     specialtyCounts,
     clientsSeenNames: Array.from(clientsSeen),
+    gym3pRevenue,
   };
 }
 

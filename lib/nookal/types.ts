@@ -18,6 +18,14 @@ export interface ActivityReportResult {
   specialtyCounts: Record<string, { total: number; initial: number; sub: number }>;
   /** Every distinct client with at least one line item this week — used to compute New Patient Retention (were this week's new patients still showing up N weeks later) without a full per-client attendance ledger. */
   clientsSeenNames: string[];
+  /**
+   * Sum of Amount for rows whose Item matches one of the director's fixed
+   * list of 3rd-party-funded gym/group-exercise service items (WC/DVA/NDIS
+   * gym memberships and group classes, invoiced through Nookal rather than
+   * Glofox's private direct-debit billing) — replaces the old manual
+   * weekly figure. See GYM_3RD_PARTY_ITEM_PATTERNS in parsers.ts.
+   */
+  gym3pRevenue: number;
 }
 
 export interface OccupancyReportResult {

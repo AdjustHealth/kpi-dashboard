@@ -410,6 +410,38 @@ describe("parseActivityReport", () => {
     expect(result.jbvSubCount).toBe(0);
   });
 
+  it("has no 3rd party gym revenue in a file with no gym items", () => {
+    const result = parseActivityReport(ACTIVITY_CSV);
+    expect(result.gym3pRevenue).toBe(0);
+  });
+
+  it("sums 3rd party gym revenue from the fixed item list, excluding private gym memberships (a differently-named item)", () => {
+    const GYM_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,438.00,0,438.00
+Total,438.00,0,438.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Test Client One,WC - Gym Membership,Adjust Gym Membership (Weekly),Service,4001,01/07/2026,Workcover QLD,,65.00,0.00,0.00,65.00,0.00,4001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Move Strong - Plan,Adjust Move Strong Membership (Weekly),Service,4002,02/07/2026,NDIS,,72.00,0.00,0.00,72.00,0.00,4002
+03/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Three,City Cover GROUP EXERCISE,WC Physio Group Exercise Sessions 100106,Service,4003,03/07/2026,Workcover QLD,,58.00,0.00,0.00,58.00,0.00,4003
+04/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Four,WC GROUP EXERCISE,WC EXPHYS Group Exercise Session 300401,Service,4004,04/07/2026,Workcover QLD,,60.00,0.00,0.00,60.00,0.00,4004
+05/07/2026,Alex Example,Adjust Physiotherapy,Test Client Five,NDIS Self Managed,NDIS Program Management – Physio (Non-F2F),Service,4005,05/07/2026,NDIS,,65.00,0.00,0.00,65.00,0.00,4005
+06/07/2026,Alex Example,Adjust Physiotherapy,Test Client Six,Gym Membership,GYM Private Subs 505 (Member),Service,4006,06/07/2026,Private,,118.00,0.00,0.00,118.00,0.00,4006
+
+`;
+    const result = parseActivityReport(GYM_CSV);
+    // 65 + 72 + 58 + 60 + 65 = 320 — the private member's "GYM Private Subs
+    // 505" (a differently-named item) must NOT be included.
+    expect(result.gym3pRevenue).toBeCloseTo(320, 2);
+  });
+
   it("detects JBV Initial vs Subsequent from the Case/Item text", () => {
     const JBV_CSV = `Activity Report
 

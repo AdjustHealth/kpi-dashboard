@@ -97,7 +97,7 @@ export function WeeklyInputForm({
           <Card title="Gym &amp; Podiatry">
             <ClinicFieldGrid
               fields={[
-                ...getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total"),
+                ...getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total" && f.id !== "m_gym3p"),
                 ...getClinicFieldsByCategory("Podiatry"),
               ]}
               values={weekly}
@@ -207,21 +207,24 @@ export function WeeklyInputForm({
           <Card title="Clinic — UCVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
               UCVA by tier auto-fills from the Business Performance Report upload above, averaged by experience
-              tier. JBV and Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent all auto-fill from the
-              Activity Report by counting rows whose service item matches each keyword. Every field below is still
-              editable if you need to correct one.
+              tier. JBV, Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent, and 3rd Party Gym Revenue
+              all auto-fill from the Activity Report by matching each row&apos;s service item against a fixed list.
+              Every field below is still editable if you need to correct one.
             </p>
             <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("Clinic").filter(
-                (f) =>
-                  ![
-                    "jbv_total",
-                    "specialty_vestibular_total",
-                    "specialty_headaches_total",
-                    "specialty_paeds_total",
-                    "specialty_womens_health_total",
-                  ].includes(f.id)
-              )}
+              fields={[
+                ...getClinicFieldsByCategory("Clinic").filter(
+                  (f) =>
+                    ![
+                      "jbv_total",
+                      "specialty_vestibular_total",
+                      "specialty_headaches_total",
+                      "specialty_paeds_total",
+                      "specialty_womens_health_total",
+                    ].includes(f.id)
+                ),
+                ...getClinicFieldsByCategory("Gym").filter((f) => f.id === "m_gym3p"),
+              ]}
               values={weekly}
               onChange={onChange}
             />
