@@ -68,8 +68,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 24, id: "cx_rsx_pct", label: "Reschedule %", source: "calc", type: "percent", category: "CX" },
   { idx: 25, id: "cx_in7_pct", label: "Booked Within 7 Days %", source: "calc", type: "percent", category: "CX" },
 
-  // Diary management (Weekly Input spec)
-  { idx: 26, id: "bookings_start_week", label: "Bookings at Start of Week", source: "manual", type: "number", category: "Diary" },
+  // Diary management (Weekly Input spec). bookings_start_week is auto-
+  // carried from the PREVIOUS week's bookings_following_week (same number,
+  // it's just next week's starting position) — see the PATCH handler in
+  // app/api/weekly-kpis/route.ts. Still a normal writable column (not a
+  // generated one), correctable by hand if it's ever genuinely wrong.
+  { idx: 26, id: "bookings_start_week", label: "Bookings at Start of Week", source: "calc", type: "number", category: "Diary" },
   { idx: 27, id: "bookings_following_week", label: "Total Bookings for Following Week", source: "manual", type: "number", category: "Diary" },
   { idx: 28, id: "diary_mgmt_pct", label: "Diary Management %", source: "calc", type: "percent", category: "Diary" },
   // Scoped to new clients only, not every booking: of this week's new

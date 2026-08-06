@@ -94,15 +94,16 @@ export function WeeklyInputForm({
           These numbers aren&apos;t in any Nookal report — they need to be typed in every week.
         </p>
         <div className="flex flex-col gap-6">
-          <Card title="Gym &amp; Podiatry">
+          <Card title="Gym">
             <ClinicFieldGrid
-              fields={[
-                ...getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total" && f.id !== "m_gym3p"),
-                ...getClinicFieldsByCategory("Podiatry"),
-              ]}
+              fields={getClinicFieldsByCategory("Gym").filter((f) => f.id !== "gym_total" && f.id !== "m_gym3p")}
               values={weekly}
               onChange={onChange}
             />
+          </Card>
+
+          <Card title="Podiatry">
+            <ClinicFieldGrid fields={getClinicFieldsByCategory("Podiatry")} values={weekly} onChange={onChange} />
           </Card>
 
           <Card title="Diary Management">
