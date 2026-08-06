@@ -87,7 +87,12 @@ export function GoalsCard({ providerId, initialGoals }: { providerId: string; in
           }}
         >
           {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value} className="text-foreground">
+            // The dropdown's open option list is native OS chrome, not
+            // themeable via Tailwind's dark-mode text color — it renders on
+            // a light popup background regardless of the page's own dark
+            // theme, so options need an explicitly dark, always-readable
+            // color rather than inheriting the (near-white) --foreground.
+            <option key={opt.value} value={opt.value} style={{ color: "#111318", backgroundColor: "#ffffff" }}>
               {opt.label}
             </option>
           ))}
