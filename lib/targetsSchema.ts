@@ -107,6 +107,7 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
       { key: "diary_management_pct", label: "Diary Management", type: "percent" },
       { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent" },
       { key: "onboarding_video_pct", label: "Onboarding Videos Sent", type: "percent" },
+      { key: "online_booking_pct", label: "New Clients Booked Online", type: "percent" },
       { key: "email_optin_pct", label: "New Clients Subscribed (Email Opt-In)", type: "percent" },
       { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number" },
       { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent" },

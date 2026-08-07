@@ -141,6 +141,7 @@ export const ADMIN_COMPLIANCE_FIELDS: AdminComplianceField[] = [
   { key: "diary_management_pct", label: "Diary Management", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "diary_mgmt_pct" },
   { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_followup_calls" },
   { key: "onboarding_video_pct", label: "Onboarding Videos Sent", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_onboarding_video_pct" },
+  { key: "online_booking_pct", label: "New Clients Booked Online", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "online_bookings_pct" },
   { key: "email_optin_pct", label: "New Clients Subscribed (Email Opt-In)", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_email_optin_pct" },
   { key: "answered_calls_pct", label: "Answered Calls (week avg)", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_answered_calls_pct" },
   { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher", source: "own" },

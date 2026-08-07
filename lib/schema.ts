@@ -88,8 +88,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // clients (excl. Pre-Employment — same population as total_nc's per-
   // provider figure), how many booked their initial appointment online vs.
   // by phone/in person. e.g. 14 new clients, 5 booked online -> total=14, new=5.
-  { idx: 29, id: "online_bookings_total", label: "New Clients (Online Bookings denominator)", source: "manual", type: "number", category: "Diary" },
-  { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "manual", type: "number", category: "Diary" },
+  { idx: 29, id: "online_bookings_total", label: "New Clients (Online Bookings denominator)", source: "calc", type: "number", category: "Diary" },
+  { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "calc", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
   { idx: 31, id: "cva_new_grads", label: "UCVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
@@ -103,8 +103,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // Admin manual fields (Weekly Input spec) — entered once, shared
   // identically across every admin staff member's KPI Scorecard/Compliance
   // (they're clinic-level admin-team metrics, not each admin's own number).
-  { idx: 38, id: "admin_followup_calls", label: "Follow-up Calls Completed %", source: "manual", type: "percent", category: "Admin" },
-  { idx: 39, id: "admin_onboarding_video_pct", label: "Onboarding Videos Sent %", source: "manual", type: "percent", category: "Admin" },
+  { idx: 38, id: "admin_followup_calls", label: "Follow-up Calls Completed %", source: "calc", type: "percent", category: "Admin" },
+  { idx: 39, id: "admin_onboarding_video_pct", label: "Onboarding Videos Sent %", source: "calc", type: "percent", category: "Admin" },
   { idx: 40, id: "admin_email_optin_pct", label: "% of New Clients Subscribed (Email Opt-In)", source: "manual", type: "percent", category: "Admin" },
 
   // Revenue by payer (auto-populated from the Nookal Activity Report; see lib/nookal/payerCategories.ts)
@@ -167,6 +167,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // week's m_pod_rev, so the weekly view still has a smooth number every
   // week without manual division/typing it twice.
   { idx: 88, id: "m_pod_fortnightly", label: "Podiatry Fortnightly Revenue (actual, entered once per fortnight)", source: "manual", type: "currency", category: "Podiatry" },
+
+  // online_bookings_total/online_bookings_new are now auto-counted from the
+  // New Client Checklist (admin_new_client_tasks — see
+  // app/api/admin-client-tasks/route.ts) instead of hand-typed; this is the
+  // derived %, a Postgres generated column same as diary_mgmt_pct.
+  { idx: 89, id: "online_bookings_pct", label: "New Clients Booked Online %", source: "calc", type: "percent", category: "Diary" },
 ];
 
 export function getClinicHeaders(): string[] {

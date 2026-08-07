@@ -8,6 +8,7 @@ import { ClinicFieldGrid } from "@/components/inputs/ClinicFieldGrid";
 import { NumberField } from "@/components/inputs/NumberField";
 import { NookalUpload } from "@/components/inputs/NookalUpload";
 import { ChecklistCard } from "@/components/provider/ChecklistCard";
+import { NewClientChecklistCard } from "@/components/inputs/NewClientChecklistCard";
 import { getClinicFieldsByCategory } from "@/lib/schema";
 import { COMPLIANCE_FIELDS } from "@/lib/providerSchema";
 import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
@@ -118,7 +119,9 @@ export function WeeklyInputForm({
 
           <Card title="Diary Management">
             <ClinicFieldGrid
-              fields={getClinicFieldsByCategory("Diary").filter((f) => f.id !== "diary_mgmt_pct")}
+              fields={getClinicFieldsByCategory("Diary").filter(
+                (f) => !["diary_mgmt_pct", "online_bookings_total", "online_bookings_new", "online_bookings_pct"].includes(f.id)
+              )}
               values={weekly}
               onChange={onChange}
             />
@@ -149,10 +152,15 @@ export function WeeklyInputForm({
               Entered once, shown identically on every admin staff member&apos;s page. OBV Number Not Sent and Rx
               Notes Made are each admin&apos;s own number now — edit those on their individual page instead.
             </p>
+            <NewClientChecklistCard week={week} />
             <Card title="Admin">
               <ClinicFieldGrid
                 fields={getClinicFieldsByCategory("Admin").filter(
-                  (f) => f.id !== "admin_answered_calls_pct" && !f.id.startsWith("admin_answered_calls_")
+                  (f) =>
+                    f.id !== "admin_answered_calls_pct" &&
+                    !f.id.startsWith("admin_answered_calls_") &&
+                    f.id !== "admin_followup_calls" &&
+                    f.id !== "admin_onboarding_video_pct"
                 )}
                 values={weekly}
                 onChange={onChange}
