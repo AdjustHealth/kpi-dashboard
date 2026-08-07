@@ -30,9 +30,9 @@ describe("getEffectiveTargets", () => {
   });
 
   it("admin pulls its shared flat targets from the 'admin' group and never gets a CVA target", () => {
-    const roleTargets = { admin: { obv_not_sent: 1 } };
+    const roleTargets = { admin: { obv_sent_pct: 1 } };
     const targets = getEffectiveTargets({ role: "admin", targets: {} }, roleTargets);
-    expect(targets.obv_not_sent).toBe(1);
+    expect(targets.obv_sent_pct).toBe(1);
     expect(targets.ucva).toBeUndefined();
   });
 

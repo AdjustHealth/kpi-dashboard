@@ -108,11 +108,23 @@ export function KpaScorecardTable({
       }
     >
       <div className="flex flex-col divide-y divide-border/60">
+        {showNotes && (
+          <div className="hidden pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted lg:grid lg:grid-cols-[minmax(0,1fr)_auto_300px] lg:gap-6">
+            <span>KPA</span>
+            <span>History</span>
+            <span>Prep Notes</span>
+          </div>
+        )}
         {fields.map((field) => (
-          <div key={field.key} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+          <div
+            key={field.key}
+            className={`flex flex-col gap-3 py-3 first:pt-0 last:pb-0 lg:grid lg:items-start lg:gap-6 ${
+              showNotes ? "lg:grid-cols-[minmax(0,1fr)_auto_300px]" : "lg:grid-cols-[minmax(0,1fr)_auto]"
+            }`}
+          >
             <div className="max-w-xl lg:pt-1">
-              <div className="text-sm font-bold text-foreground">{field.label}</div>
-              {field.sublabel && <div className="mt-0.5 text-xs text-muted">{field.sublabel}</div>}
+              <div className="text-sm font-semibold text-foreground">{field.label}</div>
+              {field.sublabel && <div className="mt-0.5 text-xs leading-snug text-muted">{field.sublabel}</div>}
             </div>
             <div className="flex flex-shrink-0 items-center gap-1.5 lg:pt-1">
               {history.map((w, i) => {
@@ -160,8 +172,9 @@ export function KpaScorecardTable({
               <Textarea
                 value={(current[`${field.key}_note`] as string | null | undefined) ?? ""}
                 onChange={(e) => updateNote(field.key, e.target.value)}
-                placeholder="Notes for prepping this meeting..."
-                className="w-full text-sm lg:w-72"
+                placeholder="Notes for prepping this meeting…"
+                rows={3}
+                className="w-full text-sm leading-snug"
               />
             )}
           </div>

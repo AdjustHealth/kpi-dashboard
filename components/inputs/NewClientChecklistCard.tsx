@@ -12,18 +12,26 @@ interface ClientTask {
   online_booking: boolean | null;
   onboarding_video_sent: boolean | null;
   followup_call_made: boolean | null;
+  obv_sent: boolean | null;
 }
 
-type TaskKey = "online_booking" | "onboarding_video_sent" | "followup_call_made";
+type TaskKey = "online_booking" | "onboarding_video_sent" | "followup_call_made" | "obv_sent";
+
+const TASK_COLUMNS: { key: TaskKey; label: string }[] = [
+  { key: "online_booking", label: "Online Booking" },
+  { key: "onboarding_video_sent", label: "Onboarding Video Sent" },
+  { key: "followup_call_made", label: "Follow Up Call" },
+  { key: "obv_sent", label: "OBV Sent" },
+];
 
 /**
  * Replaces Dayle's manual new-client spreadsheet — one row per new client
  * this week (auto-populated from each clinician's new patient list, already
  * excluding Pre-Employment), tick Online Booking / Onboarding Video Sent /
- * Follow Up Call per client instead of hand-counting and typing a %. The %
- * is calculated automatically and written straight into weekly_kpis
- * (Online Bookings, Follow-up Calls, Onboarding Videos Sent), so those
- * fields on this page are now read-only "Auto" — see
+ * Follow Up Call / OBV Sent per client instead of hand-counting and typing
+ * a %. The % is calculated automatically and written straight into
+ * weekly_kpis (Online Bookings, Follow-up Calls, Onboarding Videos Sent,
+ * OBV Sent), so those fields on this page are now read-only "Auto" — see
  * app/api/admin-client-tasks/route.ts.
  */
 export function NewClientChecklistCard({ week }: { week: string }) {
@@ -83,8 +91,8 @@ export function NewClientChecklistCard({ week }: { week: string }) {
     <Card title="New Client Checklist">
       <p className="mb-4 text-xs text-muted">
         Auto-populated from this week&apos;s new clients (Pre-Employment already excluded). Tick each box as it&apos;s
-        done — Online Bookings %, Follow-up Calls %, and Onboarding Videos Sent % below are calculated from this and
-        feed straight into the admin meeting sheets.
+        done — Online Bookings %, Onboarding Videos Sent %, Follow-up Calls %, and OBV Sent % below are calculated
+        from this and feed straight into the admin meeting sheets.
       </p>
 
       {error ? (
@@ -104,9 +112,9 @@ export function NewClientChecklistCard({ week }: { week: string }) {
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                   <th className="py-2 pr-3 font-medium">Client</th>
                   <th className="py-2 px-3 font-medium">Provider</th>
-                  <th className="py-2 px-3 text-center font-medium">Online Booking</th>
-                  <th className="py-2 px-3 text-center font-medium">Onboarding Video Sent</th>
-                  <th className="py-2 px-3 text-center font-medium">Follow Up Call</th>
+                  {TASK_COLUMNS.map((col) => (
+                    <th key={col.key} className="py-2 px-3 text-center font-medium">{col.label}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -117,12 +125,12 @@ export function NewClientChecklistCard({ week }: { week: string }) {
                     <tr key={task.id} className={`border-b border-border/60 last:border-0 ${savingIds.has(task.id) ? "opacity-60" : ""}`}>
                       <td className="py-2 pr-3 text-foreground whitespace-nowrap">{task.client_name}</td>
                       <td className="py-2 px-3 text-muted whitespace-nowrap">{task.provider_name}</td>
-                      {(["online_booking", "onboarding_video_sent", "followup_call_made"] as TaskKey[]).map((key) => (
-                        <td key={key} className="py-2 px-3 text-center">
+                      {TASK_COLUMNS.map((col) => (
+                        <td key={col.key} className="py-2 px-3 text-center">
                           <input
                             type="checkbox"
-                            checked={task[key] === true}
-                            onChange={() => toggle(task, key)}
+                            checked={task[col.key] === true}
+                            onChange={() => toggle(task, col.key)}
                             className="h-4 w-4 accent-accent"
                           />
                         </td>
@@ -133,19 +141,13 @@ export function NewClientChecklistCard({ week }: { week: string }) {
             </table>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-border bg-surface-raised px-3 py-2">
-              <div className="text-xs text-muted">Online Bookings</div>
-              <div className="text-sm font-medium text-foreground">{formatValue(pct("online_booking"), "percent")}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface-raised px-3 py-2">
-              <div className="text-xs text-muted">Onboarding Videos Sent</div>
-              <div className="text-sm font-medium text-foreground">{formatValue(pct("onboarding_video_sent"), "percent")}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface-raised px-3 py-2">
-              <div className="text-xs text-muted">Follow Up Calls</div>
-              <div className="text-sm font-medium text-foreground">{formatValue(pct("followup_call_made"), "percent")}</div>
-            </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
+            {TASK_COLUMNS.map((col) => (
+              <div key={col.key} className="rounded-lg border border-border bg-surface-raised px-3 py-2">
+                <div className="text-xs text-muted">{col.label}</div>
+                <div className="text-sm font-medium text-foreground">{formatValue(pct(col.key), "percent")}</div>
+              </div>
+            ))}
           </div>
         </>
       )}

@@ -149,8 +149,8 @@ export function WeeklyInputForm({
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-semibold text-foreground">Admin Meeting Prep</h3>
             <p className="text-xs text-muted">
-              Entered once, shown identically on every admin staff member&apos;s page. OBV Number Not Sent and Rx
-              Notes Made are each admin&apos;s own number now — edit those on their individual page instead.
+              Entered once, shown identically on every admin staff member&apos;s page. Rx Notes Made is each
+              admin&apos;s own number — edit that on their individual page instead.
             </p>
             <NewClientChecklistCard week={week} />
             <Card title="Admin">
@@ -160,7 +160,8 @@ export function WeeklyInputForm({
                     f.id !== "admin_answered_calls_pct" &&
                     !f.id.startsWith("admin_answered_calls_") &&
                     f.id !== "admin_followup_calls" &&
-                    f.id !== "admin_onboarding_video_pct"
+                    f.id !== "admin_onboarding_video_pct" &&
+                    f.id !== "admin_obv_sent_pct"
                 )}
                 values={weekly}
                 onChange={onChange}

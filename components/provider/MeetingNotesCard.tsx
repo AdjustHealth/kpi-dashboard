@@ -148,7 +148,7 @@ export function MeetingNotesCard({
       <div className="flex flex-col gap-4">
         <Field label="New Agenda Items" hint="Start a line with “- ” to dot-point it — it carries onto the next line automatically.">
           <Textarea
-            rows={6}
+            rows={9}
             value={notes.agenda_items ?? ""}
             onChange={(e) => updateText("agenda_items", e.target.value)}
             {...fieldFocusHandlers("agenda_items")}
@@ -166,40 +166,54 @@ export function MeetingNotesCard({
         </Field>
 
         {adminMode ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted">Proud Of</span>
-              <Field label="You">
-                <Input
-                  value={notes.proud_of_self ?? ""}
-                  onChange={(e) => updateText("proud_of_self", e.target.value)}
-                  {...fieldFocusHandlers("proud_of_self")}
-                />
-              </Field>
-              <Field label="Directors">
-                <Input
-                  value={notes.proud_of_director ?? ""}
-                  onChange={(e) => updateText("proud_of_director", e.target.value)}
-                  {...fieldFocusHandlers("proud_of_director")}
-                />
-              </Field>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted">Grateful For</span>
-              <Field label="You">
-                <Input
-                  value={notes.grateful_for_self ?? ""}
-                  onChange={(e) => updateText("grateful_for_self", e.target.value)}
-                  {...fieldFocusHandlers("grateful_for_self")}
-                />
-              </Field>
-              <Field label="Directors">
-                <Input
-                  value={notes.grateful_for_director ?? ""}
-                  onChange={(e) => updateText("grateful_for_director", e.target.value)}
-                  {...fieldFocusHandlers("grateful_for_director")}
-                />
-              </Field>
+          <div
+            className="rounded-xl p-[3px]"
+            style={{
+              background:
+                "linear-gradient(90deg, #ff3b3b, #ff9f1c, #ffe135, #4ade80, #22d3ee, #3b82f6, #a855f7, #ff3b3b)",
+            }}
+          >
+            <div className="rounded-[10px] bg-surface p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <span aria-hidden className="text-lg">🦄</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">Proud Of &amp; Grateful For</span>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted">Proud Of</span>
+                  <Field label="You">
+                    <Input
+                      value={notes.proud_of_self ?? ""}
+                      onChange={(e) => updateText("proud_of_self", e.target.value)}
+                      {...fieldFocusHandlers("proud_of_self")}
+                    />
+                  </Field>
+                  <Field label="Directors">
+                    <Input
+                      value={notes.proud_of_director ?? ""}
+                      onChange={(e) => updateText("proud_of_director", e.target.value)}
+                      {...fieldFocusHandlers("proud_of_director")}
+                    />
+                  </Field>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted">Grateful For</span>
+                  <Field label="You">
+                    <Input
+                      value={notes.grateful_for_self ?? ""}
+                      onChange={(e) => updateText("grateful_for_self", e.target.value)}
+                      {...fieldFocusHandlers("grateful_for_self")}
+                    />
+                  </Field>
+                  <Field label="Directors">
+                    <Input
+                      value={notes.grateful_for_director ?? ""}
+                      onChange={(e) => updateText("grateful_for_director", e.target.value)}
+                      {...fieldFocusHandlers("grateful_for_director")}
+                    />
+                  </Field>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

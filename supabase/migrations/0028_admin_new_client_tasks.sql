@@ -7,10 +7,11 @@
 -- written into weekly_kpis (see app/api/admin-client-tasks/route.ts)
 -- instead of being hand-typed and re-summed every week.
 --
--- OBV Number Not Sent stays out of scope here — the director already moved
--- it to each admin's own individual number in 0025_admin_fields_restructure
--- (it isn't a single clinic-wide figure), so it isn't part of this
--- per-client checklist.
+-- OBV Sent is tracked here too (director correction: 0025_admin_fields_
+-- restructure moved it to each admin's own individual number, but it's
+-- genuinely clinic-wide like Follow Up Calls/Onboarding Video/Online
+-- Booking — same per-client checklist population as the OBV column in
+-- Dayle's spreadsheet).
 create table admin_new_client_tasks (
   id uuid primary key default gen_random_uuid(),
   week_ending date not null,
@@ -19,6 +20,7 @@ create table admin_new_client_tasks (
   online_booking boolean,
   onboarding_video_sent boolean,
   followup_call_made boolean,
+  obv_sent boolean,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (week_ending, provider_id, client_name)
@@ -43,3 +45,11 @@ alter table weekly_kpis add column if not exists online_bookings_pct numeric gen
     else null
   end
 ) stored;
+
+-- Re-adds a clinic-wide OBV figure (0025_admin_fields_restructure dropped
+-- admin_obv_not_sent, moving OBV to each admin's own number — that was a
+-- mistake per the director). Plain column, not generated: like
+-- admin_followup_calls/admin_onboarding_video_pct, it's computed from
+-- admin_new_client_tasks (a different table) and written by the API route
+-- above, not by same-row SQL.
+alter table weekly_kpis add column if not exists admin_obv_sent_pct numeric;

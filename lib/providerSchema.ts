@@ -102,12 +102,13 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
  * Admin staff's KPI Scorecard — the per-admin stats that genuinely differ by
  * person. cancellations_handled through avg_days_to_next_booking auto-fill
  * from the Cancellations report grouped by "Modified User" (the admin who
- * actioned it); obv_not_sent is each admin's own manual entry, edited
- * directly here (director confirmed it's each person's own individual
- * number, not a shared clinic-wide figure). rx_notes_made_pct is also each
- * admin's own number but lives in ADMIN_COMPLIANCE_FIELDS below instead —
- * grouped with the clinic-wide compliance figures rather than sitting here,
- * per the director.
+ * actioned it). rx_notes_made_pct is also each admin's own number but lives
+ * in ADMIN_COMPLIANCE_FIELDS below instead — grouped with the clinic-wide
+ * compliance figures rather than sitting here, per the director. (OBV
+ * briefly lived here as a per-admin manual field — that was a mistake; it's
+ * clinic-wide like the others, tracked per-client on the New Client
+ * Checklist same as Follow Up Calls/Onboarding Video/Online Booking, and
+ * lives in ADMIN_COMPLIANCE_FIELDS too.)
  */
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
@@ -118,7 +119,6 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
   { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
-  { key: "obv_not_sent", label: "OBV Number Not Sent", type: "number", betterWhen: "lower" },
 ];
 
 export interface AdminComplianceField extends ProviderField {
@@ -142,6 +142,7 @@ export const ADMIN_COMPLIANCE_FIELDS: AdminComplianceField[] = [
   { key: "follow_up_phone_calls_pct", label: "Follow Up Phone Calls", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_followup_calls" },
   { key: "onboarding_video_pct", label: "Onboarding Videos Sent", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_onboarding_video_pct" },
   { key: "online_booking_pct", label: "New Clients Booked Online", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "online_bookings_pct" },
+  { key: "obv_sent_pct", label: "OBV Sent", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_obv_sent_pct" },
   { key: "email_optin_pct", label: "New Clients Subscribed (Email Opt-In)", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_email_optin_pct" },
   { key: "answered_calls_pct", label: "Answered Calls (week avg)", type: "percent", betterWhen: "higher", source: "clinic", clinicFieldId: "admin_answered_calls_pct" },
   { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher", source: "own" },
