@@ -203,11 +203,6 @@ export function ProviderDetailView({
         </div>
 
         <div className="flex flex-col gap-4">
-          <SectionLabel>Performance Trends</SectionLabel>
-          <ProviderCharts history={history} showTpr targets={effectiveTargets} />
-        </div>
-
-        <div className="flex flex-col gap-4">
           <SectionLabel>Action Plan</SectionLabel>
           <ActionStepsCard
             providerId={provider.id}
@@ -217,6 +212,11 @@ export function ProviderDetailView({
             categorized
             showGoals={false}
           />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Performance Trends</SectionLabel>
+          <ProviderCharts history={history} showTpr targets={effectiveTargets} />
         </div>
 
         <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
@@ -235,8 +235,6 @@ export function ProviderDetailView({
         carriedOverActionText={carriedOverActionText}
         previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
       />
-
-      <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
 
       <WeeklyScorecardTable
         title="KPI Scorecard"
@@ -314,6 +312,8 @@ export function ProviderDetailView({
       ))}
 
       <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
+
+      <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
 
       {variant === "admin" ? (
         <AdminPerformanceCharts history={history} targets={effectiveTargets} />
