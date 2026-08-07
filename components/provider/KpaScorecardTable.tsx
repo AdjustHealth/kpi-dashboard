@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
+import { Textarea } from "@/components/ui/Field";
 import { formatWeekLabel } from "@/lib/week";
 import { ProviderField, KPA_RATINGS, KPA_RATING_LABELS, KpaRating } from "@/lib/providerSchema";
 import { STATUS } from "@/components/charts/palette";
@@ -33,6 +34,7 @@ export function KpaScorecardTable({
   currentWeek,
   history,
   section = "kpas",
+  showNotes = false,
 }: {
   title: string;
   fields: ProviderField[];
@@ -41,6 +43,8 @@ export function KpaScorecardTable({
   /** Weeks ascending, last entry = currentWeek (the editable column). */
   history: WeekMetrics[];
   section?: "metrics" | "kpas";
+  /** Admin meetings only — a free-text prep-notes box next to each KPA (this week only), stored as `${field.key}_note` alongside the rating. */
+  showNotes?: boolean;
 }) {
   const currentIndex = history.length - 1;
   const [current, setCurrent] = useState<Record<string, unknown>>(history[currentIndex]?.[section] ?? {});
@@ -59,6 +63,12 @@ export function KpaScorecardTable({
     setCurrent((prev) => ({ ...prev, [key]: rating }));
     set(key, rating);
     setOpenKey(null);
+  }
+
+  function updateNote(key: string, text: string) {
+    const noteKey = `${key}_note`;
+    setCurrent((prev) => ({ ...prev, [noteKey]: text }));
+    set(noteKey, text);
   }
 
   // Most weeks' ratings repeat the week before almost exactly — copy every
@@ -99,12 +109,12 @@ export function KpaScorecardTable({
     >
       <div className="flex flex-col divide-y divide-border/60">
         {fields.map((field) => (
-          <div key={field.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="max-w-xl">
+          <div key={field.key} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+            <div className="max-w-xl lg:pt-1">
               <div className="text-sm font-bold text-foreground">{field.label}</div>
               {field.sublabel && <div className="mt-0.5 text-xs text-muted">{field.sublabel}</div>}
             </div>
-            <div className="flex flex-shrink-0 items-center gap-1.5">
+            <div className="flex flex-shrink-0 items-center gap-1.5 lg:pt-1">
               {history.map((w, i) => {
                 const isCurrent = i === currentIndex;
                 const value = isCurrent ? current[field.key] : w[section][field.key];
@@ -146,6 +156,14 @@ export function KpaScorecardTable({
                 );
               })}
             </div>
+            {showNotes && (
+              <Textarea
+                value={(current[`${field.key}_note`] as string | null | undefined) ?? ""}
+                onChange={(e) => updateNote(field.key, e.target.value)}
+                placeholder="Notes for prepping this meeting..."
+                className="w-full text-sm lg:w-72"
+              />
+            )}
           </div>
         ))}
       </div>

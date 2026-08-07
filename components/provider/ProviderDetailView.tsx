@@ -230,6 +230,7 @@ export function ProviderDetailView({
         week={week}
         initialNotes={currentMeetingNotes}
         showMultiDisc={variant !== "admin"}
+        adminMode={variant === "admin"}
         carriedOverActionText={carriedOverActionText}
         previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
       />
@@ -267,7 +268,13 @@ export function ProviderDetailView({
       )}
 
       {variant === "admin" && clinicHistory && (
-        <AdminSharedComplianceTable clinicHistory={clinicHistory} targets={effectiveTargets} />
+        <AdminSharedComplianceTable
+          providerId={provider.id}
+          currentWeek={week}
+          clinicHistory={clinicHistory}
+          history={history}
+          targets={effectiveTargets}
+        />
       )}
 
       {variant === "admin" && (
@@ -301,6 +308,7 @@ export function ProviderDetailView({
           currentWeek={week}
           history={history}
           section="kpas"
+          showNotes={variant === "admin"}
         />
       ))}
 

@@ -27,6 +27,7 @@ export function MeetingNotesCard({
   week,
   initialNotes,
   showMultiDisc = true,
+  adminMode = false,
   carriedOverActionText,
   previousMultiDisc,
 }: {
@@ -35,6 +36,8 @@ export function MeetingNotesCard({
   initialNotes: ProviderMeetingNotes;
   /** Admin staff don't see clients directly, so Multi-Disciplinary Team Utilisation (Hydro/EP-MS/RMT/Gym referrals) doesn't apply to their meeting. */
   showMultiDisc?: boolean;
+  /** Admin meetings only — swaps "3 Wins / 3 Things to Work On" for "Proud Of / Grateful For", one slot each for the admin and one each for directors. */
+  adminMode?: boolean;
   /** Last week's Action Steps/Action Plan, pre-formatted — prefills "Review from Last Week / Action Steps" when this week's session hasn't started yet (that field is still unset for this week). */
   carriedOverActionText?: string;
   /** Last week's Multi-Disciplinary Team Utilisation names — kept on the list every week (not just carried once) so referral names aren't forgotten; see the mount effect below. */
@@ -107,7 +110,10 @@ export function MeetingNotesCard({
     };
   }
 
-  function updateText(key: "agenda_items" | "review_previous_actions", value: string) {
+  function updateText(
+    key: "agenda_items" | "review_previous_actions" | "proud_of_self" | "proud_of_director" | "grateful_for_self" | "grateful_for_director",
+    value: string
+  ) {
     if (key === "review_previous_actions") setShowCarriedOverTag(false);
     setNotes((prev) => ({ ...prev, [key]: value }));
     set(key, value);
@@ -142,6 +148,7 @@ export function MeetingNotesCard({
       <div className="flex flex-col gap-4">
         <Field label="New Agenda Items" hint="Start a line with “- ” to dot-point it — it carries onto the next line automatically.">
           <Textarea
+            rows={6}
             value={notes.agenda_items ?? ""}
             onChange={(e) => updateText("agenda_items", e.target.value)}
             {...fieldFocusHandlers("agenda_items")}
@@ -158,32 +165,71 @@ export function MeetingNotesCard({
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted">3 Wins for the Week</span>
-            {[0, 1, 2].map((i) => (
-              <Input
-                key={i}
-                value={notes.wins?.[i] ?? ""}
-                placeholder={`Win ${i + 1}`}
-                onChange={(e) => updateListItem("wins", i, e.target.value)}
-                {...fieldFocusHandlers("wins")}
-              />
-            ))}
+        {adminMode ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted">Proud Of</span>
+              <Field label="You">
+                <Input
+                  value={notes.proud_of_self ?? ""}
+                  onChange={(e) => updateText("proud_of_self", e.target.value)}
+                  {...fieldFocusHandlers("proud_of_self")}
+                />
+              </Field>
+              <Field label="Directors">
+                <Input
+                  value={notes.proud_of_director ?? ""}
+                  onChange={(e) => updateText("proud_of_director", e.target.value)}
+                  {...fieldFocusHandlers("proud_of_director")}
+                />
+              </Field>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted">Grateful For</span>
+              <Field label="You">
+                <Input
+                  value={notes.grateful_for_self ?? ""}
+                  onChange={(e) => updateText("grateful_for_self", e.target.value)}
+                  {...fieldFocusHandlers("grateful_for_self")}
+                />
+              </Field>
+              <Field label="Directors">
+                <Input
+                  value={notes.grateful_for_director ?? ""}
+                  onChange={(e) => updateText("grateful_for_director", e.target.value)}
+                  {...fieldFocusHandlers("grateful_for_director")}
+                />
+              </Field>
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted">3 Things to Work On</span>
-            {[0, 1, 2].map((i) => (
-              <Input
-                key={i}
-                value={notes.things_to_work_on?.[i] ?? ""}
-                placeholder={`Item ${i + 1}`}
-                onChange={(e) => updateListItem("things_to_work_on", i, e.target.value)}
-                {...fieldFocusHandlers("things_to_work_on")}
-              />
-            ))}
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted">3 Wins for the Week</span>
+              {[0, 1, 2].map((i) => (
+                <Input
+                  key={i}
+                  value={notes.wins?.[i] ?? ""}
+                  placeholder={`Win ${i + 1}`}
+                  onChange={(e) => updateListItem("wins", i, e.target.value)}
+                  {...fieldFocusHandlers("wins")}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-muted">3 Things to Work On</span>
+              {[0, 1, 2].map((i) => (
+                <Input
+                  key={i}
+                  value={notes.things_to_work_on?.[i] ?? ""}
+                  placeholder={`Item ${i + 1}`}
+                  onChange={(e) => updateListItem("things_to_work_on", i, e.target.value)}
+                  {...fieldFocusHandlers("things_to_work_on")}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {showMultiDisc && (
           <div>

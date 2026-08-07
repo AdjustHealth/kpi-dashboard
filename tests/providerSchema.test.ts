@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ADMIN_METRIC_FIELDS,
-  ADMIN_SHARED_COMPLIANCE_FIELDS,
+  ADMIN_COMPLIANCE_FIELDS,
   CLINICIAN_METRIC_FIELDS,
   SENIOR_ONLY_METRIC_FIELDS,
   COMPLIANCE_FIELDS,
@@ -51,20 +51,20 @@ describe("providerSchema", () => {
     for (const set of [
       CLINICIAN_METRIC_FIELDS,
       ADMIN_METRIC_FIELDS,
-      ADMIN_SHARED_COMPLIANCE_FIELDS,
+      ADMIN_COMPLIANCE_FIELDS,
       COMPLIANCE_FIELDS,
       SENIOR_KPA_FIELDS,
       CORE_VALUES_KPA_FIELDS,
       PROVIDER_TASK_KPA_FIELDS,
       CUSTOMER_SERVICE_KPA_FIELDS,
     ]) {
-      const keys = set.map((f) => f.key);
+      const keys = set.map((f: { key: string }) => f.key);
       expect(new Set(keys).size).toBe(keys.length);
     }
   });
 
   it("ADMIN_METRIC_FIELDS no longer includes fields that are shared clinic-wide instead", () => {
-    const sharedKeys = new Set(ADMIN_SHARED_COMPLIANCE_FIELDS.map((f) => f.key));
+    const sharedKeys = new Set(ADMIN_COMPLIANCE_FIELDS.map((f: { key: string }) => f.key));
     for (const f of ADMIN_METRIC_FIELDS) expect(sharedKeys.has(f.key)).toBe(false);
   });
 });
