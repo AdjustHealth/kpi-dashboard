@@ -264,3 +264,56 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
     return true;
   });
 }
+
+export interface DropOutRatePoint {
+  week_ending: string;
+  value: number | null;
+}
+
+/**
+ * Drop Out Rate — % of a provider's DISTINCT clients who cancelled in a
+ * given week and, as of right now, still have no future booking — same
+ * "genuinely not rebooked" definition as getNotRebookedClients above
+ * (excludes reschedule-note cancellations, respects the not_rebooked_
+ * resolved manual dismiss). Deduped by client so someone cancelling
+ * several appointments in the same week without rebooking only counts
+ * once, per the director's ask. Denominator is that week's distinct
+ * cancelling clients — same convention as the existing Not Rebooked %
+ * clinic stat (a % of cancellations, not of total caseload, which isn't
+ * tracked as a client list anywhere).
+ *
+ * Recomputed live from current data rather than stored per week, so a
+ * past week's rate can improve later once someone confirms a client
+ * actually got rebooked and resolves it — the whole point being that a
+ * client who "fell out weeks ago" but has since been rebooked shouldn't
+ * keep counting as a drop out.
+ */
+export async function getDropOutRateHistory(providerName: string, weeks: string[]): Promise<DropOutRatePoint[]> {
+  if (weeks.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("cancellation_events")
+    .select("week_ending, client, note, next_booking, not_rebooked_resolved")
+    .eq("provider", providerName)
+    .eq("status", "Cancelled")
+    .in("week_ending", weeks);
+
+  const rows = (data ?? []) as {
+    week_ending: string;
+    client: string;
+    note: string | null;
+    next_booking: string | null;
+    not_rebooked_resolved: boolean | null;
+  }[];
+  const notRescheduled = rows.filter((r) => !(r.note && isRescheduleNote(r.note)));
+
+  return weeks.map((week_ending) => {
+    const weekRows = notRescheduled.filter((r) => r.week_ending === week_ending);
+    const clients = new Set(weekRows.map((r) => r.client));
+    if (clients.size === 0) return { week_ending, value: null };
+    const droppedOut = new Set(
+      weekRows.filter((r) => r.next_booking === null && !r.not_rebooked_resolved).map((r) => r.client)
+    );
+    return { week_ending, value: droppedOut.size / clients.size };
+  });
+}

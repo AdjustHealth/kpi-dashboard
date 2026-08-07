@@ -50,6 +50,7 @@ export function ProviderDetailView({
   sixWeekReviewNames,
   sixWeekReviewWeek,
   notRebookedClients,
+  dropOutRateHistory,
   clinicHistory,
   seniorSince,
   roleTargets,
@@ -67,6 +68,8 @@ export function ProviderDetailView({
   sixWeekReviewWeek?: string;
   /** This provider's own cancelled clients with no future booking at all — not scoped to this week. */
   notRebookedClients?: CancellationEventRow[];
+  /** Weekly Drop Out Rate trend — see lib/clinicData.ts getDropOutRateHistory. */
+  dropOutRateHistory?: { week_ending: string; value: number | null }[];
   clinicHistory?: ClinicWeekRow[];
   /** Only count weeks from this date forward toward bonus-tier cumulative turnover. */
   seniorSince?: string | null;
@@ -216,7 +219,7 @@ export function ProviderDetailView({
 
         <div className="flex flex-col gap-4">
           <SectionLabel>Performance Trends</SectionLabel>
-          <ProviderCharts history={history} showTpr targets={effectiveTargets} />
+          <ProviderCharts history={history} showTpr targets={effectiveTargets} dropOutRateHistory={dropOutRateHistory} />
         </div>
 
         <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
@@ -318,7 +321,7 @@ export function ProviderDetailView({
       {variant === "admin" ? (
         <AdminPerformanceCharts history={history} targets={effectiveTargets} />
       ) : (
-        <ProviderCharts history={history} targets={effectiveTargets} />
+        <ProviderCharts history={history} targets={effectiveTargets} dropOutRateHistory={dropOutRateHistory} />
       )}
     </div>
   );

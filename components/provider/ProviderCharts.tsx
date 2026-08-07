@@ -25,12 +25,15 @@ export function ProviderCharts({
   history,
   showTpr = false,
   targets = {},
+  dropOutRateHistory,
 }: {
   history: WeekMetrics[];
   /** TPR (and Turnover) are senior-physio-only on the meeting sheet — director's call. */
   showTpr?: boolean;
   /** Effective targets (role defaults + this provider's overrides) — same object already passed to the KPI Scorecard table, reused here so the trend charts show the same on-track/off-track signal. */
   targets?: Record<string, unknown>;
+  /** % of this provider's distinct cancelling clients per week who still have no future booking — see lib/clinicData.ts getDropOutRateHistory. Recomputed live, so past weeks can improve once a client's confirmed rebooked. */
+  dropOutRateHistory?: TrendPoint[];
 }) {
   const ncvaTarget = typeof targets.ncva === "number" ? targets.ncva : null;
   const tprTarget = typeof targets.tpr === "number" ? targets.tpr : null;
@@ -95,6 +98,15 @@ export function ProviderCharts({
           accent
         />
         <LineTrendChart title="New Patients" data={series(history, "new_patients")} format="number" colorIndex={4} accent />
+        {dropOutRateHistory && (
+          <div className="flex flex-col gap-1.5">
+            <LineTrendChart title="Drop Out Rate" data={dropOutRateHistory} format="percent" colorIndex={1} accent />
+            <p className="text-[11px] text-muted">
+              % of that week&apos;s distinct cancelling clients still without a future booking — updates as clients get
+              rebooked and resolved from the Not Rebooked list above.
+            </p>
+          </div>
+        )}
       </div>
     </Card>
   );

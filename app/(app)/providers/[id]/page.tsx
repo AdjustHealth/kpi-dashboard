@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
-import { getRoleTargets, getNotRebookedClients } from "@/lib/clinicData";
+import { getRoleTargets, getNotRebookedClients, getDropOutRateHistory } from "@/lib/clinicData";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 
@@ -20,7 +20,10 @@ export default async function ProviderDetailPage({
   const [{ provider, history, currentMeetingNotes, previousMeetingNotes, sixWeekReviewNames, sixWeekReviewWeek }, roleTargets] =
     await Promise.all([getProviderDetailData(id, week, trackingHistoryWeeks(week)), getRoleTargets()]);
   if (!provider) notFound();
-  const notRebookedClients = await getNotRebookedClients(provider.name);
+  const [notRebookedClients, dropOutRateHistory] = await Promise.all([
+    getNotRebookedClients(provider.name),
+    getDropOutRateHistory(provider.name, history.map((h) => h.week_ending)),
+  ]);
 
   return (
     <>
@@ -34,6 +37,7 @@ export default async function ProviderDetailPage({
         sixWeekReviewNames={sixWeekReviewNames}
         sixWeekReviewWeek={sixWeekReviewWeek}
         notRebookedClients={notRebookedClients}
+        dropOutRateHistory={dropOutRateHistory}
         roleTargets={roleTargets}
         variant="standard"
       />
