@@ -340,10 +340,10 @@ export interface ProviderMeetingNotes {
   grateful_for_self?: string;
   grateful_for_director?: string;
   multi_disc_utilisation?: MultiDiscUtilisation;
-  /** Up to 4 numbered action steps/agreements for this week — standard/admin providers. */
-  action_steps?: string[];
-  /** Senior physio only: one note per ACTION_PLAN_CATEGORIES key, matching the real worksheet's Action Plan tab. */
-  action_plan?: Record<string, string>;
+  /** Growing checklist of action steps/agreements — standard/admin providers. See lib/actionItems.ts; older weeks may still hold the legacy string[] shape, normalized at render time. */
+  action_steps?: unknown;
+  /** Senior physio only: one checklist per ACTION_PLAN_CATEGORIES key, matching the real worksheet's Action Plan tab. Older weeks may hold the legacy Record<string,string> shape. */
+  action_plan?: Record<string, unknown>;
   performance_review_goals?: string;
   /** Sam Johnston only (providers.targets.show_programming_prep) — prep notes for his separate Programming Meeting. */
   programming_prep?: string;

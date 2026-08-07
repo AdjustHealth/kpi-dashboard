@@ -15,6 +15,7 @@ import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
 import { GoalsCard } from "@/components/provider/GoalsCard";
 import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
+import { normalizeActionItems } from "@/lib/actionItems";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Provider } from "@/lib/types";
@@ -25,17 +26,18 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 /**
- * Formats last week's Action Steps as text to carry into this week's
- * "Review from Last Week / Action Steps" field — standard/admin providers
- * only. Senior physios carry over per-category instead, straight into the
- * matching Action Plan box at the bottom (see ActionStepsCard), since that
- * structure already matches the source one-to-one.
+ * Formats last week's still-open Action Steps as text to carry into this
+ * week's "Review from Last Week / Action Steps" discussion field —
+ * standard/admin providers only. This is separate from ActionStepsCard's
+ * own per-item Carry Over button (which actually re-creates the item on
+ * next week's checklist) — this is just a narrative summary for the
+ * "review last week" conversation, so it still includes items regardless
+ * of whether they were also explicitly carried over.
  */
 function formatCarriedOverActions(notes: ProviderMeetingNotes): string {
-  return (notes.action_steps ?? [])
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => `- ${s}`)
+  return normalizeActionItems(notes.action_steps)
+    .filter((i) => i.status === "open")
+    .map((i) => `- ${i.text}`)
     .join("\n");
 }
 
@@ -214,7 +216,6 @@ export function ProviderDetailView({
             size="large"
             categorized
             showGoals={false}
-            previousActionPlan={previousMeetingNotes?.action_plan}
           />
         </div>
 
