@@ -12,27 +12,27 @@ interface ClientTask {
   online_booking: boolean | null;
   onboarding_video_sent: boolean | null;
   followup_call_made: boolean | null;
-  obv_sent: boolean | null;
 }
 
-type TaskKey = "online_booking" | "onboarding_video_sent" | "followup_call_made" | "obv_sent";
+type TaskKey = "online_booking" | "onboarding_video_sent" | "followup_call_made";
 
 const TASK_COLUMNS: { key: TaskKey; label: string }[] = [
   { key: "online_booking", label: "Online Booking" },
-  { key: "onboarding_video_sent", label: "Onboarding Video Sent" },
+  { key: "onboarding_video_sent", label: "Onboarding Video Sent (OBV)" },
   { key: "followup_call_made", label: "Follow Up Call" },
-  { key: "obv_sent", label: "OBV Sent" },
 ];
 
 /**
  * Replaces Dayle's manual new-client spreadsheet — one row per new client
  * this week (auto-populated from each clinician's new patient list, already
- * excluding Pre-Employment), tick Online Booking / Onboarding Video Sent /
- * Follow Up Call / OBV Sent per client instead of hand-counting and typing
- * a %. The % is calculated automatically and written straight into
- * weekly_kpis (Online Bookings, Follow-up Calls, Onboarding Videos Sent,
- * OBV Sent), so those fields on this page are now read-only "Auto" — see
- * app/api/admin-client-tasks/route.ts.
+ * excluding Pre-Employment), tick Online Booking / Onboarding Video Sent
+ * (OBV) / Follow Up Call per client instead of hand-counting and typing a
+ * %. The % is calculated automatically and written straight into
+ * weekly_kpis (Online Bookings, Follow-up Calls, Onboarding Videos Sent),
+ * so those fields on this page are now read-only "Auto" — see
+ * app/api/admin-client-tasks/route.ts. Online Bookings feeds the Clinic
+ * Health/Quarterly Review charts but isn't shown on the admin meeting
+ * sheet itself (director's call).
  */
 export function NewClientChecklistCard({ week }: { week: string }) {
   const [tasks, setTasks] = useState<ClientTask[] | null>(null);
@@ -91,8 +91,9 @@ export function NewClientChecklistCard({ week }: { week: string }) {
     <Card title="New Client Checklist">
       <p className="mb-4 text-xs text-muted">
         Auto-populated from this week&apos;s new clients (Pre-Employment already excluded). Tick each box as it&apos;s
-        done — Online Bookings %, Onboarding Videos Sent %, Follow-up Calls %, and OBV Sent % below are calculated
-        from this and feed straight into the admin meeting sheets.
+        done — Online Bookings %, Onboarding Videos Sent (OBV) %, and Follow-up Calls % below are calculated from
+        this. Onboarding Videos Sent and Follow-up Calls feed straight into the admin meeting sheets; Online
+        Bookings feeds the Clinic Health/Quarterly Review charts instead.
       </p>
 
       {error ? (
@@ -141,7 +142,7 @@ export function NewClientChecklistCard({ week }: { week: string }) {
             </table>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
             {TASK_COLUMNS.map((col) => (
               <div key={col.key} className="rounded-lg border border-border bg-surface-raised px-3 py-2">
                 <div className="text-xs text-muted">{col.label}</div>

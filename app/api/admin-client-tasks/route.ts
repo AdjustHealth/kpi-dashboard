@@ -9,7 +9,6 @@ interface ClientTaskRow {
   online_booking: boolean | null;
   onboarding_video_sent: boolean | null;
   followup_call_made: boolean | null;
-  obv_sent: boolean | null;
 }
 
 /**
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("admin_new_client_tasks")
-    .select("id, week_ending, provider_id, client_name, online_booking, onboarding_video_sent, followup_call_made, obv_sent")
+    .select("id, week_ending, provider_id, client_name, online_booking, onboarding_video_sent, followup_call_made")
     .eq("week_ending", week);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -62,17 +61,17 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: rows });
 }
 
-const TASK_KEYS = ["online_booking", "onboarding_video_sent", "followup_call_made", "obv_sent"] as const;
+const TASK_KEYS = ["online_booking", "onboarding_video_sent", "followup_call_made"] as const;
 type TaskKey = (typeof TASK_KEYS)[number];
 
 /**
- * PATCH { id, patch: { online_booking?, onboarding_video_sent?, followup_call_made?, obv_sent? } }
+ * PATCH { id, patch: { online_booking?, onboarding_video_sent?, followup_call_made? } }
  * — toggles one client's checklist, then recomputes that week's aggregate
  * counts/percentages and writes them into weekly_kpis (online_bookings_
- * total/new, admin_followup_calls, admin_onboarding_video_pct,
- * admin_obv_sent_pct) so Dayle never re-sums these by hand. An unset (null)
- * box counts as "not done yet" in the %, same as the task genuinely not
- * being complete.
+ * total/new, admin_followup_calls, admin_onboarding_video_pct) so Dayle
+ * never re-sums these by hand. OBV is the same task as Onboarding Video
+ * Sent, not a separate column. An unset (null) box counts as "not done
+ * yet" in the %, same as the task genuinely not being complete.
  */
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
@@ -93,7 +92,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data: weekRows, error: weekRowsError } = await supabase
     .from("admin_new_client_tasks")
-    .select("online_booking, onboarding_video_sent, followup_call_made, obv_sent")
+    .select("online_booking, onboarding_video_sent, followup_call_made")
     .eq("week_ending", weekEnding);
   if (weekRowsError) return NextResponse.json({ error: weekRowsError.message }, { status: 500 });
 
@@ -108,7 +107,6 @@ export async function PATCH(request: NextRequest) {
       online_bookings_new: rows.filter((r) => r.online_booking === true).length,
       admin_followup_calls: pct("followup_call_made"),
       admin_onboarding_video_pct: pct("onboarding_video_sent"),
-      admin_obv_sent_pct: pct("obv_sent"),
     },
     { onConflict: "week_ending" }
   );

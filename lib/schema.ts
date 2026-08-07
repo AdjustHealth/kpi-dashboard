@@ -171,13 +171,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // online_bookings_total/online_bookings_new are now auto-counted from the
   // New Client Checklist (admin_new_client_tasks — see
   // app/api/admin-client-tasks/route.ts) instead of hand-typed; this is the
-  // derived %, a Postgres generated column same as diary_mgmt_pct.
+  // derived %, a Postgres generated column same as diary_mgmt_pct. Tracked
+  // for the Clinic Health/Quarterly Review charts — not shown on the admin
+  // meeting sheet itself.
   { idx: 89, id: "online_bookings_pct", label: "New Clients Booked Online %", source: "calc", type: "percent", category: "Diary" },
-
-  // OBV is clinic-wide (see admin_new_client_tasks) — it briefly lived as a
-  // per-admin manual field, which was a mistake; computed the same way as
-  // admin_followup_calls/admin_onboarding_video_pct.
-  { idx: 90, id: "admin_obv_sent_pct", label: "OBV Sent %", source: "calc", type: "percent", category: "Admin" },
 ];
 
 export function getClinicHeaders(): string[] {
