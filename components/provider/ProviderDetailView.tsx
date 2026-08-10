@@ -214,6 +214,7 @@ export function ProviderDetailView({
             size="large"
             categorized
             showGoals={false}
+            previousActionPlan={previousMeetingNotes?.action_plan}
           />
         </div>
 

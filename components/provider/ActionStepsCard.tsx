@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Badge } from "@/components/ui/Badge";
@@ -128,6 +128,7 @@ export function ActionStepsCard({
   size = "standard",
   showGoals = true,
   categorized = false,
+  previousActionPlan,
 }: {
   providerId: string;
   week: string;
@@ -135,15 +136,35 @@ export function ActionStepsCard({
   size?: "standard" | "large";
   showGoals?: boolean;
   categorized?: boolean;
+  /** Senior physios only — last week's Action Plan, carried automatically into any category this week hasn't touched yet (key entirely absent, not just cleared). Standard/admin's flat Action Steps stay manual-carry-only, per the director. */
+  previousActionPlan?: Record<string, unknown>;
 }) {
+  // A category carries over only if it's never been saved this week (key
+  // absent, not just an empty array — respects an intentional clear) and
+  // last week's entry for it actually had an open item. Computed once, at
+  // mount, from the props as they stood then — matches the same "carry
+  // over indefinitely until someone acts on it" idea as
+  // MeetingNotesCard's multi_disc_utilisation carry-over below.
+  function categoryCarry(categoryKey: string): ActionItem[] {
+    if (!categorized || initialNotes.action_plan?.[categoryKey] !== undefined) return [];
+    return normalizeActionItems(previousActionPlan?.[categoryKey]).filter((i) => i.status === "open");
+  }
+
   const [items, setItems] = useState<ActionItem[]>(() => normalizeActionItems(initialNotes.action_steps));
   const [plan, setPlan] = useState<Record<string, ActionItem[]>>(() => {
     const result: Record<string, ActionItem[]> = {};
     for (const category of ACTION_PLAN_CATEGORIES) {
-      result[category.key] = normalizeActionItems(initialNotes.action_plan?.[category.key]);
+      const own = normalizeActionItems(initialNotes.action_plan?.[category.key]);
+      const carried = categoryCarry(category.key);
+      // Fresh ids, not the same ones as last week — this is a new copy on a
+      // new week's checklist, not the literal same item persisting.
+      result[category.key] = own.length > 0 ? own : carried.map((i) => newActionItem(i.text));
     }
     return result;
   });
+  const [carriedOverCategories] = useState<Set<string>>(
+    () => new Set(ACTION_PLAN_CATEGORIES.map((c) => c.key).filter((key) => categoryCarry(key).length > 0))
+  );
   const [goals, setGoals] = useState(initialNotes.performance_review_goals ?? "");
   const [copied, setCopied] = useState(false);
 
@@ -155,6 +176,14 @@ export function ActionStepsCard({
     });
     if (!res.ok) throw new Error("save failed");
   });
+
+  useEffect(() => {
+    if (carriedOverCategories.size > 0) set("action_plan", plan);
+    // Runs once at mount, using the carry-over snapshot computed above —
+    // persists it as this week's real saved value so it isn't lost if
+    // nobody happens to edit this category this week.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
     if (remote.action_steps !== undefined) setItems(normalizeActionItems(remote.action_steps));
@@ -191,57 +220,49 @@ export function ActionStepsCard({
     });
   }
 
-  // Flat (standard/admin) list
+  // Flat (standard/admin) list. Side effects (set/carryOver) run after the
+  // state update, from the plain next value — never inside a setState
+  // updater function, which React can (and in dev StrictMode, does)
+  // invoke more than once, which would double-fire the carry-over POST
+  // and create a duplicate item on next week's list.
   function updateItemText(id: string, text: string) {
-    setItems((prev) => {
-      const next = prev.map((i) => (i.id === id ? { ...i, text } : i));
-      set("action_steps", next);
-      return next;
-    });
+    const next = items.map((i) => (i.id === id ? { ...i, text } : i));
+    setItems(next);
+    set("action_steps", next);
   }
   function resolveItem(id: string, status: "completed" | "carried") {
-    setItems((prev) => {
-      const target = prev.find((i) => i.id === id);
-      const next = prev.map((i) => (i.id === id ? { ...i, status } : i));
-      set("action_steps", next);
-      if (status === "carried" && target) carryOver(target.text);
-      return next;
-    });
+    const target = items.find((i) => i.id === id);
+    const next = items.map((i) => (i.id === id ? { ...i, status } : i));
+    setItems(next);
+    set("action_steps", next);
+    if (status === "carried" && target) carryOver(target.text);
   }
   function addItem(text: string) {
-    setItems((prev) => {
-      const next = [...prev, newActionItem(text)];
-      set("action_steps", next);
-      return next;
-    });
+    const next = [...items, newActionItem(text)];
+    setItems(next);
+    set("action_steps", next);
   }
 
-  // Categorized (senior) plan
+  // Categorized (senior) plan — same rule as above.
   function updatePlanItemText(category: string, id: string, text: string) {
-    setPlan((prev) => {
-      const list = (prev[category] ?? []).map((i) => (i.id === id ? { ...i, text } : i));
-      const next = { ...prev, [category]: list };
-      set("action_plan", next);
-      return next;
-    });
+    const list = (plan[category] ?? []).map((i) => (i.id === id ? { ...i, text } : i));
+    const next = { ...plan, [category]: list };
+    setPlan(next);
+    set("action_plan", next);
   }
   function resolvePlanItem(category: string, id: string, status: "completed" | "carried") {
-    setPlan((prev) => {
-      const list = prev[category] ?? [];
-      const target = list.find((i) => i.id === id);
-      const nextList = list.map((i) => (i.id === id ? { ...i, status } : i));
-      const next = { ...prev, [category]: nextList };
-      set("action_plan", next);
-      if (status === "carried" && target) carryOver(target.text, category);
-      return next;
-    });
+    const list = plan[category] ?? [];
+    const target = list.find((i) => i.id === id);
+    const nextList = list.map((i) => (i.id === id ? { ...i, status } : i));
+    const next = { ...plan, [category]: nextList };
+    setPlan(next);
+    set("action_plan", next);
+    if (status === "carried" && target) carryOver(target.text, category);
   }
   function addPlanItem(category: string, text: string) {
-    setPlan((prev) => {
-      const next = { ...prev, [category]: [...(prev[category] ?? []), newActionItem(text)] };
-      set("action_plan", next);
-      return next;
-    });
+    const next = { ...plan, [category]: [...(plan[category] ?? []), newActionItem(text)] };
+    setPlan(next);
+    set("action_plan", next);
   }
 
   function updateGoals(value: string) {
@@ -287,7 +308,10 @@ export function ActionStepsCard({
             const resolved = categoryItems.filter((i) => i.status !== "open");
             return (
               <div key={category.key} className="rounded-lg border-2 border-accent/40 bg-accent/[0.06] p-3">
-                <div className="mb-2 text-xs font-semibold text-accent">{category.label}</div>
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
+                  {category.label}
+                  {carriedOverCategories.has(category.key) && <Badge tone="neutral">Carried over</Badge>}
+                </div>
                 <div className="flex flex-col gap-2" {...fieldFocusHandlers("action_plan")}>
                   {active.map((item) => (
                     <ActionItemRow
