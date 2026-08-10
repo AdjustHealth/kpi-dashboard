@@ -142,7 +142,11 @@ export function parseActivityReport(
     const amount = parseNumber(r["Amount"]);
     const provider = r["Staff"];
     const itemText = `${r["Case"] ?? ""} ${r["Item"] ?? ""}`;
-    if (r["Client"]) clientsSeen.add(r["Client"]);
+    // Same Nookal "Client" -> "Patient" rename as the Cancellations Report
+    // Details section (confirmed against a real 08/2026 export) — accept
+    // either.
+    const clientName = r["Client"] || r["Patient"];
+    if (clientName) clientsSeen.add(clientName);
 
     if (amount !== null) {
       if (provider) revenueByProvider[provider] = (revenueByProvider[provider] ?? 0) + amount;
@@ -394,7 +398,13 @@ export function parseCancellationsReport(
       const provider = r["Provider"];
       const status = r["Status"];
       const note = r["Note"];
-      const client = r["Client"];
+      // Nookal renamed this column from "Client" to "Patient" in the
+      // Cancellations Report's Details section at some point (confirmed
+      // against a real export dated 08/2026 — every prior week's export
+      // used "Client") — accept either so a future rename-back (or
+      // inconsistency between exports) doesn't silently zero out every
+      // cancellation again.
+      const client = r["Client"] || r["Patient"];
 
       // Every Cancelled/DNA row goes into the raw list for the Cancellations
       // tab, unfiltered — the stats below apply their own dedup/exclusion on

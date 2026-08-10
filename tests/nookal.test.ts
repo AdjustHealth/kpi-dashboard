@@ -379,6 +379,28 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     const result = parseCancellationsReport(csv, () => true);
     expect(result.byProvider["Jordan Real"].rescheduledCount).toBe(1);
   });
+
+  it("reads the client name from a 'Patient' column too — Nookal renamed Details' 'Client' column to 'Patient' in an 08/2026 export, which silently zeroed every cancellation until this was caught", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,03/08/2026 - 09/08/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Jordan Real,1,0,10,,,
+
+Details
+Appointment Date,Location,Patient,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+13/07/2026,Adjust Physiotherapy,Client One,0400 000 010,Jordan Real,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,no future booking,13/07/2026,9:00am,Staff Two,2001
+
+`;
+    const result = parseCancellationsReport(csv);
+    expect(result.byProvider["Jordan Real"].cancellations).toBe(1);
+    expect(result.byProvider["Jordan Real"].notRebooked).toBe(1);
+    expect(result.detailRows).toHaveLength(1);
+    expect(result.detailRows[0].client).toBe("Client One");
+  });
 });
 
 describe("parseClientsAndCasesReport", () => {
@@ -420,6 +442,26 @@ describe("parseActivityReport", () => {
   it("collects every distinct client name seen this week, for New Patient Retention", () => {
     const result = parseActivityReport(ACTIVITY_CSV);
     expect(result.clientsSeenNames.sort()).toEqual(["Test Client One", "Test Client Three", "Test Client Two"]);
+  });
+
+  it("reads the client name from a 'Patient' column too — same Nookal rename as the Cancellations Report", () => {
+    const csv = `Activity Report
+
+Parameters
+Dates,03/08/2026 - 09/08/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,110.00,0,110.00
+Total,110.00,0,110.00
+
+Details
+Date,Staff,Location,Patient,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Renamed Column Client,Private - Physio,Private Subs,Service,1001,01/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1001
+
+`;
+    const result = parseActivityReport(csv);
+    expect(result.clientsSeenNames).toEqual(["Renamed Column Client"]);
   });
 
   it("sums revenue per provider and per payer category from Details (Services only)", () => {
