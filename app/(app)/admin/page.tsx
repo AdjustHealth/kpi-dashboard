@@ -3,12 +3,14 @@ import { ProviderCard } from "@/components/provider/ProviderCard";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding } from "@/lib/week";
 import { Provider } from "@/lib/types";
+import { requireDirector } from "@/lib/auth/access";
 
 export default async function AdminDirectoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 

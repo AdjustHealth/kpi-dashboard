@@ -11,6 +11,7 @@ import { clinicStatTile } from "@/components/dashboard/statHelpers";
 import { JBV_PARTNERS } from "@/lib/jbvPartners";
 import { JbvPartnerGrid } from "@/components/dashboard/JbvPartnerGrid";
 import { STATUS, CATEGORICAL } from "@/components/charts/palette";
+import { requireDirector } from "@/lib/auth/access";
 
 /**
  * Clinic-wide specialty consult categories, from the director's own
@@ -57,6 +58,7 @@ export default async function SpecialtyServicesPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
   const historyWeeks = clinicHistoryWeeks(week);

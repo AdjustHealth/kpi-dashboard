@@ -6,6 +6,7 @@ import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
+import { requireDirector } from "@/lib/auth/access";
 
 const QUICK_LINKS = [
   { href: "/clinic/revenue", label: "Revenue", desc: "Trend, target, and payer mix" },
@@ -22,6 +23,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
   const [history, clinicTargets] = await Promise.all([

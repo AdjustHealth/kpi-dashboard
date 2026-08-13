@@ -5,8 +5,10 @@ import { ProviderTargetsCard } from "@/components/targets/ProviderTargetsCard";
 import { ROLE_TARGET_GROUPS, providerHasIndividualTargets } from "@/lib/targetsSchema";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
+import { requireDirector } from "@/lib/auth/access";
 
 export default async function TargetsPage() {
+  await requireDirector();
   const supabase = await createClient();
   const [clinicTargetsResult, roleTargetsResult, providersResult] = await Promise.all([
     supabase.from("clinic_targets").select("*").eq("id", "clinic").maybeSingle(),

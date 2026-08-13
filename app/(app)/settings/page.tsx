@@ -2,8 +2,10 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { SettingsManager } from "@/components/settings/SettingsManager";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
+import { requireDirector } from "@/lib/auth/access";
 
 export default async function SettingsPage() {
+  await requireDirector();
   const supabase = await createClient();
   const { data } = await supabase.from("providers").select("*").order("sort_order");
   const providers = (data ?? []) as Provider[];

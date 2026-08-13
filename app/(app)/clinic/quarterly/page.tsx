@@ -14,6 +14,7 @@ import {
 import { getClinicTargets } from "@/lib/clinicData";
 import { quarterLabel, adjacentQuarter } from "@/lib/quarter";
 import { formatValue } from "@/lib/format";
+import { requireDirector } from "@/lib/auth/access";
 
 /** Same relative-percent-change convention as periodOverPeriodChange() (lib/calc.ts), used by every other StatTile in the app. */
 function deltaPct(current: number | null, previous: number | null): number | null {
@@ -53,6 +54,7 @@ export default async function QuarterlyReviewPage({
 }: {
   searchParams: Promise<{ quarter?: string }>;
 }) {
+  await requireDirector();
   const { quarter: quarterParam } = await searchParams;
   const quarters = await getAvailableQuarters();
 

@@ -11,12 +11,14 @@ import { formatValue } from "@/lib/format";
 import { targetColor } from "@/lib/targetColor";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
 import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
+import { requireDirector } from "@/lib/auth/access";
 
 export default async function RevenuePage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
   // Revenue trends read as noise over just 4 weeks — a trailing quarter (13

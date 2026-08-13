@@ -19,6 +19,7 @@ import { AdminTeamTable } from "@/components/clinic/AdminTeamTable";
 import { clinicStatTile, toTrendSeries, latestProviderValues, tierColorIndex } from "@/components/dashboard/statHelpers";
 import { formatWeekLabel, defaultWeekEnding, trackingHistoryWeeks, clinicHistoryWeeks } from "@/lib/week";
 import { formatValue } from "@/lib/format";
+import { requireDirector } from "@/lib/auth/access";
 
 function pctPointDelta(current: unknown, previous: unknown): number | null {
   if (typeof current !== "number" || typeof previous !== "number") return null;
@@ -30,6 +31,7 @@ export default async function ClinicHealthPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
   // weekly_kpis has real backfilled history back to January 2026 — much

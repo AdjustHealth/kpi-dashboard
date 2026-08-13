@@ -6,6 +6,7 @@ import { getReviewsOverview } from "@/lib/reviewsData";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 import { formatWeekLabel } from "@/lib/week";
 import { STATUS } from "@/components/charts/palette";
+import { requireDirector } from "@/lib/auth/access";
 
 function DueBadge({ overdue, hasDraft }: { overdue: boolean; hasDraft: boolean }) {
   if (hasDraft) {
@@ -28,6 +29,7 @@ function DueBadge({ overdue, hasDraft }: { overdue: boolean; hasDraft: boolean }
 }
 
 export default async function ReviewsPage() {
+  await requireDirector();
   const overview = await getReviewsOverview();
   const sorted = [...overview].sort((a, b) => {
     if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;

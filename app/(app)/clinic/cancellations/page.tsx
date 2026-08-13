@@ -3,12 +3,14 @@ import { Card } from "@/components/ui/Card";
 import { CancellationsTable, CancellationEventRow } from "@/components/clinic/CancellationsTable";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding, formatWeekLabel } from "@/lib/week";
+import { requireDirector } from "@/lib/auth/access";
 
 export default async function CancellationsPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
+  await requireDirector();
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 

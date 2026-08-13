@@ -8,6 +8,14 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+/** A restricted (non-director) login only sees the Providers meeting pages it's scoped to — see lib/auth/access.ts. */
+export const RESTRICTED_NAV: NavGroup[] = [
+  {
+    label: "Meetings",
+    items: [{ label: "Providers", href: "/providers" }],
+  },
+];
+
 export const NAV: NavGroup[] = [
   {
     label: "Overview",

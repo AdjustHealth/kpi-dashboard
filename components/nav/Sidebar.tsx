@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { NAV } from "@/lib/nav";
+import { NAV, RESTRICTED_NAV } from "@/lib/nav";
 
 function isActive(pathname: string, href: string) {
   return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 }
 
-export function Sidebar() {
+export function Sidebar({ restricted = false }: { restricted?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const week = searchParams.get("week");
   const withWeek = (href: string) => (week ? `${href}?week=${week}` : href);
+  const nav = restricted ? RESTRICTED_NAV : NAV;
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -27,7 +28,7 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         <ul className="flex flex-col">
-          {NAV.map((group, i) => (
+          {nav.map((group, i) => (
             <li key={group.label} className={i > 0 ? "mt-5 border-t border-border pt-5" : ""}>
               <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-secondary/80">
                 {group.label}
