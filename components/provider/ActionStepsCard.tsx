@@ -18,12 +18,15 @@ import { ActionItem, normalizeActionItems, newActionItem, formatActionItemsForCo
  */
 function ActionItemRow({
   item,
+  number,
   large,
   onChangeText,
   onComplete,
   onCarryOver,
 }: {
   item: ActionItem;
+  /** Shown as a "1." prefix when set — the flat (standard/admin) list only, so the box reads as a numbered list. */
+  number?: number;
   large?: boolean;
   onChangeText: (text: string) => void;
   onComplete: () => void;
@@ -31,6 +34,9 @@ function ActionItemRow({
 }) {
   return (
     <div className="flex items-center gap-2">
+      {number !== undefined && (
+        <span className={`w-5 flex-shrink-0 text-right text-muted ${large ? "text-base" : "text-sm"}`}>{number}.</span>
+      )}
       <Input
         value={item.text}
         onChange={(e) => onChangeText(e.target.value)}
@@ -129,6 +135,7 @@ export function ActionStepsCard({
   showGoals = true,
   categorized = false,
   previousActionPlan,
+  previousItems,
 }: {
   providerId: string;
   week: string;
@@ -136,21 +143,33 @@ export function ActionStepsCard({
   size?: "standard" | "large";
   showGoals?: boolean;
   categorized?: boolean;
-  /** Senior physios only — last week's Action Plan, carried automatically into any category this week hasn't touched yet (key entirely absent, not just cleared). Standard/admin's flat Action Steps stay manual-carry-only, per the director. */
+  /** Senior physios only — last week's Action Plan, carried automatically into any category this week hasn't touched yet (key entirely absent, not just cleared). */
   previousActionPlan?: Record<string, unknown>;
+  /** Standard/admin's flat Action Steps — last week's list, carried automatically the same way, into this week's list if it hasn't been touched yet. */
+  previousItems?: unknown;
 }) {
-  // A category carries over only if it's never been saved this week (key
-  // absent, not just an empty array — respects an intentional clear) and
-  // last week's entry for it actually had an open item. Computed once, at
-  // mount, from the props as they stood then — matches the same "carry
-  // over indefinitely until someone acts on it" idea as
-  // MeetingNotesCard's multi_disc_utilisation carry-over below.
+  // A category (or, for the flat list, the whole thing) carries over only
+  // if it's never been saved this week (key absent, not just an empty
+  // array — respects an intentional clear) and last week's entry actually
+  // had an open item. Computed once, at mount, from the props as they
+  // stood then — matches the same "carry over indefinitely until someone
+  // acts on it" idea as MeetingNotesCard's multi_disc_utilisation
+  // carry-over below.
   function categoryCarry(categoryKey: string): ActionItem[] {
     if (!categorized || initialNotes.action_plan?.[categoryKey] !== undefined) return [];
     return normalizeActionItems(previousActionPlan?.[categoryKey]).filter((i) => i.status === "open");
   }
+  function flatCarry(): ActionItem[] {
+    if (categorized || initialNotes.action_steps !== undefined) return [];
+    return normalizeActionItems(previousItems).filter((i) => i.status === "open");
+  }
 
-  const [items, setItems] = useState<ActionItem[]>(() => normalizeActionItems(initialNotes.action_steps));
+  const [items, setItems] = useState<ActionItem[]>(() => {
+    const own = normalizeActionItems(initialNotes.action_steps);
+    const carried = flatCarry();
+    return own.length > 0 ? own : carried.map((i) => newActionItem(i.text));
+  });
+  const [carriedOverFlat] = useState<boolean>(() => flatCarry().length > 0);
   const [plan, setPlan] = useState<Record<string, ActionItem[]>>(() => {
     const result: Record<string, ActionItem[]> = {};
     for (const category of ACTION_PLAN_CATEGORIES) {
@@ -179,9 +198,10 @@ export function ActionStepsCard({
 
   useEffect(() => {
     if (carriedOverCategories.size > 0) set("action_plan", plan);
+    if (carriedOverFlat) set("action_steps", items);
     // Runs once at mount, using the carry-over snapshot computed above —
     // persists it as this week's real saved value so it isn't lost if
-    // nobody happens to edit this category this week.
+    // nobody happens to edit this category/list this week.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -332,13 +352,19 @@ export function ActionStepsCard({
         </div>
       ) : (
         <div className={`flex flex-col gap-2 ${large ? "text-base" : ""}`}>
+          {carriedOverFlat && (
+            <div className="mb-1">
+              <Badge tone="neutral">Carried over from last week</Badge>
+            </div>
+          )}
           <div className="flex flex-col gap-2" {...fieldFocusHandlers("action_steps")}>
             {items
               .filter((i) => i.status === "open")
-              .map((item) => (
+              .map((item, i) => (
                 <ActionItemRow
                   key={item.id}
                   item={item}
+                  number={i + 1}
                   large={large}
                   onChangeText={(text) => updateItemText(item.id, text)}
                   onComplete={() => resolveItem(item.id, "completed")}

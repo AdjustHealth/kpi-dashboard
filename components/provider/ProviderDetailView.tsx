@@ -317,7 +317,13 @@ export function ProviderDetailView({
 
       <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
 
-      <ActionStepsCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} showGoals={false} />
+      <ActionStepsCard
+        providerId={provider.id}
+        week={week}
+        initialNotes={currentMeetingNotes}
+        showGoals={false}
+        previousItems={previousMeetingNotes?.action_steps}
+      />
 
       {variant === "admin" ? (
         <AdminPerformanceCharts history={history} targets={effectiveTargets} />
