@@ -67,16 +67,11 @@ const TRAVEL_ITEM_PATTERN = /travel/i;
  * Subs..." item, so there's no overlap with Glofox's own private-member
  * billing), "WC Physio Group Exercise Sessions 100106", "WC EXPHYS Group
  * Exercise Session 300401" (the trailing number is a billing code that
- * varies — matched by prefix), "WC Subs Gym 45 min"/"WC Initial Gym 60 min"
- * (WorkCover-funded individual gym sessions, distinct from the group-class
- * items above — missed entirely until confirmed against the 1/8 and 8/8
- * Activity Reports, where they were the single largest 3rd-party gym line
- * item both weeks and had been silently excluded since this became
- * automatic on 6/8), and "NDIS Program Management – Physio (Non-F2F)". The
- * remaining two (DVA EXPHYS/Physio Group Class, NDIS Core Supports Group
- * Physio) haven't appeared in any export seen so far, so they're matched on
- * the director's given wording as closely as possible but unverified
- * against a real row.
+ * varies — matched by prefix), and "NDIS Program Management – Physio
+ * (Non-F2F)". The remaining three (DVA EXPHYS/Physio Group Class,
+ * NDIS Core Supports Group Physio) haven't appeared in any export seen so
+ * far, so they're matched on the director's given wording as closely as
+ * possible but unverified against a real row.
  */
 const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
   /adjust gym membership/i,
@@ -88,7 +83,6 @@ const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
   /ndis\s*program\s*management.*non.f2f/i,
   /wc\s*exphys\s*group\s*exercise/i,
   /wc\s*physio\s*group\s*exercise/i,
-  /wc\b.*\bgym\b/i,
 ];
 
 /**
