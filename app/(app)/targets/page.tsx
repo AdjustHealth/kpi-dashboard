@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { ClinicTargetsCard } from "@/components/targets/ClinicTargetsCard";
 import { RoleTargetsCard } from "@/components/targets/RoleTargetsCard";
+import { RoleOverrideTargetsCard } from "@/components/targets/RoleOverrideTargetsCard";
 import { ProviderTargetsCard } from "@/components/targets/ProviderTargetsCard";
 import { ROLE_TARGET_GROUPS, providerHasIndividualTargets } from "@/lib/targetsSchema";
 import { createClient } from "@/lib/supabase/server";
@@ -32,9 +33,13 @@ export default async function TargetsPage() {
             One shared target set per group — change it once here and it applies to everyone in that group, instead of
             editing every individual provider.
           </p>
-          {ROLE_TARGET_GROUPS.map((group) => (
-            <RoleTargetsCard key={group.id} group={group} initialValues={roleTargetsById.get(group.id) ?? {}} />
-          ))}
+          {ROLE_TARGET_GROUPS.map((group) =>
+            group.id === "massage" || group.id === "ep" ? (
+              <RoleOverrideTargetsCard key={group.id} group={group} initialValues={roleTargetsById.get(group.id) ?? {}} />
+            ) : (
+              <RoleTargetsCard key={group.id} group={group} initialValues={roleTargetsById.get(group.id) ?? {}} />
+            )
+          )}
         </div>
 
         {individualProviders.length > 0 && (

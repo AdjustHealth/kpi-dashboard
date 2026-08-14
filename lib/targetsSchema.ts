@@ -38,7 +38,7 @@ export const BONUS_TIER_FIELDS: { key: "t1" | "t2" | "t3" | "t4"; label: string 
   { key: "t4", label: "Tier 4" },
 ];
 
-export type RoleTargetGroupId = "providers" | "senior" | "admin";
+export type RoleTargetGroupId = "providers" | "massage" | "ep" | "senior" | "admin";
 
 export interface RoleTargetGroup {
   id: RoleTargetGroupId;
@@ -59,7 +59,7 @@ const SHARED_CLINICIAN_TARGET_FIELDS: TargetField[] = [
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency" },
   { key: "dnas", label: "Number of DNAs", type: "number" },
   { key: "cancellations", label: "Number of Cancellations", type: "number" },
-  { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent" },
+  { key: "not_rebooked", label: "Not Rebooked", type: "number" },
   { key: "retention_pct", label: "Retention Rate", type: "percent" },
 ];
 
@@ -77,12 +77,24 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
   {
     id: "providers",
     label: "Providers",
-    description: "Physio, Massage, EP — every regular clinician shares these targets.",
+    description: "Physio, Massage, EP — every regular clinician shares these targets, unless overridden below for Massage or EP specifically.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
     cvaTierFields: [
       { key: "cva_target_new_grad", label: "UCVA Target — New Grad" },
       { key: "cva_target_2_5yr", label: "UCVA Target — 2-5yr" },
     ],
+  },
+  {
+    id: "massage",
+    label: "Massage Therapists",
+    description: "Only set a field here to override the shared Providers target for massage therapists — leave the rest blank to keep using the shared target.",
+    fields: SHARED_CLINICIAN_TARGET_FIELDS,
+  },
+  {
+    id: "ep",
+    label: "Exercise Physiologists",
+    description: "Only set a field here to override the shared Providers target for EPs — leave the rest blank to keep using the shared target.",
+    fields: SHARED_CLINICIAN_TARGET_FIELDS,
   },
   {
     id: "senior",
@@ -114,10 +126,19 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
   },
 ];
 
-/** Which shared target group a provider's flat KPI Scorecard targets come from. */
+/**
+ * Which shared target group a provider's flat KPI Scorecard targets come
+ * from. Massage/EP each get their own group id so a director can override a
+ * specific field for just that role (see getEffectiveTargets in
+ * lib/defaultTargets.ts for how their group is layered on top of
+ * "providers" instead of replacing it — an untouched massage/ep group just
+ * inherits every Providers value).
+ */
 export function roleTargetGroupId(role: ProviderRole): RoleTargetGroupId {
   if (role === "admin") return "admin";
   if (role === "senior_physio") return "senior";
+  if (role === "massage") return "massage";
+  if (role === "ep") return "ep";
   return "providers";
 }
 

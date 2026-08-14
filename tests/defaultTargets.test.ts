@@ -49,4 +49,25 @@ describe("getEffectiveTargets", () => {
     expect(targets.cva_target_new_grad).toBeUndefined();
     expect(targets.cva_target_2_5yr).toBeUndefined();
   });
+
+  it("massage/ep with no overrides of their own inherit every value from the shared 'providers' group", () => {
+    const roleTargets = { providers: { dnas: 3, completed_consults: 40 }, massage: {}, ep: {} };
+    expect(getEffectiveTargets({ role: "massage", targets: {} }, roleTargets).completed_consults).toBe(40);
+    expect(getEffectiveTargets({ role: "ep", targets: {} }, roleTargets).completed_consults).toBe(40);
+  });
+
+  it("a field set on massage's own group overrides the shared 'providers' value for massage only, other fields still inherit", () => {
+    const roleTargets = { providers: { dnas: 3, completed_consults: 40 }, massage: { completed_consults: 20 } };
+    const massageTargets = getEffectiveTargets({ role: "massage", targets: {} }, roleTargets);
+    expect(massageTargets.completed_consults).toBe(20);
+    expect(massageTargets.dnas).toBe(3);
+    // EP's own group is untouched, so it still inherits the shared value.
+    const epTargets = getEffectiveTargets({ role: "ep", targets: {} }, roleTargets);
+    expect(epTargets.completed_consults).toBe(40);
+  });
+
+  it("not_rebooked defaults to 5 (a raw count) when nothing overrides it", () => {
+    const targets = getEffectiveTargets({ role: "physio", targets: {} });
+    expect(targets.not_rebooked).toBe(5);
+  });
 });

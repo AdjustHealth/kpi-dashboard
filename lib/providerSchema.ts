@@ -82,8 +82,8 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
-  { key: "not_rebooked_pct", label: "Not Rebooked %", type: "percent", betterWhen: "lower" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked (100% − Not Rebooked %)" },
+  { key: "not_rebooked", label: "Not Rebooked", type: "number", betterWhen: "lower" },
+  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked" },
 ];
 
 // Turnover and TPR stay off the standard physio/massage/EP scorecard —
@@ -331,6 +331,7 @@ export const ACTION_PLAN_CATEGORIES: { key: string; label: string }[] = [
 
 export interface ProviderMeetingNotes {
   agenda_items?: string;
+  /** Legacy free-text field, no longer written — superseded by the interactive Action Steps checklist below. Kept typed so old weeks' saved data still round-trips harmlessly. */
   review_previous_actions?: string;
   wins?: string[];
   things_to_work_on?: string[];

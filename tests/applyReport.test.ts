@@ -210,6 +210,7 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     // Cancellation % = cancellations / (cancellations + completed) = 3 / (3 + 10)
     expect(weeklyKpis["2026-07-05"].cx_pct).toBeCloseTo(3 / 13, 4);
     expect(providerWeekly["p1:2026-07-05"].not_rebooked_pct).toBeCloseTo(1 / 3, 4);
+    expect(providerWeekly["p1:2026-07-05"].not_rebooked).toBe(1);
   });
 
   const PROVIDERS_AND_PRACTICE_CSV = `Providers and Practice Report

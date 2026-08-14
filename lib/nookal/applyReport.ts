@@ -220,6 +220,10 @@ export async function applyNookalReport(
         await upsertProviderMetrics(p.id, {
           cancellations: data.cancellations,
           dnas: data.dnas,
+          not_rebooked: data.notRebooked,
+          // Not shown as its own KPI Scorecard field anymore (director wants a
+          // raw count instead — see not_rebooked above), but still stored
+          // silently so retentionPct() (lib/providerData.ts) keeps working.
           not_rebooked_pct: data.notRebookedPct,
           reschedule_rate_pct: data.rescheduleRatePct,
         });

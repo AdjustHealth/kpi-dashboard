@@ -28,7 +28,6 @@ export function MeetingNotesCard({
   initialNotes,
   showMultiDisc = true,
   adminMode = false,
-  carriedOverActionText,
   previousMultiDisc,
 }: {
   providerId: string;
@@ -38,18 +37,14 @@ export function MeetingNotesCard({
   showMultiDisc?: boolean;
   /** Admin meetings only — swaps "3 Wins / 3 Things to Work On" for "Proud Of / Grateful For", one slot each for the admin and one each for directors. */
   adminMode?: boolean;
-  /** Last week's Action Steps/Action Plan, pre-formatted — prefills "Review from Last Week / Action Steps" when this week's session hasn't started yet (that field is still unset for this week). */
-  carriedOverActionText?: string;
   /** Last week's Multi-Disciplinary Team Utilisation names — kept on the list every week (not just carried once) so referral names aren't forgotten; see the mount effect below. */
   previousMultiDisc?: MultiDiscUtilisation;
 }) {
-  const isCarryOverCandidate = initialNotes.review_previous_actions === undefined && !!carriedOverActionText;
   // Names carry indefinitely (not just a one-off suggestion like Action
-  // Steps below) — a name typed under Hydro this week should still be there
-  // next week, and the week after, until someone removes it. So unlike
-  // review_previous_actions, this is eagerly persisted (see mount effect)
-  // rather than left as a display-only default — otherwise a week nobody
-  // opens/edits would break the chain for the week after it.
+  // Steps) — a name typed under Hydro this week should still be there next
+  // week, and the week after, until someone removes it. So this is eagerly
+  // persisted (see mount effect) rather than left as a display-only default
+  // — otherwise a week nobody opens/edits would break the chain for the week after it.
   const carriedDiscKeys = DISC_KEYS.filter(
     (key) => initialNotes.multi_disc_utilisation?.[key] === undefined && (previousMultiDisc?.[key]?.length ?? 0) > 0
   );
@@ -59,13 +54,11 @@ export function MeetingNotesCard({
   };
   const [notes, setNotes] = useState<ProviderMeetingNotes>({
     agenda_items: "",
-    review_previous_actions: isCarryOverCandidate ? carriedOverActionText : "",
     wins: ["", "", ""],
     things_to_work_on: ["", "", ""],
     ...initialNotes,
     multi_disc_utilisation: mergedMultiDisc,
   });
-  const [showCarriedOverTag, setShowCarriedOverTag] = useState(isCarryOverCandidate);
   const [carriedOverDiscKeys, setCarriedOverDiscKeys] = useState<Set<string>>(() => new Set(carriedDiscKeys));
 
   const [discText, setDiscText] = useState<Record<string, string>>(() => {
@@ -111,10 +104,9 @@ export function MeetingNotesCard({
   }
 
   function updateText(
-    key: "agenda_items" | "review_previous_actions" | "proud_of_self" | "proud_of_director" | "grateful_for_self" | "grateful_for_director",
+    key: "agenda_items" | "proud_of_self" | "proud_of_director" | "grateful_for_self" | "grateful_for_director",
     value: string
   ) {
-    if (key === "review_previous_actions") setShowCarriedOverTag(false);
     setNotes((prev) => ({ ...prev, [key]: value }));
     set(key, value);
   }
@@ -154,17 +146,6 @@ export function MeetingNotesCard({
             {...fieldFocusHandlers("agenda_items")}
           />
         </Field>
-        <Field
-          label="Review from Last Week / Action Steps"
-          tag={showCarriedOverTag ? <Badge tone="neutral">Carried over — edit as needed</Badge> : undefined}
-        >
-          <Textarea
-            value={notes.review_previous_actions ?? ""}
-            onChange={(e) => updateText("review_previous_actions", e.target.value)}
-            {...fieldFocusHandlers("review_previous_actions")}
-          />
-        </Field>
-
         {adminMode ? (
           <div
             className="rounded-xl p-[3px]"

@@ -15,7 +15,6 @@ import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
 import { GoalsCard } from "@/components/provider/GoalsCard";
 import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
-import { normalizeActionItems } from "@/lib/actionItems";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Provider } from "@/lib/types";
@@ -23,22 +22,6 @@ import { ClinicWeekRow } from "@/lib/clinicData";
 
 function SectionLabel({ children }: { children: string }) {
   return <h2 className="text-sm font-semibold text-foreground">{children}</h2>;
-}
-
-/**
- * Formats last week's still-open Action Steps as text to carry into this
- * week's "Review from Last Week / Action Steps" discussion field —
- * standard/admin providers only. This is separate from ActionStepsCard's
- * own per-item Carry Over button (which actually re-creates the item on
- * next week's checklist) — this is just a narrative summary for the
- * "review last week" conversation, so it still includes items regardless
- * of whether they were also explicitly carried over.
- */
-function formatCarriedOverActions(notes: ProviderMeetingNotes): string {
-  return normalizeActionItems(notes.action_steps)
-    .filter((i) => i.status === "open")
-    .map((i) => `- ${i.text}`)
-    .join("\n");
 }
 
 export function ProviderDetailView({
@@ -61,7 +44,7 @@ export function ProviderDetailView({
   week: string;
   history: WeekMetrics[];
   currentMeetingNotes: ProviderMeetingNotes;
-  /** Last week's meeting_notes — carried into this week's "Review from Last Week / Action Steps" field. */
+  /** Last week's meeting_notes — source for ActionStepsCard's/Action Plan's auto carry-forward. */
   previousMeetingNotes?: ProviderMeetingNotes;
   /** New patient names from exactly 6 weeks ago — due for a 6 week progress check-in. */
   sixWeekReviewNames?: string[];
@@ -82,7 +65,6 @@ export function ProviderDetailView({
   const metricFields = metricFieldsForRole(provider.role);
   const effectiveTargets = getEffectiveTargets(provider, roleTargets);
   const kpaGroups = kpaGroupsForRole(provider.role);
-  const carriedOverActionText = formatCarriedOverActions(previousMeetingNotes ?? {});
   // Cumulative turnover must only count weeks since this senior physio
   // actually started the role, not the whole fetched history window.
   const bonusHistory = seniorSince ? history.filter((h) => h.week_ending >= seniorSince) : history;
@@ -118,6 +100,19 @@ export function ProviderDetailView({
           initialNotes={currentMeetingNotes}
           previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
         />
+
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Action Plan</SectionLabel>
+          <ActionStepsCard
+            providerId={provider.id}
+            week={week}
+            initialNotes={currentMeetingNotes}
+            size="large"
+            categorized
+            showGoals={false}
+            previousActionPlan={previousMeetingNotes?.action_plan}
+          />
+        </div>
 
         {provider.targets.show_programming_prep === true && (
           <ProgrammingPrepCard providerId={provider.id} week={week} initialNotes={currentMeetingNotes} />
@@ -206,19 +201,6 @@ export function ProviderDetailView({
         </div>
 
         <div className="flex flex-col gap-4">
-          <SectionLabel>Action Plan</SectionLabel>
-          <ActionStepsCard
-            providerId={provider.id}
-            week={week}
-            initialNotes={currentMeetingNotes}
-            size="large"
-            categorized
-            showGoals={false}
-            previousActionPlan={previousMeetingNotes?.action_plan}
-          />
-        </div>
-
-        <div className="flex flex-col gap-4">
           <SectionLabel>Performance Trends</SectionLabel>
           <ProviderCharts history={history} showTpr targets={effectiveTargets} dropOutRateHistory={dropOutRateHistory} />
         </div>
@@ -236,8 +218,15 @@ export function ProviderDetailView({
         initialNotes={currentMeetingNotes}
         showMultiDisc={variant !== "admin"}
         adminMode={variant === "admin"}
-        carriedOverActionText={carriedOverActionText}
         previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
+      />
+
+      <ActionStepsCard
+        providerId={provider.id}
+        week={week}
+        initialNotes={currentMeetingNotes}
+        showGoals={false}
+        previousItems={previousMeetingNotes?.action_steps}
       />
 
       <WeeklyScorecardTable
@@ -316,14 +305,6 @@ export function ProviderDetailView({
       ))}
 
       <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
-
-      <ActionStepsCard
-        providerId={provider.id}
-        week={week}
-        initialNotes={currentMeetingNotes}
-        showGoals={false}
-        previousItems={previousMeetingNotes?.action_steps}
-      />
 
       {variant === "admin" ? (
         <AdminPerformanceCharts history={history} targets={effectiveTargets} />
