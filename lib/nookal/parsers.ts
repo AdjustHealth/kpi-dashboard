@@ -72,6 +72,13 @@ const TRAVEL_ITEM_PATTERN = /travel/i;
  * NDIS Core Supports Group Physio) haven't appeared in any export seen so
  * far, so they're matched on the director's given wording as closely as
  * possible but unverified against a real row.
+ *
+ * Deliberately NOT matched despite superficially looking gym-related: "WC
+ * Subs Gym"/"WC Initial Gym" — these are individual physio consultations
+ * that happen to take place in the gym space, not gym membership/group
+ * revenue (confirmed with the director 14/8/26 after a first attempt to
+ * add them wrongly inflated two weeks' figures — don't re-add without
+ * asking again).
  */
 const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
   /adjust gym membership/i,
