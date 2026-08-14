@@ -503,12 +503,15 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
 04/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Four,WC GROUP EXERCISE,WC EXPHYS Group Exercise Session 300401,Service,4004,04/07/2026,Workcover QLD,,60.00,0.00,0.00,60.00,0.00,4004
 05/07/2026,Alex Example,Adjust Physiotherapy,Test Client Five,NDIS Self Managed,NDIS Program Management – Physio (Non-F2F),Service,4005,05/07/2026,NDIS,,65.00,0.00,0.00,65.00,0.00,4005
 06/07/2026,Alex Example,Adjust Physiotherapy,Test Client Six,Gym Membership,GYM Private Subs 505 (Member),Service,4006,06/07/2026,Private,,118.00,0.00,0.00,118.00,0.00,4006
+07/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client Seven,WC Gym Program,WC Subs Gym 45 min 100402,Service,4007,07/07/2026,Workcover QLD,,84.00,0.00,0.00,84.00,0.00,4007
 
 `;
     const result = parseActivityReport(GYM_CSV);
-    // 65 + 72 + 58 + 60 + 65 = 320 — the private member's "GYM Private Subs
-    // 505" (a differently-named item) must NOT be included.
-    expect(result.gym3pRevenue).toBeCloseTo(320, 2);
+    // 65 + 72 + 58 + 60 + 65 + 84 = 404 — the private member's "GYM Private
+    // Subs 505" (a differently-named item) must NOT be included, but the
+    // WorkCover-funded "WC Subs Gym" item must be (see the 1/8 and 8/8
+    // real-world Activity Report gap this fixture regression-tests).
+    expect(result.gym3pRevenue).toBeCloseTo(404, 2);
   });
 
   it("detects JBV Initial vs Subsequent from the Case/Item text", () => {
