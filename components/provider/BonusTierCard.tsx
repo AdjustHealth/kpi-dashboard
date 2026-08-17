@@ -35,6 +35,11 @@ export function BonusTierCard({
   const pacing = turnoverPacingPct(cumTO[cumTO.length - 1] ?? 0, baseTgt[baseTgt.length - 1] ?? null);
   const bonusTiers = targets.bonus_tiers ?? {};
   const onTarget = pacing !== null && pacing >= 100;
+  // How far cumulative turnover sits from the cumulative base target in real
+  // dollars, not just pacing % — the director wants the actual gap visible
+  // at a glance, not just a percentage.
+  const latestBaseTgt = baseTgt[baseTgt.length - 1];
+  const turnoverGap = latestBaseTgt === null || latestBaseTgt === undefined ? null : (cumTO[cumTO.length - 1] ?? 0) - latestBaseTgt;
 
   const turnoverChartData = weekLabels.map((week_ending, i) => ({
     label: formatWeekLabel(week_ending),
@@ -122,6 +127,18 @@ export function BonusTierCard({
             >
               {pacing === null ? "" : onTarget ? "✓ On Target" : "⚠ Behind Target"}
             </span>
+            {turnoverGap !== null && (
+              <span
+                className="text-lg font-extrabold"
+                style={{ color: turnoverGap >= 0 ? STATUS.good : STATUS.critical }}
+              >
+                {turnoverGap >= 0 ? "+" : "−"}
+                {formatValue(Math.abs(turnoverGap), "currency")}
+                <span className="ml-1 text-[11px] font-medium text-muted">
+                  {turnoverGap >= 0 ? "ahead of target" : "behind target"}
+                </span>
+              </span>
+            )}
           </div>
           <MultiLineChart
             title="Cumulative Turnover vs Base Target"
