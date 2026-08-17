@@ -31,12 +31,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const nextWeek = shiftWeek(week_ending, 1);
 
-  // Same FK-guard as /api/provider-weekly — a week only gets a weekly_kpis
-  // row via a Nookal upload, so carrying into a week that hasn't had one
-  // yet would otherwise fail with no visible reason.
-  const { error: weekEnsureError } = await supabase
-    .from("weekly_kpis")
-    .upsert({ week_ending: nextWeek }, { onConflict: "week_ending", ignoreDuplicates: true });
+  // Same FK-guard as /api/provider-weekly, via the same SECURITY DEFINER RPC
+  // — see migration 0031 for why a raw upsert 403s for a scoped staff login.
+  const { error: weekEnsureError } = await supabase.rpc("ensure_weekly_kpis_row", { p_week_ending: nextWeek });
   if (weekEnsureError) return NextResponse.json({ error: weekEnsureError.message }, { status: 500 });
 
   const { data: existing, error: fetchError } = await supabase

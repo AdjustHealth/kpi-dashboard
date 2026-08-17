@@ -48,11 +48,13 @@ export async function PATCH(request: NextRequest) {
   // on a provider/admin/senior page for a week that hasn't had one uploaded
   // yet (e.g. navigating ahead to a future week) fails this FK with no
   // visible reason beyond "couldn't save". Ensure a placeholder row exists
-  // first — ignoreDuplicates means this never touches real data that's
-  // already there.
-  const { error: weekEnsureError } = await supabase
-    .from("weekly_kpis")
-    .upsert({ week_ending }, { onConflict: "week_ending", ignoreDuplicates: true });
+  // first, via a SECURITY DEFINER RPC rather than a raw upsert — a scoped
+  // staff login (e.g. Marcio) can't SELECT weekly_kpis (director-only, real
+  // financials), and Postgres can't silently no-op an insert-on-conflict
+  // for a row it won't let the caller see, so a raw ignoreDuplicates upsert
+  // 403s the instant the week's row already exists (effectively always).
+  // See migration 0031.
+  const { error: weekEnsureError } = await supabase.rpc("ensure_weekly_kpis_row", { p_week_ending: week_ending });
   if (weekEnsureError) return NextResponse.json({ error: weekEnsureError.message }, { status: 500 });
 
   const { data: existing, error: fetchError } = await supabase
