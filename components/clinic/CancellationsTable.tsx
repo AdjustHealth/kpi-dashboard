@@ -81,10 +81,19 @@ export function CancellationsTable({
     // Optimistically drop it from view — this is a dismiss, not an edit, so
     // there's no "current" value to show while the request is in flight.
     setLocalRows((prev) => prev.filter((r) => r.id !== row.id));
+    // Resolve by client+provider (not just this one row's id) — a client
+    // who's cancelled repeatedly without rebooking can have several
+    // separate cancellation_events rows across different weeks, and
+    // dismissing them should mean the client doesn't come back via one of
+    // the others a moment later. Falls back to the single row if provider
+    // is somehow missing.
+    const body = row.provider
+      ? { client: row.client, provider: row.provider, not_rebooked_resolved: true }
+      : { id: row.id, not_rebooked_resolved: true };
     const res = await fetch("/api/cancellation-events", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id, not_rebooked_resolved: true }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       // Revert on failure — put it back so it isn't silently lost.
