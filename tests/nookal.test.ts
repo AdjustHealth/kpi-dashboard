@@ -511,6 +511,35 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(result.gym3pRevenue).toBeCloseTo(320, 2);
   });
 
+  it("also counts a 3rd-party member billed under the exact same generic item a private member uses, via Invoice Type", () => {
+    // Real-world case (Judith Vesco, "Move Strong", 22/8/26): billed through
+    // the same "GYM ... Private Subs..." item family a genuine private
+    // Glofox member uses — Item text alone can't tell them apart, only
+    // Invoice Type = "Adjust Gym Membership" can.
+    const GYM_CSV = `Activity Report
+
+Parameters
+Dates,17/08/2026 - 23/08/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,195.75,0,195.75
+Total,195.75,0,195.75
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+17/08/2026,Sam Johnston,Adjust Physiotherapy,Judith Vesco,Move Strong,GYM TL Private Subs 505,Service,5001,17/08/2026,Adjust Gym Membership,,108.75,0.00,0.00,108.75,0.00,5001
+21/08/2026,Wilson Page,Adjust Physiotherapy,Helen Smith,Move Strong,GYM Private Subs 505 (Member),Service,5002,21/08/2026,Private,,87.00,0.00,0.00,87.00,0.00,5002
+22/08/2026,Wilson Page,Adjust Physiotherapy,Gym Member,Gym Membership,GYM Private Subs 505 (Member),Service,5003,22/08/2026,Adjust Gym Membership,,87.00,0.00,0.00,87.00,0.00,5003
+
+`;
+    const result = parseActivityReport(GYM_CSV);
+    // Judith Vesco (108.75) and the third row (87.00) are both billed under
+    // "Adjust Gym Membership" and must count; Helen Smith is a genuine
+    // Private member on the identical item text and must NOT.
+    expect(result.gym3pRevenue).toBeCloseTo(195.75, 2);
+  });
+
   it("detects JBV Initial vs Subsequent from the Case/Item text", () => {
     const JBV_CSV = `Activity Report
 

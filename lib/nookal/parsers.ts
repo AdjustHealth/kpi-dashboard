@@ -61,17 +61,15 @@ const TRAVEL_ITEM_PATTERN = /travel/i;
  * weekly figure she added up by hand from these same item names). Matched
  * against the Item column only (not Case+Item like the specialty patterns
  * above) since these are specific billable service names, confirmed against
- * real exports: "Adjust Gym Membership (Weekly)"/"Adjust Move Strong
- * Membership (Weekly)" (WC/NDIS-payer members, never seen under a Private
- * invoice — private members bill under a differently-named "GYM Private
- * Subs..." item, so there's no overlap with Glofox's own private-member
- * billing), "WC Physio Group Exercise Sessions 100106", "WC EXPHYS Group
- * Exercise Session 300401" (the trailing number is a billing code that
- * varies — matched by prefix), and "NDIS Program Management – Physio
- * (Non-F2F)". The remaining three (DVA EXPHYS/Physio Group Class,
- * NDIS Core Supports Group Physio) haven't appeared in any export seen so
- * far, so they're matched on the director's given wording as closely as
- * possible but unverified against a real row.
+ * real exports: "Adjust Gym Membership (Weekly)" item, "WC Physio Group
+ * Exercise Sessions 100106", "WC EXPHYS Group Exercise Session 300401" (the
+ * trailing number is a billing code that varies — matched by prefix), and
+ * "NDIS Program Management – Physio (Non-F2F)". "Adjust Move Strong
+ * Membership (Weekly)" hasn't actually appeared as an item name in any real
+ * export seen so far (kept in case it ever does); same for the DVA
+ * EXPHYS/Physio Group Class and NDIS Core Supports Group Physio patterns —
+ * all matched on the director's given wording as closely as possible but
+ * unverified against a real row.
  *
  * Deliberately NOT matched despite superficially looking gym-related: "WC
  * Subs Gym"/"WC Initial Gym" — these are individual physio consultations
@@ -79,6 +77,14 @@ const TRAVEL_ITEM_PATTERN = /travel/i;
  * revenue (confirmed with the director 14/8/26 after a first attempt to
  * add them wrongly inflated two weeks' figures — don't re-add without
  * asking again).
+ *
+ * See ADJUST_GYM_MEMBERSHIP_INVOICE_TYPE below for the other half of this
+ * calc — some 3rd-party members bill under the exact same generic "GYM ...
+ * Private Subs..." item as a real private Glofox member (the "differently-
+ * named item" reasoning that used to live in this comment turned out to be
+ * wrong — confirmed 23/8/26 against real Judith Vesco/"Move Strong" rows).
+ * The Item column alone can't tell those two apart; only the Invoice Type
+ * column can.
  */
 const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
   /adjust gym membership/i,
@@ -91,6 +97,18 @@ const GYM_3RD_PARTY_ITEM_PATTERNS: RegExp[] = [
   /wc\s*exphys\s*group\s*exercise/i,
   /wc\s*physio\s*group\s*exercise/i,
 ];
+
+/**
+ * A real, dedicated Nookal payer/invoice-type entry (confirmed in the
+ * Activity Report's own Parameters "Payers" list) — a member funded under
+ * this plan gets billed through whatever generic item code applies (often
+ * the same "GYM Private Subs..."/"GYM TL Private Subs..." item a private
+ * Glofox member would also use), so the Invoice Type column is the only
+ * reliable signal for these, independent of GYM_3RD_PARTY_ITEM_PATTERNS.
+ * A genuine private member's Invoice Type is "Private", not this — no
+ * overlap.
+ */
+const ADJUST_GYM_MEMBERSHIP_INVOICE_TYPE = /^adjust gym membership$/i;
 
 /**
  * Activity Report — revenue detail, one row per invoiced line item.
@@ -165,7 +183,11 @@ export function parseActivityReport(
       else if (JBV_INIT_PATTERN.test(itemText)) jbvInitialCount += 1;
     }
 
-    if (amount !== null && GYM_3RD_PARTY_ITEM_PATTERNS.some((p) => p.test(r["Item"] ?? ""))) {
+    if (
+      amount !== null &&
+      (GYM_3RD_PARTY_ITEM_PATTERNS.some((p) => p.test(r["Item"] ?? "")) ||
+        ADJUST_GYM_MEMBERSHIP_INVOICE_TYPE.test(r["Invoice Type"] ?? ""))
+    ) {
       gym3pRevenue += amount;
     }
 
