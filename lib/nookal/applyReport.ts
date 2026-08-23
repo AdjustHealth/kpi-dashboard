@@ -27,6 +27,16 @@ interface SpecialtyMetricRow {
   label: string;
 }
 
+/**
+ * Maps a provider's specialty_metrics prefix (e.g. "headache") to the
+ * matching key in parseActivityReport's SPECIALTY_CATEGORY_PATTERNS (e.g.
+ * "headaches") — only meaningful together with a provider's
+ * targets.specialty_clinic_wide_key, see the "activity" branch below.
+ */
+const SPECIALTY_METRIC_PREFIX_TO_CATEGORY: Record<string, string> = {
+  headache: "headaches",
+};
+
 interface ProviderRow {
   id: string;
   name: string;
@@ -92,10 +102,20 @@ export async function applyNookalReport(
     // detected from the same Case/Item text as JBV — any provider whose
     // specialty_metrics has a "<x>_init"/"<x>_sub" pair gets both counted
     // automatically instead of typed in by hand each week.
+    //
+    // Normally this only counts a provider's OWN rows (Staff column ===
+    // their name) — but a provider who's responsible for a whole specialty
+    // service clinic-wide (targets.specialty_clinic_wide_key, e.g. Marcio
+    // for headaches — confirmed with the director 23/8/26: "all headache
+    // and TMJ consults need to be included on his personal stat, he is
+    // responsible for the service") instead gets the SAME clinic-wide
+    // count already computed into result.specialtyCounts below (which also
+    // catches "TMJ" wording the per-provider prefix match wouldn't).
     const keywordPatterns: Record<string, RegExp> = {};
-    const specialtyKeyMap: Record<string, { providerId: string; initKey: string; subKey: string }> = {};
+    const specialtyKeyMap: Record<string, { providerId: string; initKey: string; subKey: string; clinicWideCategory: string | null }> = {};
     for (const p of providers) {
       const metrics = p.specialty_metrics ?? [];
+      const clinicWideKey = typeof p.targets?.specialty_clinic_wide_key === "string" ? p.targets.specialty_clinic_wide_key : null;
       for (const m of metrics) {
         if (!m.key.endsWith("_init")) continue;
         const prefix = m.key.slice(0, -"_init".length);
@@ -106,7 +126,12 @@ export async function applyNookalReport(
         // matches text like "Headache Init" or "Headache Subsequent".
         keywordPatterns[`${mapKey}:init`] = new RegExp(`(?=.*${prefix})(?=.*init)`, "i");
         keywordPatterns[`${mapKey}:sub`] = new RegExp(`(?=.*${prefix})(?=.*sub)`, "i");
-        specialtyKeyMap[mapKey] = { providerId: p.id, initKey: m.key, subKey };
+        specialtyKeyMap[mapKey] = {
+          providerId: p.id,
+          initKey: m.key,
+          subKey,
+          clinicWideCategory: clinicWideKey === prefix ? SPECIALTY_METRIC_PREFIX_TO_CATEGORY[prefix] : null,
+        };
       }
     }
 
@@ -144,7 +169,15 @@ export async function applyNookalReport(
       if (p) await upsertProviderMetrics(p.id, { turnover: amount });
     }
 
-    for (const [mapKey, { providerId, initKey, subKey }] of Object.entries(specialtyKeyMap)) {
+    for (const [mapKey, { providerId, initKey, subKey, clinicWideCategory }] of Object.entries(specialtyKeyMap)) {
+      if (clinicWideCategory) {
+        const counts = result.specialtyCounts[clinicWideCategory];
+        // Always write (even 0) — this is the authoritative clinic-wide
+        // count, not a per-row match that might legitimately be absent this
+        // week, so a real zero is a real zero.
+        if (counts) await upsertProviderMetrics(providerId, { [initKey]: counts.initial, [subKey]: counts.sub });
+        continue;
+      }
       const providerName = providers.find((p) => p.id === providerId)?.name;
       if (!providerName) continue;
       const initCount = result.keywordCountsByProvider[`${mapKey}:init`]?.[providerName] ?? 0;

@@ -164,6 +164,48 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(providerWeekly["p1:2026-07-05"].headache_init).toBeUndefined();
   });
 
+  it("activity: a provider responsible for a specialty clinic-wide (targets.specialty_clinic_wide_key) gets every matching consult, not just their own — including TMJ wording and other providers' rows", async () => {
+    const CLINIC_WIDE_HEADACHE_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,300.00,0,300.00
+Total,300.00,0,300.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Jamie Sample,Adjust Physiotherapy,Test Client One,Headache Init Consult,Headache Init,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,TMJ Sub Consult,TMJ Sub,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+03/07/2026,Alex Example,Adjust Physiotherapy,Test Client Three,Headache Sub Consult,Headache Sub,Service,1003,03/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1003
+
+`;
+    const { client, providerWeekly } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      {
+        id: "p2",
+        name: "Jamie Sample",
+        role: "senior_physio",
+        targets: { specialty_clinic_wide_key: "headache" },
+        specialty_metrics: [
+          { key: "headache_init", label: "Headache Init" },
+          { key: "headache_sub", label: "Headache Sub" },
+          { key: "headache_total", label: "Headache Total" },
+        ],
+      },
+    ]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", CLINIC_WIDE_HEADACHE_CSV);
+
+    // Jamie Sample (the responsible senior physio) gets ALL 3 rows — their
+    // own Headache Init, plus Alex Example's TMJ Sub and Headache Sub —
+    // even though only 1 of the 3 rows is actually theirs.
+    expect(providerWeekly["p2:2026-07-05"].headache_init).toBe(1);
+    expect(providerWeekly["p2:2026-07-05"].headache_sub).toBe(2);
+  });
+
   it("matching is case-insensitive and whitespace-tolerant", async () => {
     const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "  alex example  ", role: "physio" }]);
     await applyNookalReport(client as never, "activity", "2026-07-05", ACTIVITY_CSV);
