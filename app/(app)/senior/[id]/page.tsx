@@ -4,7 +4,7 @@ import { ProviderDetailView } from "@/components/provider/ProviderDetailView";
 import { getProviderDetailData } from "@/lib/providerData";
 import { getClinicHistory, getRoleTargets, getNotRebookedClients, getDropOutRateHistory } from "@/lib/clinicData";
 import { createClient } from "@/lib/supabase/server";
-import { defaultWeekEnding, weeksBetween, trackingHistoryWeeks } from "@/lib/week";
+import { defaultWeekEnding, weeksBetween, TRACKING_START_WEEK_ENDING } from "@/lib/week";
 import { requireDirector } from "@/lib/auth/access";
 
 export default async function SeniorPhysioPage({
@@ -19,19 +19,16 @@ export default async function SeniorPhysioPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  // Bonus-tier cumulative turnover must only count weeks since this senior
-  // physio actually started the role — peek at that date first so the
-  // history window is wide enough to cover it even if they were promoted
-  // later than the system-wide tracking start (ProviderDetailView then
-  // filters down to just senior_since for the bonus-tier calc itself).
+  // Senior physio pages show every tracked week, uncapped — unlike the
+  // fixed trailing window everywhere else, directors want to see a senior's
+  // whole trend, not just a recent slice (bonus-tier cumulative turnover
+  // still only counts weeks since this senior physio actually started the
+  // role — ProviderDetailView filters that down separately).
   const supabase = await createClient();
   const { data: providerRow } = await supabase.from("providers").select("targets").eq("id", id).maybeSingle();
   const seniorSince =
     typeof providerRow?.targets?.senior_since === "string" ? (providerRow.targets.senior_since as string) : null;
-  const historyWeeks = Math.max(
-    trackingHistoryWeeks(week),
-    seniorSince ? weeksBetween(seniorSince, week) + 1 : 0
-  );
+  const historyWeeks = weeksBetween(TRACKING_START_WEEK_ENDING, week) + 1;
 
   const [
     { provider, history, currentMeetingNotes, previousMeetingNotes, sixWeekReviewNames, sixWeekReviewWeek },

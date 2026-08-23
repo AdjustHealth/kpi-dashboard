@@ -39,7 +39,7 @@ export default async function ClinicHealthPage({
   // so the clinic-wide history and the per-provider CVA history intentionally
   // use two different windows.
   const historyWeeks = clinicHistoryWeeks(week);
-  const providerHistoryWeeks = Math.min(trackingHistoryWeeks(week), 8);
+  const providerHistoryWeeks = trackingHistoryWeeks(week);
   const [
     history,
     clinicTargets,

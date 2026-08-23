@@ -67,13 +67,13 @@ export const TRACKING_START_WEEK_ENDING = firstWeekEndingOnOrAfter(TRACKING_STAR
 /**
  * How many weeks of history to fetch to cover TRACKING_START_WEEK_ENDING through `week`.
  * Never goes earlier than TRACKING_START_WEEK_ENDING (this system's rollout date) —
- * capped at `max` (default 4, a fixed trailing window so trend charts always show the
- * last month rather than stretching further right as more weeks accumulate — pass an
+ * capped at `max` (default 8, a fixed ~2-month trailing window so trend charts show a
+ * real trend without stretching further right as more weeks accumulate — pass an
  * explicit `max` when a calculation genuinely needs the full history, e.g. a senior
  * physio's cumulative turnover pacing since they started the role). Both dates are
  * Saturdays, so weeksBetween is exact here (no rounding drift).
  */
-export function trackingHistoryWeeks(week: string, max = 4): number {
+export function trackingHistoryWeeks(week: string, max = 8): number {
   return Math.min(max, Math.max(1, weeksBetween(TRACKING_START_WEEK_ENDING, week) + 1));
 }
 
@@ -83,13 +83,13 @@ export function trackingHistoryWeeks(week: string, max = 4): number {
  * rollout, since provider_weekly was never backfilled. Clinic-wide-only
  * pages (Dashboard, Clinic Health, Specialty Services, Revenue) can reach
  * back that far when an explicit `max` is passed, but default to the same
- * fixed 4-week trailing window as trackingHistoryWeeks so every chart shows
+ * fixed 8-week trailing window as trackingHistoryWeeks so every chart shows
  * a consistent, unstretched recent timeline rather than growing wider (and
  * squeezing the recent weeks over to the right) as more history accumulates.
  */
 export const CLINIC_HISTORY_START_WEEK = "2026-01-01";
 export const CLINIC_HISTORY_START_WEEK_ENDING = firstWeekEndingOnOrAfter(CLINIC_HISTORY_START_WEEK);
 
-export function clinicHistoryWeeks(week: string, max = 4): number {
+export function clinicHistoryWeeks(week: string, max = 8): number {
   return Math.min(max, Math.max(1, weeksBetween(CLINIC_HISTORY_START_WEEK_ENDING, week) + 1));
 }
