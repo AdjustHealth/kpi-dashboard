@@ -14,6 +14,7 @@ import { NEUTRAL_CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/p
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { trendTargetColor } from "@/lib/chartTarget";
+import { trendlineSeries } from "@/lib/trendline";
 
 export interface TrendPoint {
   /** A week-ending date, formatted via formatWeekLabel — omit and set `label` directly for non-weekly axes (e.g. quarters). */
@@ -32,14 +33,17 @@ function TooltipContent({
   decimals,
 }: {
   active?: boolean;
-  payload?: { value: number }[];
+  payload?: { dataKey?: string; value: number }[];
   format: ChartFormat;
   decimals?: number;
 }) {
   if (!active || !payload?.length) return null;
+  // The trendline overlay shares this tooltip's payload — always show the
+  // real "value" series, never the regression line, regardless of draw order.
+  const point = payload.find((p) => p.dataKey === "value") ?? payload[0];
   return (
     <div className="rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs shadow-lg">
-      <span className="font-medium text-foreground">{formatValue(payload[0].value, format, decimals)}</span>
+      <span className="font-medium text-foreground">{formatValue(point.value, format, decimals)}</span>
     </div>
   );
 }
@@ -54,6 +58,7 @@ export function LineTrendChart({
   accent = false,
   target,
   betterWhen,
+  showTrendline = true,
 }: {
   title: string;
   data: TrendPoint[];
@@ -67,11 +72,23 @@ export function LineTrendChart({
   /** When set alongside betterWhen, draws a neutral dashed reference line at this value and colors the trend line green/red based on the latest point vs target — same convention as StatTile/table cells. */
   target?: number | null;
   betterWhen?: "higher" | "lower";
+  /** A dashed least-squares trendline overlay, green when the series is climbing and red when it's falling (literal direction, independent of target/betterWhen — a lower-is-better metric trending up is still shown red here since it's climbing, not "worse"). Needs at least 2 real points; hidden otherwise. */
+  showTrendline?: boolean;
 }) {
   const chartData = data.map((d) => ({ ...d, label: d.label ?? (d.week_ending ? formatWeekLabel(d.week_ending) : "") }));
   const dynamicColor = trendTargetColor(data, target, betterWhen);
   const color = dynamicColor ?? NEUTRAL_CATEGORICAL[colorIndex % NEUTRAL_CATEGORICAL.length];
   const onTrack = dynamicColor === undefined ? null : dynamicColor === STATUS.good;
+
+  const trend = showTrendline ? trendlineSeries(data.map((d) => d.value)) : null;
+  const trendColor = !trend
+    ? undefined
+    : trend[trend.length - 1]! > trend[0]!
+      ? STATUS.good
+      : trend[trend.length - 1]! < trend[0]!
+        ? STATUS.critical
+        : CHART_CHROME.mutedInk;
+  const trendChartData = trend ? chartData.map((d, i) => ({ ...d, trend: trend[i] })) : chartData;
 
   return (
     <div
@@ -94,7 +111,7 @@ export function LineTrendChart({
       </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <LineChart data={trendChartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={CHART_CHROME.gridline} vertical={false} />
             <XAxis
               dataKey="label"
@@ -126,6 +143,18 @@ export function LineTrendChart({
               activeDot={{ r: 4 }}
               connectNulls
             />
+            {trend && (
+              <Line
+                type="linear"
+                dataKey="trend"
+                stroke={trendColor}
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
