@@ -304,13 +304,16 @@ export const ROLE_LABELS: Record<ProviderRole, string> = {
  * Hydro / EP+Massage / Remedial Massage / Gym — per the paper's Multi-D Team
  * Utilisation row. Each is the list of client names referred to that
  * discipline this week, not just a count, so the meeting can talk through
- * who they actually are.
+ * who they actually are. "physio" is massage therapists only (see
+ * multiDiscKeysForRole below) — they refer clients on to a physio, which
+ * isn't a meaningful category for a physio's own page.
  */
 export interface MultiDiscUtilisation {
   hydro?: string[];
   ep_ms?: string[];
   rmt?: string[];
   gym?: string[];
+  physio?: string[];
 }
 
 export const MULTI_DISC_LABELS: Record<keyof MultiDiscUtilisation, string> = {
@@ -318,7 +321,19 @@ export const MULTI_DISC_LABELS: Record<keyof MultiDiscUtilisation, string> = {
   ep_ms: "EP/MS",
   rmt: "RMT",
   gym: "Gym",
+  physio: "Physio",
 };
+
+/**
+ * Which Multi-Disciplinary Team Utilisation referral categories a role's
+ * meeting page shows — the base 4 for everyone, plus "Physio" for massage
+ * therapists (confirmed with the director 23/8/26: they refer clients on
+ * to a physio and need that tracked the same way as Hydro/EP-MS/RMT/Gym).
+ */
+export function multiDiscKeysForRole(role: ProviderRole): (keyof MultiDiscUtilisation)[] {
+  const base: (keyof MultiDiscUtilisation)[] = ["hydro", "ep_ms", "rmt", "gym"];
+  return role === "massage" ? [...base, "physio"] : base;
+}
 
 /** Senior physio "Action Plan" categories — from the real Senior Physio Worksheet's Action Plan tab. */
 export const ACTION_PLAN_CATEGORIES: { key: string; label: string }[] = [

@@ -9,7 +9,7 @@ import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { useRealtimeMeetingNotes } from "@/lib/useRealtimeMeetingNotes";
 import { MULTI_DISC_LABELS, MultiDiscUtilisation, ProviderMeetingNotes } from "@/lib/providerSchema";
 
-const DISC_KEYS = ["hydro", "ep_ms", "rmt", "gym"] as const;
+const DEFAULT_DISC_KEYS: (keyof MultiDiscUtilisation)[] = ["hydro", "ep_ms", "rmt", "gym"];
 
 function namesToText(names: string[] | undefined): string {
   return Array.isArray(names) ? names.join("\n") : "";
@@ -27,6 +27,7 @@ export function MeetingNotesCard({
   week,
   initialNotes,
   showMultiDisc = true,
+  discKeys = DEFAULT_DISC_KEYS,
   adminMode = false,
   previousMultiDisc,
 }: {
@@ -35,6 +36,8 @@ export function MeetingNotesCard({
   initialNotes: ProviderMeetingNotes;
   /** Admin staff don't see clients directly, so Multi-Disciplinary Team Utilisation (Hydro/EP-MS/RMT/Gym referrals) doesn't apply to their meeting. */
   showMultiDisc?: boolean;
+  /** Which referral categories to show — see multiDiscKeysForRole in lib/providerSchema.ts (massage therapists get an extra "Physio" category). */
+  discKeys?: (keyof MultiDiscUtilisation)[];
   /** Admin meetings only — swaps "3 Wins / 3 Things to Work On" for "Proud Of / Grateful For", one slot each for the admin and one each for directors. */
   adminMode?: boolean;
   /** Last week's Multi-Disciplinary Team Utilisation names — kept on the list every week (not just carried once) so referral names aren't forgotten; see the mount effect below. */
@@ -45,7 +48,7 @@ export function MeetingNotesCard({
   // week, and the week after, until someone removes it. So this is eagerly
   // persisted (see mount effect) rather than left as a display-only default
   // — otherwise a week nobody opens/edits would break the chain for the week after it.
-  const carriedDiscKeys = DISC_KEYS.filter(
+  const carriedDiscKeys = discKeys.filter(
     (key) => initialNotes.multi_disc_utilisation?.[key] === undefined && (previousMultiDisc?.[key]?.length ?? 0) > 0
   );
   const mergedMultiDisc = {
@@ -63,7 +66,7 @@ export function MeetingNotesCard({
 
   const [discText, setDiscText] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const key of DISC_KEYS) init[key] = namesToText(mergedMultiDisc[key]);
+    for (const key of discKeys) init[key] = namesToText(mergedMultiDisc[key]);
     return init;
   });
 
@@ -89,7 +92,7 @@ export function MeetingNotesCard({
       const remoteDisc = remote.multi_disc_utilisation as MultiDiscUtilisation;
       setDiscText((prev) => {
         const next = { ...prev };
-        for (const key of DISC_KEYS) {
+        for (const key of discKeys) {
           if (remoteDisc[key] !== undefined) next[key] = namesToText(remoteDisc[key]);
         }
         return next;
@@ -120,7 +123,7 @@ export function MeetingNotesCard({
     });
   }
 
-  function updateDisc(key: (typeof DISC_KEYS)[number], text: string) {
+  function updateDisc(key: (keyof MultiDiscUtilisation), text: string) {
     setCarriedOverDiscKeys((prev) => {
       if (!prev.has(key)) return prev;
       const next = new Set(prev);
@@ -230,7 +233,7 @@ export function MeetingNotesCard({
           <div>
             <span className="text-xs font-medium text-muted">Multi-Disciplinary Team Utilisation</span>
             <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {DISC_KEYS.map((key) => {
+              {discKeys.map((key) => {
                 const count = notes.multi_disc_utilisation?.[key]?.length ?? 0;
                 const label = count > 0 ? `${MULTI_DISC_LABELS[key]} (${count})` : MULTI_DISC_LABELS[key];
                 return (

@@ -14,7 +14,7 @@ import { BonusTierCard } from "@/components/provider/BonusTierCard";
 import { ClinicAnalysisCard } from "@/components/provider/ClinicAnalysisCard";
 import { SeniorHeroSummary } from "@/components/provider/SeniorHeroSummary";
 import { GoalsCard } from "@/components/provider/GoalsCard";
-import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
+import { COMPLIANCE_FIELDS, metricFieldsForRole, kpaGroupsForRole, multiDiscKeysForRole, ProviderMeetingNotes } from "@/lib/providerSchema";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 import { Provider } from "@/lib/types";
@@ -98,6 +98,7 @@ export function ProviderDetailView({
           providerId={provider.id}
           week={week}
           initialNotes={currentMeetingNotes}
+          discKeys={multiDiscKeysForRole(provider.role)}
           previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
         />
 
@@ -217,6 +218,7 @@ export function ProviderDetailView({
         week={week}
         initialNotes={currentMeetingNotes}
         showMultiDisc={variant !== "admin"}
+        discKeys={multiDiscKeysForRole(provider.role)}
         adminMode={variant === "admin"}
         previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
       />
