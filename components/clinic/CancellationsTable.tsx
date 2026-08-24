@@ -3,7 +3,6 @@
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { formatWeekLabel } from "@/lib/week";
 import { isRescheduleNote } from "@/lib/nookal/parsers";
-import { Input } from "@/components/ui/Field";
 
 export interface CancellationEventRow {
   id: string;
@@ -206,13 +205,14 @@ export function CancellationsTable({
                 <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
               )}
               <td className="max-w-md py-2 px-3 text-foreground">{row.note ?? "—"}</td>
-              <td className="min-w-48 py-2 px-3">
-                <Input
+              <td className="min-w-56 py-2 px-3">
+                <textarea
                   value={row.discussion_note ?? ""}
                   placeholder="What to raise…"
                   onChange={(e) => editNote(row.id, e.target.value)}
                   onBlur={() => saveNote(row)}
-                  className="py-1 text-xs"
+                  rows={2}
+                  className="w-full resize-none rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground outline-none placeholder:text-muted focus:border-accent transition-colors"
                 />
               </td>
               {showResolveAction && (
