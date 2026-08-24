@@ -10,9 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
+import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { ChartFormat } from "@/components/charts/LineTrendChart";
+import { trendlineSeries } from "@/lib/trendline";
 
 /** ≥2 series on one axis — never dual-axis. Legend always present for 2+ series. */
 export function MultiLineChart({
@@ -24,6 +25,7 @@ export function MultiLineChart({
   height = 200,
   colors,
   pointLabelKeys,
+  trendlineKey,
 }: {
   title: string;
   data: Record<string, unknown>[];
@@ -41,13 +43,33 @@ export function MultiLineChart({
    * undefined for a series to leave it unlabeled.
    */
   pointLabelKeys?: (string | undefined)[];
+  /**
+   * One of seriesKeys (normally the actual-value series, not a target/trend
+   * reference line already on the chart) — overlays a dashed least-squares
+   * trendline for it, green if climbing, red if falling. Off by default;
+   * most MultiLineCharts already have their own actual-vs-target/trend pair
+   * and a third overlay would just be clutter — opt in per chart.
+   */
+  trendlineKey?: string;
 }) {
+  const trend = trendlineKey
+    ? trendlineSeries(data.map((d) => (typeof d[trendlineKey] === "number" ? (d[trendlineKey] as number) : null)))
+    : null;
+  const trendColor = !trend
+    ? undefined
+    : trend[trend.length - 1]! > trend[0]!
+      ? STATUS.good
+      : trend[trend.length - 1]! < trend[0]!
+        ? STATUS.critical
+        : CHART_CHROME.mutedInk;
+  const chartData = trend ? data.map((d, i) => ({ ...d, __trend: trend[i] })) : data;
+
   return (
     <div className="rounded-lg border border-border bg-surface-raised p-3">
       <div className="mb-1 text-xs font-medium text-muted">{title}</div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={CHART_CHROME.gridline} vertical={false} />
             <XAxis
               dataKey="label"
@@ -110,6 +132,19 @@ export function MultiLineChart({
                 />
               );
             })}
+            {trend && (
+              <Line
+                type="linear"
+                dataKey="__trend"
+                name="Trend"
+                stroke={trendColor}
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

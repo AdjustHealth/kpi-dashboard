@@ -167,6 +167,7 @@ export function BonusTierCard({
               targetColor(latestBonusMetric, bonusMetricTarget, "higher") ?? CATEGORICAL[0],
               ...(bonusMetricTarget !== null ? [CHART_CHROME.mutedInk] : []),
             ]}
+            trendlineKey={bonusMetricLabel}
           />
         )}
       </div>
