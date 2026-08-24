@@ -11,10 +11,15 @@ import { ProviderMeetingNotes, ACTION_PLAN_CATEGORIES } from "@/lib/providerSche
 import { ActionItem, normalizeActionItems, newActionItem, formatActionItemsForCopy } from "@/lib/actionItems";
 
 /**
- * One action item row: editable text, a Complete button (done — moves to
- * the collapsed history below) and a Carry Over button (also moves to
- * history here, and appends a fresh open copy onto NEXT week's list — see
- * app/api/action-steps).
+ * One action item row: editable text and a Complete button (done — moves to
+ * the collapsed history below). The flat (standard/admin) list has no Carry
+ * Over button — director's call: it hid the item from the active checklist
+ * for the rest of the week, and next week's copy couldn't be ticked off
+ * until the meeting after that. An item left open just auto-carries onto
+ * next week's list on its own (see flatCarry() below) — still visible and
+ * completable all week, every week, until someone actually finishes it.
+ * The categorized (senior) Action Plan keeps its own Carry Over button —
+ * not part of this change.
  */
 function ActionItemRow({
   item,
@@ -30,7 +35,8 @@ function ActionItemRow({
   large?: boolean;
   onChangeText: (text: string) => void;
   onComplete: () => void;
-  onCarryOver: () => void;
+  /** Omit to hide the Carry Over button — the flat (standard/admin) list no longer has one. */
+  onCarryOver?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -50,14 +56,16 @@ function ActionItemRow({
       >
         ✓
       </button>
-      <button
-        type="button"
-        title="Carry over to next week"
-        onClick={onCarryOver}
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-muted hover:border-accent hover:text-accent"
-      >
-        →
-      </button>
+      {onCarryOver && (
+        <button
+          type="button"
+          title="Carry over to next week"
+          onClick={onCarryOver}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-muted hover:border-accent hover:text-accent"
+        >
+          →
+        </button>
+      )}
     </div>
   );
 }
@@ -250,12 +258,10 @@ export function ActionStepsCard({
     setItems(next);
     set("action_steps", next);
   }
-  function resolveItem(id: string, status: "completed" | "carried") {
-    const target = items.find((i) => i.id === id);
-    const next = items.map((i) => (i.id === id ? { ...i, status } : i));
+  function resolveItem(id: string) {
+    const next = items.map((i) => (i.id === id ? { ...i, status: "completed" as const } : i));
     setItems(next);
     set("action_steps", next);
-    if (status === "carried" && target) carryOver(target.text);
   }
   function addItem(text: string) {
     const next = [...items, newActionItem(text)];
@@ -367,8 +373,7 @@ export function ActionStepsCard({
                   number={i + 1}
                   large={large}
                   onChangeText={(text) => updateItemText(item.id, text)}
-                  onComplete={() => resolveItem(item.id, "completed")}
-                  onCarryOver={() => resolveItem(item.id, "carried")}
+                  onComplete={() => resolveItem(item.id)}
                 />
               ))}
             <AddItemInput large={large} onAdd={addItem} />
