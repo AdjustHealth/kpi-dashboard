@@ -58,7 +58,7 @@ export function WeeklyInputForm({
     // m_pod_fortnightly is split in half into this week's m_pod_rev
     // server-side (see /api/weekly-kpis) — mirror that here too so the
     // auto-filled weekly figure updates instantly instead of only after a
-    // page reload. The previous week's half updates server-side only;
+    // page reload. The following week's half updates server-side only;
     // it's simply correct next time that week's page loads.
     if (id === "m_pod_fortnightly") {
       setWeekly((prev) => ({ ...prev, m_pod_fortnightly: value, m_pod_rev: value === null ? null : value / 2 }));

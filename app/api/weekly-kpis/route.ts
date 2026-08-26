@@ -45,11 +45,11 @@ export async function PATCH(request: NextRequest) {
     if (carryError) return NextResponse.json({ error: carryError.message }, { status: 500 });
   }
 
-  // Podiatry revenue is only known fortnightly, in arrears — the real
-  // total is typed in once (m_pod_fortnightly), on whichever week it comes
-  // in, and split in half into that week's AND the previous week's
-  // m_pod_rev automatically, instead of manually dividing by 2 and typing
-  // the same number into both weeks by hand.
+  // Podiatry revenue is only known fortnightly, typed in once
+  // (m_pod_fortnightly) on whichever week it comes in, and split in half
+  // into that week's AND the following week's m_pod_rev automatically,
+  // instead of manually dividing by 2 and typing the same number into both
+  // weeks by hand.
   if ("m_pod_fortnightly" in patch) {
     const raw = patch.m_pod_fortnightly;
     const half = typeof raw === "number" ? raw / 2 : null;
@@ -58,10 +58,10 @@ export async function PATCH(request: NextRequest) {
       .upsert({ week_ending, m_pod_rev: half }, { onConflict: "week_ending" });
     if (podError) return NextResponse.json({ error: podError.message }, { status: 500 });
 
-    const { error: podPrevError } = await supabase
+    const { error: podNextError } = await supabase
       .from("weekly_kpis")
-      .upsert({ week_ending: shiftWeek(week_ending, -1), m_pod_rev: half }, { onConflict: "week_ending" });
-    if (podPrevError) return NextResponse.json({ error: podPrevError.message }, { status: 500 });
+      .upsert({ week_ending: shiftWeek(week_ending, 1), m_pod_rev: half }, { onConflict: "week_ending" });
+    if (podNextError) return NextResponse.json({ error: podNextError.message }, { status: 500 });
   }
 
   return NextResponse.json({ data });
