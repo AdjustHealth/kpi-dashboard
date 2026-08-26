@@ -14,7 +14,7 @@ import { NEUTRAL_CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/p
 import { formatWeekLabel } from "@/lib/week";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { trendTargetColor } from "@/lib/chartTarget";
-import { trendlineSeries } from "@/lib/trendline";
+import { trendlinePercentChange, trendlineSeries } from "@/lib/trendline";
 
 export interface TrendPoint {
   /** A week-ending date, formatted via formatWeekLabel — omit and set `label` directly for non-weekly axes (e.g. quarters). */
@@ -89,6 +89,7 @@ export function LineTrendChart({
         ? STATUS.critical
         : CHART_CHROME.mutedInk;
   const trendChartData = trend ? chartData.map((d, i) => ({ ...d, trend: trend[i] })) : chartData;
+  const trendPct = showTrendline ? trendlinePercentChange(data.map((d) => d.value)) : null;
 
   return (
     <div
@@ -97,17 +98,28 @@ export function LineTrendChart({
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-muted">{title}</span>
-        {onTrack !== null && (
-          <span
-            className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            style={{
-              color: onTrack ? STATUS.good : STATUS.critical,
-              backgroundColor: `color-mix(in srgb, ${onTrack ? "var(--color-success)" : "var(--color-danger)"} 15%, transparent)`,
-            }}
-          >
-            {onTrack ? "On Target" : "Off Target"}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {trendPct !== null && (
+            <span
+              className="whitespace-nowrap text-[11px] font-semibold"
+              style={{ color: trendColor }}
+              title="% change from the start to the end of the trendline"
+            >
+              {trendPct >= 0 ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
+            </span>
+          )}
+          {onTrack !== null && (
+            <span
+              className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{
+                color: onTrack ? STATUS.good : STATUS.critical,
+                backgroundColor: `color-mix(in srgb, ${onTrack ? "var(--color-success)" : "var(--color-danger)"} 15%, transparent)`,
+              }}
+            >
+              {onTrack ? "On Target" : "Off Target"}
+            </span>
+          )}
+        </div>
       </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">

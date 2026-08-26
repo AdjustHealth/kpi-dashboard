@@ -29,3 +29,18 @@ export function trendlineSeries(values: (number | null)[]): (number | null)[] | 
   if (!fit) return null;
   return values.map((_, x) => fit.slope * x + fit.intercept);
 }
+
+/**
+ * % change the trendline itself represents over the shown window — the
+ * fitted value at the last point vs the fitted value at the first point,
+ * not the raw (noisier) first/last actual values. Null when there's no fit,
+ * or the trend starts at exactly 0 (an undefined % change).
+ */
+export function trendlinePercentChange(values: (number | null)[]): number | null {
+  const fit = linearRegression(values);
+  if (!fit || values.length < 2) return null;
+  const start = fit.intercept;
+  const end = fit.slope * (values.length - 1) + fit.intercept;
+  if (start === 0) return null;
+  return ((end - start) / Math.abs(start)) * 100;
+}

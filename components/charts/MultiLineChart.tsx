@@ -13,7 +13,7 @@ import {
 import { CATEGORICAL, CHART_CHROME, STATUS } from "@/components/charts/palette";
 import { formatValue, formatAxisTick } from "@/lib/format";
 import { ChartFormat } from "@/components/charts/LineTrendChart";
-import { trendlineSeries } from "@/lib/trendline";
+import { trendlinePercentChange, trendlineSeries } from "@/lib/trendline";
 
 /** ≥2 series on one axis — never dual-axis. Legend always present for 2+ series. */
 export function MultiLineChart({
@@ -63,10 +63,24 @@ export function MultiLineChart({
         ? STATUS.critical
         : CHART_CHROME.mutedInk;
   const chartData = trend ? data.map((d, i) => ({ ...d, __trend: trend[i] })) : data;
+  const trendPct = trendlineKey
+    ? trendlinePercentChange(data.map((d) => (typeof d[trendlineKey] === "number" ? (d[trendlineKey] as number) : null)))
+    : null;
 
   return (
     <div className="rounded-lg border border-border bg-surface-raised p-3">
-      <div className="mb-1 text-xs font-medium text-muted">{title}</div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-muted">{title}</span>
+        {trendPct !== null && (
+          <span
+            className="whitespace-nowrap text-[11px] font-semibold"
+            style={{ color: trendColor }}
+            title="% change from the start to the end of the trendline"
+          >
+            {trendPct >= 0 ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
+          </span>
+        )}
+      </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
