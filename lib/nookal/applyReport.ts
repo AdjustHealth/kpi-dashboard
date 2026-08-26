@@ -324,11 +324,12 @@ export async function applyNookalReport(
     let totalNewClients = 0;
 
     for (const [name, data] of Object.entries(result.byProvider)) {
-      totalNewClients += data.newClients;
+      totalNewClients += data.newClientsExclPreEmployment;
       const p = findProvider(name);
       if (!p) continue;
-      // Clinic-wide total includes Pre-Employment screenings; each
-      // provider's own KPI figure doesn't (see PRE_EMPLOYMENT_PATTERN).
+      // Clinic-wide total excludes Pre-Employment screenings, same as each
+      // provider's own KPI figure (see PRE_EMPLOYMENT_PATTERN) — the director
+      // decided the clinic-wide number should reflect real new patients too.
       const patch: Record<string, unknown> = {
         new_patients: data.newClientsExclPreEmployment,
         new_patient_names: data.newClientNames,

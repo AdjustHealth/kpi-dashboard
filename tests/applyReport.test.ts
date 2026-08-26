@@ -317,8 +317,8 @@ Evan,Village - Pre-Employment,Village Road Show Theme Parks Pty Ltd,Adjust Physi
     expect(providerWeekly["p1:2026-07-05"].new_patients).toBe(2);
     expect(providerWeekly["p1:2026-07-05"].npbr_recommendations).toBe(10);
     expect(providerWeekly["p1:2026-07-05"].new_pt_booking_rate).toBeCloseTo(5, 2);
-    // Clinic-wide new-client total still includes Pre-Employment (Evan).
-    expect(weeklyKpis["2026-07-05"].total_nc).toBe(3);
+    // Clinic-wide new-client total also excludes Pre-Employment (Evan).
+    expect(weeklyKpis["2026-07-05"].total_nc).toBe(2);
   });
 
   const BUSINESS_PERFORMANCE_CSV = `Business Performance Report

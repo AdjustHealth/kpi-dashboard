@@ -565,12 +565,13 @@ function toIsoDate(date: Date | null): string | null {
 
 // Corporate Pre-Employment screening visits (Village Road Show, Top Golf,
 // etc.) show up as "New Client: Yes" in Nookal like any other new client,
-// but they're one-off screenings, not a real new patient booking — the
-// director's own weekly sheet counts them in the clinic-wide total ("Total
-// new clients incl Pre Employments") but excludes them from every
-// individual provider's "# New Clients" figure. Confirmed against two
-// providers' real weekly numbers (both matched exactly once Pre-Employment
-// cases were excluded, and not before).
+// but they're one-off screenings, not a real new patient booking. Excluded
+// from every individual provider's "# New Clients" figure (confirmed against
+// two providers' real weekly numbers, both matched exactly once excluded)
+// and, per the director's decision on 2026-08-26, from the clinic-wide
+// total as well — the clinic-wide figure now reflects real new patients
+// only, not the historical "Total new clients incl Pre Employments" sheet
+// convention.
 const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
 
 // "Bookings" cells read like "2 Complete / 7 Total" — the second number is
