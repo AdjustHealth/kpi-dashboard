@@ -4,14 +4,21 @@ import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
 /**
- * Retention Rate is the complement of Not Rebooked % — computed here rather
- * than stored, so it's never out of sync with whichever "not rebooked"
- * field a role actually has (clinicians: not_rebooked_pct, admin:
- * cancellations_not_rebooked_pct).
+ * Retention Rate is the complement of Not Rebooked %, derived live from the
+ * same raw "Not Rebooked" count and cancellation total shown on the KPI
+ * Scorecard (clinicians: cancellations, admin: cancellations_handled) —
+ * NOT from the separately-stored *_pct fields the Nookal parse also writes.
+ * Those percentages are computed once at upload time and go stale the
+ * moment either raw count is hand-corrected afterwards (the KPI Scorecard
+ * cells are editable, and a save only PATCHes the field actually typed —
+ * see app/api/provider-weekly), leaving Retention Rate silently
+ * contradicting the very counts it's meant to summarise.
  */
 export function retentionPct(metrics: Record<string, unknown>): number | undefined {
-  const notRebooked = metrics.not_rebooked_pct ?? metrics.cancellations_not_rebooked_pct;
-  return typeof notRebooked === "number" ? 1 - notRebooked : undefined;
+  const notRebooked = metrics.not_rebooked;
+  const total = metrics.cancellations ?? metrics.cancellations_handled;
+  if (typeof notRebooked !== "number" || typeof total !== "number" || total <= 0) return undefined;
+  return 1 - notRebooked / total;
 }
 
 /** New patients are checked in on 6 weeks after their first visit — director's own clinical follow-up cadence. */

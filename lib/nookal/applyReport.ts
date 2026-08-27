@@ -255,8 +255,10 @@ export async function applyNookalReport(
           dnas: data.dnas,
           not_rebooked: data.notRebooked,
           // Not shown as its own KPI Scorecard field anymore (director wants a
-          // raw count instead — see not_rebooked above), but still stored
-          // silently so retentionPct() (lib/providerData.ts) keeps working.
+          // raw count instead — see not_rebooked above). retentionPct()
+          // (lib/providerData.ts) derives Retention Rate from the raw
+          // not_rebooked/cancellations counts, not this — kept only for
+          // historical visibility into what the report itself reported.
           not_rebooked_pct: data.notRebookedPct,
           reschedule_rate_pct: data.rescheduleRatePct,
         });
