@@ -334,7 +334,7 @@ const BULK_CANCEL_NOTE_PATTERNS = [
   /take\s*out\s*all\s*(remaining|future)/i,
 ];
 
-function isBulkCancelNote(note: string | undefined): boolean {
+export function isBulkCancelNote(note: string | undefined): boolean {
   const n = (note ?? "").trim();
   if (!n) return false;
   return BULK_CANCEL_NOTE_PATTERNS.some((re) => re.test(n));
@@ -353,10 +353,36 @@ function isBulkCancelNote(note: string | undefined): boolean {
 // provider read 37 raw vs. 20 on the sheet).
 const STALE_CANCEL_DAYS = 14;
 
-function isStaleCancellation(apptDate: Date | null, modifiedDate: Date | null): boolean {
+export function isStaleCancellation(apptDate: Date | null, modifiedDate: Date | null): boolean {
   if (!apptDate || !modifiedDate) return false;
   const daysBeforeAppt = (apptDate.getTime() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24);
   return daysBeforeAppt > STALE_CANCEL_DAYS;
+}
+
+/**
+ * Same "not a fresh cancellation event this week" exclusions applied when
+ * computing the Cancellations/Not Rebooked KPI stats (bulk/whole-plan-cancel
+ * notes, corporate screening partners, HotDoc placeholder records, and
+ * stale/ghost recurring slots cancelled well before this reporting week) —
+ * shared here so any other view built from the same cancellation_events rows
+ * (e.g. the live Not Rebooked follow-up list) can stay consistent with the
+ * KPI count instead of surfacing rows the stats have already decided don't
+ * need action.
+ */
+export function isCancellationExcludedFromStats(row: {
+  note: string | null;
+  caseName: string | null;
+  client: string;
+  appointmentDate: string | null;
+  modifiedAt: string | null;
+}): boolean {
+  if (isBulkCancelNote(row.note ?? undefined)) return true;
+  if (CORPORATE_SCREENING_PATTERN.test(row.caseName ?? "")) return true;
+  if (HOTDOC_PLACEHOLDER_PATTERN.test(row.caseName ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(row.client)) return true;
+  const apptDate = row.appointmentDate ? new Date(row.appointmentDate) : null;
+  const modifiedDate = row.modifiedAt ? new Date(row.modifiedAt) : null;
+  if (isStaleCancellation(apptDate, modifiedDate)) return true;
+  return false;
 }
 
 /**

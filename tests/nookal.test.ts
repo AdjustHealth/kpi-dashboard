@@ -8,6 +8,7 @@ import {
   parseOccupancyReport,
   parseProvidersAndPracticeReport,
   isRescheduleNote,
+  isCancellationExcludedFromStats,
 } from "@/lib/nookal/parsers";
 import { categorizePayer } from "@/lib/nookal/payerCategories";
 import { parseNookalDate, parsePercent, parseNumber, extractSection, parseCsvRows } from "@/lib/nookal/csv";
@@ -750,5 +751,42 @@ Total,,100.00,0.00,0.00,0.00,100.00
     expect(result.adNdis).toBeNull();
     expect(result.ad3rdParty6190).toBeNull();
     expect(result.adMedicareDva31).toBeNull();
+  });
+});
+
+describe("isCancellationExcludedFromStats", () => {
+  const base = {
+    note: "cnx feeling unwell, will call to rebook",
+    caseName: "Private - Physio",
+    client: "Jane Example",
+    appointmentDate: "2026-08-20",
+    modifiedAt: "2026-08-19",
+  };
+
+  it("does not exclude a genuine, fresh, actionable cancellation", () => {
+    expect(isCancellationExcludedFromStats(base)).toBe(false);
+  });
+
+  it("excludes a whole-plan/bulk-cancel note", () => {
+    expect(isCancellationExcludedFromStats({ ...base, note: "Plan cancelled as per note 13/07" })).toBe(true);
+    expect(isCancellationExcludedFromStats({ ...base, note: "bulk cancel per client request" })).toBe(true);
+  });
+
+  it("excludes a corporate screening partner case", () => {
+    expect(isCancellationExcludedFromStats({ ...base, caseName: "Village - Pre-Employment" })).toBe(true);
+  });
+
+  it("excludes a HotDoc placeholder record", () => {
+    expect(isCancellationExcludedFromStats({ ...base, caseName: "General (Online)", client: "HotDoc Placeholder" })).toBe(true);
+  });
+
+  it("excludes a stale/ghost recurring slot actioned well before the appointment", () => {
+    // Modified 20 days before the appointment date — beyond STALE_CANCEL_DAYS (14).
+    expect(isCancellationExcludedFromStats({ ...base, appointmentDate: "2026-08-20", modifiedAt: "2026-07-31" })).toBe(true);
+  });
+
+  it("does not exclude a cancellation actioned close to its own appointment date", () => {
+    // Modified only 1 day before the appointment — a real, fresh reaction this week.
+    expect(isCancellationExcludedFromStats({ ...base, appointmentDate: "2026-08-20", modifiedAt: "2026-08-19" })).toBe(false);
   });
 });

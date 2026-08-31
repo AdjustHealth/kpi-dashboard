@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { recentWeeks } from "@/lib/week";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
 import { retentionPct } from "@/lib/providerData";
-import { isRescheduleNote } from "@/lib/nookal/parsers";
+import { isRescheduleNote, isCancellationExcludedFromStats } from "@/lib/nookal/parsers";
 import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
 
 export interface ClinicWeekRow {
@@ -238,7 +238,16 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
  * there's no live sync back to Nookal to know a client's been rebooked).
  * Same "Cancelled status, no next_booking, not a reschedule note"
  * definition already used for the Cancellations tab's red-row styling —
- * DNAs aren't included, matching that precedent.
+ * DNAs aren't included, matching that precedent. Also excludes whatever the
+ * Cancellations/Not Rebooked KPI stats themselves exclude (bulk/whole-plan-
+ * cancel notes, corporate screening partners, HotDoc placeholders, stale
+ * ghost recurring slots — see isCancellationExcludedFromStats) — otherwise
+ * a client whose whole plan was cancelled weeks ago keeps reappearing on
+ * this follow-up list forever even though the KPI count (correctly) stopped
+ * counting them as needing action. Confirmed against Tayla Cattanach's real
+ * data: her weekly Not Rebooked count has read 0 for two months straight
+ * while this list kept surfacing the same handful of already-resolved
+ * whole-plan cancellations (Bodhi Behan, Sophie Halbert, etc.) every week.
  */
 export async function getNotRebookedClients(providerName: string): Promise<CancellationEventRow[]> {
   const supabase = await createClient();
@@ -252,13 +261,23 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
     .order("appointment_date", { ascending: false });
 
   const rows = (data ?? []) as CancellationEventRow[];
-  const notRescheduled = rows.filter((r) => !(r.note && isRescheduleNote(r.note)));
+  const actionable = rows.filter(
+    (r) =>
+      !(r.note && isRescheduleNote(r.note)) &&
+      !isCancellationExcludedFromStats({
+        note: r.note,
+        caseName: r.case_name,
+        client: r.client,
+        appointmentDate: r.appointment_date,
+        modifiedAt: r.modified_at ?? null,
+      })
+  );
 
   // One row per cancellation instance — a client who's cancelled more than
   // once without rebooking would otherwise show up repeatedly; keep just
   // their most recent (rows are already newest-first).
   const seen = new Set<string>();
-  return notRescheduled.filter((r) => {
+  return actionable.filter((r) => {
     if (seen.has(r.client)) return false;
     seen.add(r.client);
     return true;
@@ -293,7 +312,7 @@ export async function getDropOutRateHistory(providerName: string, weeks: string[
   const supabase = await createClient();
   const { data } = await supabase
     .from("cancellation_events")
-    .select("week_ending, client, note, next_booking, not_rebooked_resolved")
+    .select("week_ending, client, note, next_booking, not_rebooked_resolved, case_name, appointment_date, modified_at")
     .eq("provider", providerName)
     .eq("status", "Cancelled")
     .in("week_ending", weeks);
@@ -304,8 +323,21 @@ export async function getDropOutRateHistory(providerName: string, weeks: string[
     note: string | null;
     next_booking: string | null;
     not_rebooked_resolved: boolean | null;
+    case_name: string | null;
+    appointment_date: string | null;
+    modified_at: string | null;
   }[];
-  const notRescheduled = rows.filter((r) => !(r.note && isRescheduleNote(r.note)));
+  const notRescheduled = rows.filter(
+    (r) =>
+      !(r.note && isRescheduleNote(r.note)) &&
+      !isCancellationExcludedFromStats({
+        note: r.note,
+        caseName: r.case_name,
+        client: r.client,
+        appointmentDate: r.appointment_date,
+        modifiedAt: r.modified_at,
+      })
+  );
 
   return weeks.map((week_ending) => {
     const weekRows = notRescheduled.filter((r) => r.week_ending === week_ending);

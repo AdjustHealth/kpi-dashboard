@@ -14,6 +14,7 @@ export interface CancellationEventRow {
   note: string | null;
   next_booking: string | null;
   modified_user: string | null;
+  modified_at?: string | null;
   flagged_for_discussion?: boolean;
   discussion_note?: string | null;
   not_rebooked_resolved?: boolean;
