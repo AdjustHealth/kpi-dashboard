@@ -26,6 +26,17 @@ export interface ActivityReportResult {
    * weekly figure. See GYM_3RD_PARTY_ITEM_PATTERNS in parsers.ts.
    */
   gym3pRevenue: number;
+  /**
+   * Per-provider Services (Details rows, already excluding Classes/
+   * Inventory/Passes/Redemptions) and distinct Client names, counting only
+   * rows whose Case/Item text does NOT match the corporate-screening/
+   * pre-employment pattern (Village/Move OT/Biosym/Pre-Employment) — the
+   * same population Nookal's own UCVA already excludes via the Business
+   * Performance Report's Payers filter. Lets Services/Unique-Patients
+   * (Patient Visit Average) be corrected to match UCVA's exclusion without
+   * needing that filter re-applied in Nookal itself.
+   */
+  pvaByProvider: Record<string, { services: number; clientNames: string[] }>;
 }
 
 export interface OccupancyReportResult {

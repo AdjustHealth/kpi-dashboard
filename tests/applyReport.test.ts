@@ -18,10 +18,23 @@ interface FakeProvider {
 function createFakeSupabase(providers: FakeProvider[]) {
   const providerWeekly: Record<string, Record<string, unknown>> = {}; // key: `${provider_id}:${week}` -> metrics
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
+  const activityPvaWeekly: Record<string, { services: number; client_names: string[] }> = {}; // key: `${provider_id}:${week}`
   let cancellationEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
+      if (table === "activity_pva_weekly") {
+        return {
+          async upsert(payload: { provider_id: string; week_ending: string; services: number; client_names: string[] }) {
+            activityPvaWeekly[`${payload.provider_id}:${payload.week_ending}`] = {
+              services: payload.services,
+              client_names: payload.client_names,
+            };
+            return { data: payload, error: null };
+          },
+        };
+      }
+
       if (table === "cancellation_events") {
         return {
           delete() {
@@ -84,7 +97,7 @@ function createFakeSupabase(providers: FakeProvider[]) {
     },
   };
 
-  return { client, providerWeekly, weeklyKpis };
+  return { client, providerWeekly, weeklyKpis, activityPvaWeekly };
 }
 
 const ACTIVITY_CSV = `Activity Report
@@ -120,6 +133,32 @@ describe("applyNookalReport", () => {
     expect(result.unmatchedNames).toEqual(["Sam Not On File"]);
     expect(weeklyKpis["2026-07-05"].jbv_initial).toBe(0);
     expect(weeklyKpis["2026-07-05"].jbv_sub).toBe(0);
+  });
+
+  it("activity: captures per-provider Services/Client names into activity_pva_weekly, excluding pre-employment/corporate-screening rows", async () => {
+    const PVA_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,660.00,0,660.00
+Total,660.00,0,660.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Real Client One,Private - Physio,Private Subs,Service,1001,01/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Real Client One,Private - Physio,Private Subs,Service,1002,02/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1002
+03/07/2026,Alex Example,Adjust Physiotherapy,Village Screening Client,Village Pre-Employment,Screening,Service,1003,03/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1003
+
+`;
+    const { client, activityPvaWeekly } = createFakeSupabase([{ id: "p1", name: "Alex Example", role: "physio" }]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", PVA_CSV);
+
+    expect(activityPvaWeekly["p1:2026-07-05"].services).toBe(2);
+    expect(activityPvaWeekly["p1:2026-07-05"].client_names).toEqual(["Real Client One"]);
   });
 
   it("activity: auto-detects JBV Initial/Sub counts and a provider's specialty init/sub pair", async () => {

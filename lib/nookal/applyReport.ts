@@ -169,6 +169,19 @@ export async function applyNookalReport(
       if (p) await upsertProviderMetrics(p.id, { turnover: amount });
     }
 
+    // Captured every week (not surfaced anywhere yet) so a true rolling
+    // Patient Visit Average excluding pre-employment/corporate-screening
+    // patients can eventually be computed on the same footing as UCVA —
+    // see activity_pva_weekly migration for why this can't just be a
+    // one-off Nookal export instead.
+    for (const [name, { services, clientNames }] of Object.entries(result.pvaByProvider)) {
+      const p = findProvider(name);
+      if (!p) continue;
+      await supabase
+        .from("activity_pva_weekly")
+        .upsert({ provider_id: p.id, week_ending: weekEnding, services, client_names: clientNames }, { onConflict: "provider_id,week_ending" });
+    }
+
     for (const [mapKey, { providerId, initKey, subKey, clinicWideCategory }] of Object.entries(specialtyKeyMap)) {
       if (clinicWideCategory) {
         const counts = result.specialtyCounts[clinicWideCategory];

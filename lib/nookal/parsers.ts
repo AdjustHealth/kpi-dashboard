@@ -146,6 +146,7 @@ export function parseActivityReport(
     ),
     clientsSeenNames: [],
     gym3pRevenue: 0,
+    pvaByProvider: {},
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -161,6 +162,7 @@ export function parseActivityReport(
     Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
   );
   const clientsSeen = new Set<string>();
+  const pvaByProvider: Record<string, { services: number; clientNames: Set<string> }> = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -205,6 +207,12 @@ export function parseActivityReport(
           keywordCountsByProvider[name][provider] = (keywordCountsByProvider[name][provider] ?? 0) + 1;
         }
       }
+
+      if (!CORPORATE_SCREENING_PATTERN.test(itemText)) {
+        if (!pvaByProvider[provider]) pvaByProvider[provider] = { services: 0, clientNames: new Set() };
+        pvaByProvider[provider].services += 1;
+        if (clientName) pvaByProvider[provider].clientNames.add(clientName);
+      }
     }
   }
 
@@ -218,6 +226,9 @@ export function parseActivityReport(
     specialtyCounts,
     clientsSeenNames: Array.from(clientsSeen),
     gym3pRevenue,
+    pvaByProvider: Object.fromEntries(
+      Object.entries(pvaByProvider).map(([name, v]) => [name, { services: v.services, clientNames: Array.from(v.clientNames) }])
+    ),
   };
 }
 
