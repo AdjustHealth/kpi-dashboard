@@ -28,15 +28,20 @@ export interface ActivityReportResult {
   gym3pRevenue: number;
   /**
    * Per-provider Services (Details rows, already excluding Classes/
-   * Inventory/Passes/Redemptions) and distinct Client names, counting only
-   * rows whose Case/Item text does NOT match the corporate-screening/
-   * pre-employment pattern (Village/Move OT/Biosym/Pre-Employment) — the
-   * same population Nookal's own UCVA already excludes via the Business
-   * Performance Report's Payers filter. Lets Services/Unique-Patients
-   * (Patient Visit Average) be corrected to match UCVA's exclusion without
-   * needing that filter re-applied in Nookal itself.
+   * Inventory/Passes/Redemptions) and distinct Client names — both the raw
+   * "all" totals and a second cut excluding rows whose Case/Item text
+   * matches the corporate-screening/pre-employment pattern (Village/Move
+   * OT/Biosym/Pre-Employment), the same population Nookal's own UCVA
+   * already excludes via the Business Performance Report's Payers filter.
+   * Captured every week so Services/Unique-Patients (Patient Visit Average)
+   * can eventually be computed as a true rolling 12-month figure on the
+   * same footing as UCVA, both with and without that exclusion, without
+   * needing Nookal to re-run any export with a Payers filter applied.
    */
-  pvaByProvider: Record<string, { services: number; clientNames: string[] }>;
+  pvaByProvider: Record<
+    string,
+    { servicesAll: number; clientNamesAll: string[]; servicesExclPreEmployment: number; clientNamesExclPreEmployment: string[] }
+  >;
 }
 
 export interface OccupancyReportResult {

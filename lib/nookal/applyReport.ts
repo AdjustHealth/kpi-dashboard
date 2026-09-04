@@ -170,16 +170,26 @@ export async function applyNookalReport(
     }
 
     // Captured every week (not surfaced anywhere yet) so a true rolling
-    // Patient Visit Average excluding pre-employment/corporate-screening
-    // patients can eventually be computed on the same footing as UCVA —
-    // see activity_pva_weekly migration for why this can't just be a
-    // one-off Nookal export instead.
-    for (const [name, { services, clientNames }] of Object.entries(result.pvaByProvider)) {
+    // Patient Visit Average can eventually be computed on the same footing
+    // as UCVA — both the raw "with pre-employment" figure (we already have
+    // this) and, once enough weeks accumulate, the corporate-screening/
+    // pre-employment-excluded cut meant to actually replace UCVA. See
+    // activity_pva_weekly migrations for why this can't just be a one-off
+    // Nookal export instead.
+    for (const [name, data] of Object.entries(result.pvaByProvider)) {
       const p = findProvider(name);
       if (!p) continue;
-      await supabase
-        .from("activity_pva_weekly")
-        .upsert({ provider_id: p.id, week_ending: weekEnding, services, client_names: clientNames }, { onConflict: "provider_id,week_ending" });
+      await supabase.from("activity_pva_weekly").upsert(
+        {
+          provider_id: p.id,
+          week_ending: weekEnding,
+          services_all: data.servicesAll,
+          client_names_all: data.clientNamesAll,
+          services_excl_pre_employment: data.servicesExclPreEmployment,
+          client_names_excl_pre_employment: data.clientNamesExclPreEmployment,
+        },
+        { onConflict: "provider_id,week_ending" }
+      );
     }
 
     for (const [mapKey, { providerId, initKey, subKey, clinicWideCategory }] of Object.entries(specialtyKeyMap)) {

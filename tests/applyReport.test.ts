@@ -18,17 +18,29 @@ interface FakeProvider {
 function createFakeSupabase(providers: FakeProvider[]) {
   const providerWeekly: Record<string, Record<string, unknown>> = {}; // key: `${provider_id}:${week}` -> metrics
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
-  const activityPvaWeekly: Record<string, { services: number; client_names: string[] }> = {}; // key: `${provider_id}:${week}`
+  const activityPvaWeekly: Record<
+    string,
+    { services_all: number; client_names_all: string[]; services_excl_pre_employment: number; client_names_excl_pre_employment: string[] }
+  > = {}; // key: `${provider_id}:${week}`
   let cancellationEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
       if (table === "activity_pva_weekly") {
         return {
-          async upsert(payload: { provider_id: string; week_ending: string; services: number; client_names: string[] }) {
+          async upsert(payload: {
+            provider_id: string;
+            week_ending: string;
+            services_all: number;
+            client_names_all: string[];
+            services_excl_pre_employment: number;
+            client_names_excl_pre_employment: string[];
+          }) {
             activityPvaWeekly[`${payload.provider_id}:${payload.week_ending}`] = {
-              services: payload.services,
-              client_names: payload.client_names,
+              services_all: payload.services_all,
+              client_names_all: payload.client_names_all,
+              services_excl_pre_employment: payload.services_excl_pre_employment,
+              client_names_excl_pre_employment: payload.client_names_excl_pre_employment,
             };
             return { data: payload, error: null };
           },
@@ -135,7 +147,7 @@ describe("applyNookalReport", () => {
     expect(weeklyKpis["2026-07-05"].jbv_sub).toBe(0);
   });
 
-  it("activity: captures per-provider Services/Client names into activity_pva_weekly, excluding pre-employment/corporate-screening rows", async () => {
+  it("activity: captures per-provider Services/Client names into activity_pva_weekly, both raw and excluding pre-employment/corporate-screening rows", async () => {
     const PVA_CSV = `Activity Report
 
 Parameters
@@ -157,8 +169,10 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
 
     await applyNookalReport(client as never, "activity", "2026-07-05", PVA_CSV);
 
-    expect(activityPvaWeekly["p1:2026-07-05"].services).toBe(2);
-    expect(activityPvaWeekly["p1:2026-07-05"].client_names).toEqual(["Real Client One"]);
+    expect(activityPvaWeekly["p1:2026-07-05"].services_all).toBe(3);
+    expect(activityPvaWeekly["p1:2026-07-05"].client_names_all).toEqual(["Real Client One", "Village Screening Client"]);
+    expect(activityPvaWeekly["p1:2026-07-05"].services_excl_pre_employment).toBe(2);
+    expect(activityPvaWeekly["p1:2026-07-05"].client_names_excl_pre_employment).toEqual(["Real Client One"]);
   });
 
   it("activity: auto-detects JBV Initial/Sub counts and a provider's specialty init/sub pair", async () => {

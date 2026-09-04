@@ -485,10 +485,20 @@ Date,Staff,Location,Patient,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acc
     expect(result.gym3pRevenue).toBe(0);
   });
 
-  it("counts pvaByProvider Services/Client names per provider, with no exclusions when there's no pre-employment case", () => {
+  it("counts pvaByProvider Services/Client names per provider — all and excl-pre-employment match when there's no pre-employment case", () => {
     const result = parseActivityReport(ACTIVITY_CSV);
-    expect(result.pvaByProvider["Alex Example"]).toEqual({ services: 2, clientNames: ["Test Client One", "Test Client Two"] });
-    expect(result.pvaByProvider["Jamie Sample"]).toEqual({ services: 1, clientNames: ["Test Client Three"] });
+    expect(result.pvaByProvider["Alex Example"]).toEqual({
+      servicesAll: 2,
+      clientNamesAll: ["Test Client One", "Test Client Two"],
+      servicesExclPreEmployment: 2,
+      clientNamesExclPreEmployment: ["Test Client One", "Test Client Two"],
+    });
+    expect(result.pvaByProvider["Jamie Sample"]).toEqual({
+      servicesAll: 1,
+      clientNamesAll: ["Test Client Three"],
+      servicesExclPreEmployment: 1,
+      clientNamesExclPreEmployment: ["Test Client Three"],
+    });
   });
 
   it("excludes corporate-screening/pre-employment rows from pvaByProvider, same population UCVA excludes", () => {
@@ -510,7 +520,12 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
 
 `;
     const result = parseActivityReport(csv);
-    expect(result.pvaByProvider["Alex Example"]).toEqual({ services: 1, clientNames: ["Real Client"] });
+    expect(result.pvaByProvider["Alex Example"]).toEqual({
+      servicesAll: 3,
+      clientNamesAll: ["Real Client", "Screening Client", "Move OT Client"],
+      servicesExclPreEmployment: 1,
+      clientNamesExclPreEmployment: ["Real Client"],
+    });
   });
 
   it("sums 3rd party gym revenue from the fixed item list, excluding private gym memberships (a differently-named item)", () => {

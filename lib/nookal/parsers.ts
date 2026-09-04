@@ -162,7 +162,10 @@ export function parseActivityReport(
     Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
   );
   const clientsSeen = new Set<string>();
-  const pvaByProvider: Record<string, { services: number; clientNames: Set<string> }> = {};
+  const pvaByProvider: Record<
+    string,
+    { servicesAll: number; clientNamesAll: Set<string>; servicesExclPreEmployment: number; clientNamesExclPreEmployment: Set<string> }
+  > = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -208,10 +211,19 @@ export function parseActivityReport(
         }
       }
 
+      if (!pvaByProvider[provider]) {
+        pvaByProvider[provider] = {
+          servicesAll: 0,
+          clientNamesAll: new Set(),
+          servicesExclPreEmployment: 0,
+          clientNamesExclPreEmployment: new Set(),
+        };
+      }
+      pvaByProvider[provider].servicesAll += 1;
+      if (clientName) pvaByProvider[provider].clientNamesAll.add(clientName);
       if (!CORPORATE_SCREENING_PATTERN.test(itemText)) {
-        if (!pvaByProvider[provider]) pvaByProvider[provider] = { services: 0, clientNames: new Set() };
-        pvaByProvider[provider].services += 1;
-        if (clientName) pvaByProvider[provider].clientNames.add(clientName);
+        pvaByProvider[provider].servicesExclPreEmployment += 1;
+        if (clientName) pvaByProvider[provider].clientNamesExclPreEmployment.add(clientName);
       }
     }
   }
@@ -227,7 +239,15 @@ export function parseActivityReport(
     clientsSeenNames: Array.from(clientsSeen),
     gym3pRevenue,
     pvaByProvider: Object.fromEntries(
-      Object.entries(pvaByProvider).map(([name, v]) => [name, { services: v.services, clientNames: Array.from(v.clientNames) }])
+      Object.entries(pvaByProvider).map(([name, v]) => [
+        name,
+        {
+          servicesAll: v.servicesAll,
+          clientNamesAll: Array.from(v.clientNamesAll),
+          servicesExclPreEmployment: v.servicesExclPreEmployment,
+          clientNamesExclPreEmployment: Array.from(v.clientNamesExclPreEmployment),
+        },
+      ])
     ),
   };
 }
