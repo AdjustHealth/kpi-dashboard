@@ -38,13 +38,13 @@ export function ProviderCharts({
   const ncvaTarget = typeof targets.ncva === "number" ? targets.ncva : null;
   const tprTarget = typeof targets.tpr === "number" ? targets.tpr : null;
   const occupancyTarget = typeof targets.occupancy_pct === "number" ? targets.occupancy_pct : null;
-  // UCVA (all clients seen) and NCVA (new clients only) are both "visits per
+  // PVA (all clients seen) and NCVA (new clients only) are both "visits per
   // client" metrics, just with a different denominator — one chart makes the
   // relationship between them visible instead of two charts that have to be
   // compared by eye.
   const cvaVsNcvaData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
-    UCVA: typeof h.metrics.ucva === "number" ? h.metrics.ucva : null,
+    PVA: typeof h.metrics.ucva === "number" ? h.metrics.ucva : null,
     NCVA: typeof h.metrics.ncva === "number" ? h.metrics.ncva : null,
   }));
 
@@ -52,11 +52,11 @@ export function ProviderCharts({
     <Card title="Performance Charts">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="flex flex-col gap-1.5">
-          <MultiLineChart title="UCVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["UCVA", "NCVA"]} format="decimal" decimals={1} height={160} />
+          <MultiLineChart title="PVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["PVA", "NCVA"]} format="decimal" decimals={1} height={160} />
           <p className="text-[11px] text-muted">
-            UCVA: visits per client across the whole caseload (overall efficiency). NCVA: visits per new client only — a
-            retention indicator. If NCVA runs below UCVA, new clients aren&apos;t rebooking as often as existing ones and
-            the provider needs more new clients to sustain the same volume.
+            PVA: visits per client across the whole caseload (overall efficiency), excluding pre-employment/corporate-
+            screening patients. NCVA: visits per new client only — a retention indicator. If NCVA runs below PVA, new
+            clients aren&apos;t rebooking as often as existing ones and the provider needs more new clients to sustain the same volume.
           </p>
         </div>
         <LineTrendChart

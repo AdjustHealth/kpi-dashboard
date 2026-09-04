@@ -125,7 +125,7 @@ const PROVIDER_METRICS: QuarterlyMetricDef[] = [
   { key: "turnover", label: "Turnover (avg/wk)", type: "currency", betterWhen: betterWhenFor("turnover") },
   { key: "fba", label: "Forward Booking Average", type: "decimal", decimals: 1, betterWhen: betterWhenFor("fba") },
   { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: betterWhenFor("occupancy_pct") },
-  { key: "ucva", label: "UCVA", type: "decimal", decimals: 1, betterWhen: betterWhenFor("ucva") },
+  { key: "ucva", label: "PVA", type: "decimal", decimals: 1, betterWhen: betterWhenFor("ucva") },
   { key: "ncva", label: "NCVA", type: "decimal", decimals: 1, betterWhen: betterWhenFor("ncva") },
   { key: "tpr", label: "TPR", type: "currency", betterWhen: betterWhenFor("tpr") },
   { key: "new_patients", label: "New Patients (avg/wk)", type: "decimal", decimals: 1, betterWhen: betterWhenFor("new_patients") },

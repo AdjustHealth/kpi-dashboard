@@ -9,6 +9,8 @@ const PARSEABLE_REPORT_TYPES: readonly NookalReportType[] = [
   "cancellations",
   "clients_and_cases",
   "providers_and_practice",
+  "providers_and_practice_12mo",
+  "activity_pre_employment_12mo",
   "business_performance",
   "aged_debtors",
 ];

@@ -485,49 +485,6 @@ Date,Staff,Location,Patient,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acc
     expect(result.gym3pRevenue).toBe(0);
   });
 
-  it("counts pvaByProvider Services/Client names per provider — all and excl-pre-employment match when there's no pre-employment case", () => {
-    const result = parseActivityReport(ACTIVITY_CSV);
-    expect(result.pvaByProvider["Alex Example"]).toEqual({
-      servicesAll: 2,
-      clientNamesAll: ["Test Client One", "Test Client Two"],
-      servicesExclPreEmployment: 2,
-      clientNamesExclPreEmployment: ["Test Client One", "Test Client Two"],
-    });
-    expect(result.pvaByProvider["Jamie Sample"]).toEqual({
-      servicesAll: 1,
-      clientNamesAll: ["Test Client Three"],
-      servicesExclPreEmployment: 1,
-      clientNamesExclPreEmployment: ["Test Client Three"],
-    });
-  });
-
-  it("excludes corporate-screening/pre-employment rows from pvaByProvider, same population UCVA excludes", () => {
-    const csv = `Activity Report
-
-Parameters
-Dates,29/06/2026 - 05/07/2026
-
-Summary
-Type,Subtotal,Tax,Total
-Services,330.00,0,330.00
-Total,330.00,0,330.00
-
-Details
-Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
-01/07/2026,Alex Example,Adjust Physiotherapy,Real Client,Private - Physio,Private Subs,Service,1001,01/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1001
-02/07/2026,Alex Example,Adjust Physiotherapy,Screening Client,Pre-Employment Screening,Assessment,Service,1002,02/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1002
-03/07/2026,Alex Example,Adjust Physiotherapy,Move OT Client,Move OT Referral,Assessment,Service,1003,03/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1003
-
-`;
-    const result = parseActivityReport(csv);
-    expect(result.pvaByProvider["Alex Example"]).toEqual({
-      servicesAll: 3,
-      clientNamesAll: ["Real Client", "Screening Client", "Move OT Client"],
-      servicesExclPreEmployment: 1,
-      clientNamesExclPreEmployment: ["Real Client"],
-    });
-  });
-
   it("sums 3rd party gym revenue from the fixed item list, excluding private gym memberships (a differently-named item)", () => {
     const GYM_CSV = `Activity Report
 
@@ -691,6 +648,24 @@ describe("parseProvidersAndPracticeReport", () => {
     expect(alex.cva).toBeCloseTo(1.09, 2);
     expect(alex.caseVA).toBeCloseTo(1.09, 2);
     expect(alex.forwardBookingAverage).toBeCloseTo(3.96, 2);
+  });
+
+  it("reads Services and the current 'Unique Patients'/'Patient Visit Average' column names — Nookal renamed these from 'Unique Clients'/'Client Visit Average' (confirmed against a real 31/08/2026 export)", () => {
+    const csv = `Providers and Practice Report
+
+Parameters
+Dates,31/08/2025 - 30/08/2026
+
+Provider Stats
+Provider,Services,Completed Consults,Unique Patients,New Patients,New Cases,Patient Visit Average,Case Visit Average,Classes,Participants,Completed Classes
+Erin Duthie,1161,1161,265,50,94,4.38,4.16,0,0,0
+
+`;
+    const result = parseProvidersAndPracticeReport(csv);
+    const erin = result.byProvider["Erin Duthie"];
+    expect(erin.services).toBe(1161);
+    expect(erin.uniqueClients).toBe(265);
+    expect(erin.cva).toBeCloseTo(4.38, 2);
   });
 });
 

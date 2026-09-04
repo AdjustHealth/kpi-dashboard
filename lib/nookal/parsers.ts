@@ -146,7 +146,6 @@ export function parseActivityReport(
     ),
     clientsSeenNames: [],
     gym3pRevenue: 0,
-    pvaByProvider: {},
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -162,10 +161,6 @@ export function parseActivityReport(
     Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
   );
   const clientsSeen = new Set<string>();
-  const pvaByProvider: Record<
-    string,
-    { servicesAll: number; clientNamesAll: Set<string>; servicesExclPreEmployment: number; clientNamesExclPreEmployment: Set<string> }
-  > = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -210,21 +205,6 @@ export function parseActivityReport(
           keywordCountsByProvider[name][provider] = (keywordCountsByProvider[name][provider] ?? 0) + 1;
         }
       }
-
-      if (!pvaByProvider[provider]) {
-        pvaByProvider[provider] = {
-          servicesAll: 0,
-          clientNamesAll: new Set(),
-          servicesExclPreEmployment: 0,
-          clientNamesExclPreEmployment: new Set(),
-        };
-      }
-      pvaByProvider[provider].servicesAll += 1;
-      if (clientName) pvaByProvider[provider].clientNamesAll.add(clientName);
-      if (!CORPORATE_SCREENING_PATTERN.test(itemText)) {
-        pvaByProvider[provider].servicesExclPreEmployment += 1;
-        if (clientName) pvaByProvider[provider].clientNamesExclPreEmployment.add(clientName);
-      }
     }
   }
 
@@ -238,17 +218,6 @@ export function parseActivityReport(
     specialtyCounts,
     clientsSeenNames: Array.from(clientsSeen),
     gym3pRevenue,
-    pvaByProvider: Object.fromEntries(
-      Object.entries(pvaByProvider).map(([name, v]) => [
-        name,
-        {
-          servicesAll: v.servicesAll,
-          clientNamesAll: Array.from(v.clientNamesAll),
-          servicesExclPreEmployment: v.servicesExclPreEmployment,
-          clientNamesExclPreEmployment: Array.from(v.clientNamesExclPreEmployment),
-        },
-      ])
-    ),
   };
 }
 
@@ -700,6 +669,7 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
   const ensure = (provider: string) => {
     if (!byProvider[provider]) {
       byProvider[provider] = {
+        services: null,
         completedConsults: null,
         uniqueClients: null,
         cva: null,
@@ -732,9 +702,14 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
       const provider = r["Provider"];
       if (!provider) continue;
       const entry = ensure(provider);
+      entry.services = parseNumber(r["Services"]);
       entry.completedConsults = parseNumber(r["Completed Consults"]);
-      entry.uniqueClients = parseNumber(r["Unique Clients"]);
-      entry.cva = parseNumber(r["Client Visit Average"]);
+      // Nookal renamed "Unique Clients"/"Client Visit Average" to "Unique
+      // Patients"/"Patient Visit Average" at some point (same rename pattern
+      // as "Client"->"Patient" elsewhere) — accept either, confirmed against
+      // a real 31/08/2026 export using only the new names.
+      entry.uniqueClients = parseNumber(r["Unique Patients"] ?? r["Unique Clients"]);
+      entry.cva = parseNumber(r["Patient Visit Average"] ?? r["Client Visit Average"]);
       entry.caseVA = parseNumber(r["Case Visit Average"]);
     }
   }

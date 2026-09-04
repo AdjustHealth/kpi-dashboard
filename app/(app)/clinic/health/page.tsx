@@ -173,7 +173,7 @@ export default async function ClinicHealthPage({
           <h2 className="mb-3 text-sm font-semibold text-foreground">Retention / Value</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
-              label="Clinic-wide UCVA"
+              label="Clinic-wide PVA"
               value={formatValue(cvaRollup.avgCva, "decimal", 1)}
               sublabel={`avg across ${cvaRollup.providerCount} clinicians`}
             />
@@ -185,12 +185,12 @@ export default async function ClinicHealthPage({
             />
           </div>
           <div className="mt-4">
-            <Card title="UCVA by Provider Tier">
+            <Card title="PVA by Provider Tier">
               <p className="mb-3 text-xs text-muted">
-                Unique client visit average by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
+                Patient Visit Average (excl. pre-employment) by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
               </p>
               <MultiLineChart
-                title="UCVA by Tier"
+                title="PVA by Tier"
                 data={history.map((h) => ({
                   label: formatWeekLabel(h.week_ending),
                   "New Grad": h.cva_new_grads ?? null,
@@ -207,13 +207,13 @@ export default async function ClinicHealthPage({
           </div>
           {providerCvaHistory.length > 0 && (
             <div className="mt-4">
-              <Card title="UCVA by Individual Provider — This Week">
+              <Card title="PVA by Individual Provider — This Week">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician ranked by UCVA, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
+                  Every clinician ranked by PVA, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
                   same-tier providers share a colour. Trend over time is the tier chart above.
                 </p>
                 <RankedBarChart
-                  title="UCVA by Provider"
+                  title="PVA by Provider"
                   rows={latestProviderValues(providerCvaHistory).map((r) => ({
                     label: r.providerName,
                     value: r.value,
@@ -229,7 +229,7 @@ export default async function ClinicHealthPage({
             <div className="mt-4">
               <Card title="NCVA by Individual Provider — This Week">
                 <p className="mb-3 text-xs text-muted">
-                  Every clinician ranked by NCVA, coloured by tier the same way as the UCVA chart above.
+                  Every clinician ranked by NCVA, coloured by tier the same way as the PVA chart above.
                 </p>
                 <RankedBarChart
                   title="NCVA by Provider"

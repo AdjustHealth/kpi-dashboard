@@ -92,10 +92,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "calc", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
-  { idx: 31, id: "cva_new_grads", label: "UCVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 32, id: "cva_2_5yr", label: "UCVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 33, id: "cva_ep", label: "UCVA — EP", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 34, id: "cva_massage", label: "UCVA — Massage", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 31, id: "cva_new_grads", label: "PVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 32, id: "cva_2_5yr", label: "PVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 33, id: "cva_ep", label: "PVA — EP", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 34, id: "cva_massage", label: "PVA — Massage", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 36, id: "jbv_sub", label: "JBV Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 37, id: "jbv_total", label: "JBV Total", source: "calc", type: "number", category: "Clinic" },
@@ -115,7 +115,7 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 47, id: "rev_ndis", label: "Revenue — NDIS", source: "calc", type: "currency", category: "Payer" },
   { idx: 48, id: "rev_other", label: "Revenue — Other", source: "calc", type: "currency", category: "Payer" },
 
-  { idx: 49, id: "cva_senior", label: "UCVA — Senior (6+ yrs)", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 49, id: "cva_senior", label: "PVA — Senior (6+ yrs)", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
 
   // Clinic-wide specialty consult counts (from the director's "SPECIALTY SERVICES CONSULTATIONS" tracker).
   // Vestibular/Headaches/Paeds/Women's Health all auto-fill from the Activity Report the same way JBV does —
@@ -228,6 +228,8 @@ export const NOOKAL_REPORT_TYPES = [
   "occupancy",
   "clients_and_cases",
   "providers_and_practice",
+  "providers_and_practice_12mo",
+  "activity_pre_employment_12mo",
   "cancellations",
   "aged_debtors",
 ] as const;
@@ -240,6 +242,8 @@ export const NOOKAL_REPORT_LABELS: Record<NookalReportType, string> = {
   occupancy: "Occupancy",
   clients_and_cases: "Clients & Cases",
   providers_and_practice: "Providers & Practice",
+  providers_and_practice_12mo: "Providers & Practice (12-month, for PVA)",
+  activity_pre_employment_12mo: "Activity — Pre-Employment only (12-month, for PVA)",
   cancellations: "Cancellations",
   aged_debtors: "Aged Debtors",
 };

@@ -1,0 +1,12 @@
+-- Superseded before it ever got used: the plan was to slowly accumulate a
+-- true rolling-12-month PVA from weekly Activity Report uploads (this
+-- table), but the director found a much better way — Nookal CAN export a
+-- full 12-month Activity Report if it's filtered (via its own Payers
+-- parameter) down to just the pre-employment payers, small enough not to
+-- crash. Combined with a 12-month Providers and Practice Report, that gives
+-- a real, immediate 12-month PVA figure with no months-long accumulation
+-- needed — see providers_and_practice_12mo/activity_pre_employment_12mo in
+-- lib/nookal/applyReport.ts. This table was created (migration 0032) but
+-- never reached its intended schema (migration 0033 was never applied) and
+-- never received any real data, so there's nothing to migrate — just drop it.
+drop table if exists activity_pva_weekly;

@@ -18,35 +18,10 @@ interface FakeProvider {
 function createFakeSupabase(providers: FakeProvider[]) {
   const providerWeekly: Record<string, Record<string, unknown>> = {}; // key: `${provider_id}:${week}` -> metrics
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
-  const activityPvaWeekly: Record<
-    string,
-    { services_all: number; client_names_all: string[]; services_excl_pre_employment: number; client_names_excl_pre_employment: string[] }
-  > = {}; // key: `${provider_id}:${week}`
   let cancellationEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
-      if (table === "activity_pva_weekly") {
-        return {
-          async upsert(payload: {
-            provider_id: string;
-            week_ending: string;
-            services_all: number;
-            client_names_all: string[];
-            services_excl_pre_employment: number;
-            client_names_excl_pre_employment: string[];
-          }) {
-            activityPvaWeekly[`${payload.provider_id}:${payload.week_ending}`] = {
-              services_all: payload.services_all,
-              client_names_all: payload.client_names_all,
-              services_excl_pre_employment: payload.services_excl_pre_employment,
-              client_names_excl_pre_employment: payload.client_names_excl_pre_employment,
-            };
-            return { data: payload, error: null };
-          },
-        };
-      }
-
       if (table === "cancellation_events") {
         return {
           delete() {
@@ -85,6 +60,14 @@ function createFakeSupabase(providers: FakeProvider[]) {
                 const key = `${providerId}:${week}`;
                 return { data: providerWeekly[key] ? { metrics: providerWeekly[key] } : null };
               },
+              // Supports recomputeCvaTierAverages' un-.maybeSingle()'d query
+              // (filtered by week_ending only, across every provider).
+              then(resolve: (v: { data: { provider_id: string; metrics: Record<string, unknown> }[] }) => void) {
+                const rows = Object.entries(providerWeekly)
+                  .filter(([key]) => key.endsWith(`:${week}`))
+                  .map(([key, metrics]) => ({ provider_id: key.split(":")[0], metrics }));
+                resolve({ data: rows });
+              },
             };
             return builder;
           },
@@ -109,7 +92,7 @@ function createFakeSupabase(providers: FakeProvider[]) {
     },
   };
 
-  return { client, providerWeekly, weeklyKpis, activityPvaWeekly };
+  return { client, providerWeekly, weeklyKpis };
 }
 
 const ACTIVITY_CSV = `Activity Report
@@ -145,34 +128,6 @@ describe("applyNookalReport", () => {
     expect(result.unmatchedNames).toEqual(["Sam Not On File"]);
     expect(weeklyKpis["2026-07-05"].jbv_initial).toBe(0);
     expect(weeklyKpis["2026-07-05"].jbv_sub).toBe(0);
-  });
-
-  it("activity: captures per-provider Services/Client names into activity_pva_weekly, both raw and excluding pre-employment/corporate-screening rows", async () => {
-    const PVA_CSV = `Activity Report
-
-Parameters
-Dates,29/06/2026 - 05/07/2026
-
-Summary
-Type,Subtotal,Tax,Total
-Services,660.00,0,660.00
-Total,660.00,0,660.00
-
-Details
-Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
-01/07/2026,Alex Example,Adjust Physiotherapy,Real Client One,Private - Physio,Private Subs,Service,1001,01/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1001
-02/07/2026,Alex Example,Adjust Physiotherapy,Real Client One,Private - Physio,Private Subs,Service,1002,02/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1002
-03/07/2026,Alex Example,Adjust Physiotherapy,Village Screening Client,Village Pre-Employment,Screening,Service,1003,03/07/2026,Private,,220.00,0.00,0.00,220.00,0.00,1003
-
-`;
-    const { client, activityPvaWeekly } = createFakeSupabase([{ id: "p1", name: "Alex Example", role: "physio" }]);
-
-    await applyNookalReport(client as never, "activity", "2026-07-05", PVA_CSV);
-
-    expect(activityPvaWeekly["p1:2026-07-05"].services_all).toBe(3);
-    expect(activityPvaWeekly["p1:2026-07-05"].client_names_all).toEqual(["Real Client One", "Village Screening Client"]);
-    expect(activityPvaWeekly["p1:2026-07-05"].services_excl_pre_employment).toBe(2);
-    expect(activityPvaWeekly["p1:2026-07-05"].client_names_excl_pre_employment).toEqual(["Real Client One"]);
   });
 
   it("activity: auto-detects JBV Initial/Sub counts and a provider's specialty init/sub pair", async () => {
@@ -388,7 +343,7 @@ Physio Mid Tier,3.84,0,11.78,4.62,90.13,416.40,61.83%,105.75,28.76%,0.06%
 Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
 `;
 
-  it("business_performance: sets ucva/ncva/tpr per provider and averages CVA-by-tier using experience_tier (including role:physio bucketed as senior)", async () => {
+  it("business_performance: sets ncva/tpr per provider, but NOT ucva/cva-by-tier (those come from PVA now, see providers_and_practice_12mo/activity_pre_employment_12mo below)", async () => {
     const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
       { id: "p1", name: "Senior One", role: "senior_physio" },
       { id: "p2", name: "Massage One", role: "massage" },
@@ -399,18 +354,55 @@ Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
 
     const result = await applyNookalReport(client as never, "business_performance", "2026-07-12", BUSINESS_PERFORMANCE_CSV);
 
-    expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(6.2, 2);
+    expect(providerWeekly["p1:2026-07-12"].ucva).toBeUndefined();
     expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(27.19, 2);
     expect(providerWeekly["p1:2026-07-12"].tpr).toBeCloseTo(615.04, 2);
-
-    // Both role:senior_physio (Senior One) and role:physio+experience_tier:senior
-    // (Physio Senior Tier) bucket into the same "senior" CVA-by-tier average.
-    expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo((6.2 + 7.04) / 2, 2);
-    expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(4.26, 2);
-    expect(weeklyKpis["2026-07-12"].cva_2_5yr).toBeCloseTo(4.62, 2);
-    expect(weeklyKpis["2026-07-12"].cva_new_grads).toBeCloseTo(3.12, 2);
-    expect(weeklyKpis["2026-07-12"].cva_ep).toBeUndefined();
+    expect(weeklyKpis["2026-07-12"]?.cva_senior).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Physio Mid Tier", "Physio New Grad", "Physio Senior Tier", "Senior One"]);
+  });
+
+  it("providers_and_practice_12mo + activity_pre_employment_12mo: computes ucva (PVA excl. pre-employment) once both halves are in, in either order, and averages CVA-by-tier from it", async () => {
+    const PVA_ALL_CSV = `Providers and Practice Report
+
+Parameters
+Dates,31/08/2025 - 30/08/2026
+
+Provider Stats
+Provider,Services,Completed Consults,Unique Patients,New Patients,New Cases,Patient Visit Average,Case Visit Average,Classes,Participants,Completed Classes
+Senior One,1000,1000,200,10,10,5.00,5.00,0,0,0
+Massage One,500,500,100,10,10,5.00,5.00,0,0,0
+
+`;
+    const PVA_PRE_EMPLOYMENT_CSV = `Activity Report
+
+Parameters
+Dates,31/08/2025 - 30/08/2026
+Payers,"Move OT, Top Golf Australia, Village Road Show Theme Parks Pty Ltd"
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/09/2025,Senior One,Adjust Physiotherapy,Screening Client One,Village - Pre-employment,Pre-Employment Assessment,Service,1,01/09/2025,Village Road Show Theme Parks Pty Ltd,,120,0,12,132,0,1
+
+`;
+    const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
+      { id: "p1", name: "Senior One", role: "senior_physio" },
+      { id: "p2", name: "Massage One", role: "massage" },
+    ]);
+
+    // Upload the "all" half first — no ucva yet, missing the "pre" half.
+    await applyNookalReport(client as never, "providers_and_practice_12mo", "2026-07-12", PVA_ALL_CSV);
+    expect(providerWeekly["p1:2026-07-12"].ucva).toBeUndefined();
+    expect(providerWeekly["p1:2026-07-12"].pva_services_all).toBe(1000);
+    expect(providerWeekly["p1:2026-07-12"].pva_clients_all).toBe(200);
+
+    // The second half (in either order) triggers the real computation:
+    // Senior One: (1000-1)/(200-1) = 5.0201..., Massage One had zero
+    // pre-employment patients: (500-0)/(100-0) = 5.
+    await applyNookalReport(client as never, "activity_pre_employment_12mo", "2026-07-12", PVA_PRE_EMPLOYMENT_CSV);
+    expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(999 / 199, 4);
+    expect(providerWeekly["p2:2026-07-12"].ucva).toBeCloseTo(5, 4);
+    expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo(999 / 199, 4);
+    expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(5, 4);
   });
 
   it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled — RSX-tagged, DNA excluded", async () => {
