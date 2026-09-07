@@ -229,7 +229,6 @@ export const NOOKAL_REPORT_TYPES = [
   "clients_and_cases",
   "providers_and_practice",
   "providers_and_practice_12mo",
-  "activity_pre_employment_12mo",
   "cancellations",
   "aged_debtors",
 ] as const;
@@ -243,7 +242,6 @@ export const NOOKAL_REPORT_LABELS: Record<NookalReportType, string> = {
   clients_and_cases: "Clients & Cases",
   providers_and_practice: "Providers & Practice",
   providers_and_practice_12mo: "Providers & Practice (12-month, for PVA)",
-  activity_pre_employment_12mo: "Activity — Pre-Employment only (12-month, for PVA)",
   cancellations: "Cancellations",
   aged_debtors: "Aged Debtors",
 };

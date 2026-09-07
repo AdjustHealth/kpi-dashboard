@@ -226,11 +226,12 @@ export function WeeklyInputForm({
 
           <Card title="Clinic — PVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
-              PVA by tier auto-fills once both the Providers &amp; Practice (12-month) and Activity — Pre-Employment
-              only (12-month) reports are uploaded for the week, averaged by experience tier. JBV,
+              PVA by tier auto-fills from the Providers &amp; Practice (12-month) report upload, averaged by
+              experience tier — pre-employment/corporate-screening patients are excluded automatically from the
+              normal weekly Activity Report upload, no separate export needed for that part. JBV,
               Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent, and 3rd Party Gym Revenue all
-              auto-fill from the (weekly) Activity Report by matching each row&apos;s service item against a fixed
-              list. Every field below is still editable if you need to correct one.
+              auto-fill from that same weekly Activity Report by matching each row&apos;s service item against a
+              fixed list. Every field below is still editable if you need to correct one.
             </p>
             <ClinicFieldGrid
               fields={[

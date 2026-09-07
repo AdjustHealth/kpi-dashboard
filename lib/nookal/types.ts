@@ -26,6 +26,15 @@ export interface ActivityReportResult {
    * weekly figure. See GYM_3RD_PARTY_ITEM_PATTERNS in parsers.ts.
    */
   gym3pRevenue: number;
+  /**
+   * This week's corporate-screening/pre-employment Services and distinct
+   * Client names per provider (Village/Move OT/Biosym/Pre-Employment —
+   * same population Nookal's own UCVA excludes). Fed into a weekly ledger
+   * (pre_employment_activity_weekly) so a trailing-52-week sum gives the
+   * rolling-12-month subtraction PVA needs, without a separate Payers-
+   * filtered 12-month export every week.
+   */
+  preEmploymentByProvider: Record<string, { services: number; clientNames: string[] }>;
 }
 
 export interface OccupancyReportResult {

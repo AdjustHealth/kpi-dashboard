@@ -485,6 +485,36 @@ Date,Staff,Location,Patient,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acc
     expect(result.gym3pRevenue).toBe(0);
   });
 
+  it("has no preEmploymentByProvider entries in a file with no pre-employment rows", () => {
+    const result = parseActivityReport(ACTIVITY_CSV);
+    expect(result.preEmploymentByProvider).toEqual({});
+  });
+
+  it("captures preEmploymentByProvider Services/Client names for the weekly pre-employment ledger", () => {
+    const csv = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,330.00,0,330.00
+Total,330.00,0,330.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Alex Example,Adjust Physiotherapy,Real Client,Private - Physio,Private Subs,Service,1001,01/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Screening Client,Pre-Employment Screening,Assessment,Service,1002,02/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1002
+03/07/2026,Alex Example,Adjust Physiotherapy,Move OT Client,Move OT Referral,Assessment,Service,1003,03/07/2026,Private,,110.00,0.00,0.00,110.00,0.00,1003
+
+`;
+    const result = parseActivityReport(csv);
+    expect(result.preEmploymentByProvider["Alex Example"]).toEqual({
+      services: 2,
+      clientNames: ["Screening Client", "Move OT Client"],
+    });
+  });
+
   it("sums 3rd party gym revenue from the fixed item list, excluding private gym memberships (a differently-named item)", () => {
     const GYM_CSV = `Activity Report
 

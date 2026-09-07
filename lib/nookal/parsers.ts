@@ -146,6 +146,7 @@ export function parseActivityReport(
     ),
     clientsSeenNames: [],
     gym3pRevenue: 0,
+    preEmploymentByProvider: {},
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -161,6 +162,13 @@ export function parseActivityReport(
     Object.keys(SPECIALTY_CATEGORY_PATTERNS).map((key) => [key, { total: 0, initial: 0, sub: 0 }])
   );
   const clientsSeen = new Set<string>();
+  // This week's pre-employment/corporate-screening rows, per provider — the
+  // same population Nookal's own UCVA excludes and PVA now needs to too
+  // (see PVA_excl_pre_employment). Fed into a weekly ledger
+  // (pre_employment_activity_weekly) that a trailing-52-week sum turns into
+  // the rolling-12-month subtraction, so the director doesn't need a
+  // separate Payers-filtered 12-month export every week for this.
+  const preEmploymentByProvider: Record<string, { services: number; clientNames: Set<string> }> = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -205,6 +213,12 @@ export function parseActivityReport(
           keywordCountsByProvider[name][provider] = (keywordCountsByProvider[name][provider] ?? 0) + 1;
         }
       }
+
+      if (CORPORATE_SCREENING_PATTERN.test(itemText)) {
+        if (!preEmploymentByProvider[provider]) preEmploymentByProvider[provider] = { services: 0, clientNames: new Set() };
+        preEmploymentByProvider[provider].services += 1;
+        if (clientName) preEmploymentByProvider[provider].clientNames.add(clientName);
+      }
     }
   }
 
@@ -218,6 +232,9 @@ export function parseActivityReport(
     specialtyCounts,
     clientsSeenNames: Array.from(clientsSeen),
     gym3pRevenue,
+    preEmploymentByProvider: Object.fromEntries(
+      Object.entries(preEmploymentByProvider).map(([name, v]) => [name, { services: v.services, clientNames: Array.from(v.clientNames) }])
+    ),
   };
 }
 

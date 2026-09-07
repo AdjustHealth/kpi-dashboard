@@ -18,10 +18,56 @@ interface FakeProvider {
 function createFakeSupabase(providers: FakeProvider[]) {
   const providerWeekly: Record<string, Record<string, unknown>> = {}; // key: `${provider_id}:${week}` -> metrics
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
+  // key: `${provider_id}:${week_ending}` -> { services, client_names }
+  const preEmploymentLedger: Record<string, { services: number; client_names: string[] }> = {};
   let cancellationEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
+      if (table === "pre_employment_activity_weekly") {
+        return {
+          async upsert(payload: { provider_id: string; week_ending: string; services: number; client_names: string[] }) {
+            preEmploymentLedger[`${payload.provider_id}:${payload.week_ending}`] = {
+              services: payload.services,
+              client_names: payload.client_names,
+            };
+            return { data: payload, error: null };
+          },
+          select() {
+            let providerId: string | undefined;
+            let gte: string | undefined;
+            let lte: string | undefined;
+            const builder = {
+              eq(col: string, val: string) {
+                if (col === "provider_id") providerId = val;
+                return builder;
+              },
+              gte(_col: string, val: string) {
+                gte = val;
+                return builder;
+              },
+              lte(_col: string, val: string) {
+                lte = val;
+                return builder;
+              },
+              then(resolve: (v: { data: { services: number; client_names: string[] }[] }) => void) {
+                const rows = Object.entries(preEmploymentLedger)
+                  .filter(([key]) => {
+                    const [pid, week] = key.split(":");
+                    if (pid !== providerId) return false;
+                    if (gte && week < gte) return false;
+                    if (lte && week > lte) return false;
+                    return true;
+                  })
+                  .map(([, v]) => v);
+                resolve({ data: rows });
+              },
+            };
+            return builder;
+          },
+        };
+      }
+
       if (table === "cancellation_events") {
         return {
           delete() {
@@ -361,7 +407,7 @@ Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Physio Mid Tier", "Physio New Grad", "Physio Senior Tier", "Senior One"]);
   });
 
-  it("providers_and_practice_12mo + activity_pre_employment_12mo: computes ucva (PVA excl. pre-employment) once both halves are in, in either order, and averages CVA-by-tier from it", async () => {
+  it("providers_and_practice_12mo + the normal weekly activity upload: computes ucva (PVA excl. pre-employment) once both halves are in, in either order, and averages CVA-by-tier from it — no separate pre-employment export needed", async () => {
     const PVA_ALL_CSV = `Providers and Practice Report
 
 Parameters
@@ -373,15 +419,23 @@ Senior One,1000,1000,200,10,10,5.00,5.00,0,0,0
 Massage One,500,500,100,10,10,5.00,5.00,0,0,0
 
 `;
-    const PVA_PRE_EMPLOYMENT_CSV = `Activity Report
+    // A normal weekly Activity Report — mixes a real service in with one
+    // pre-employment row, exactly as it comes from Nookal unfiltered. Only
+    // Senior One has a pre-employment client this week; Massage One has none.
+    const WEEKLY_ACTIVITY_CSV = `Activity Report
 
 Parameters
-Dates,31/08/2025 - 30/08/2026
-Payers,"Move OT, Top Golf Australia, Village Road Show Theme Parks Pty Ltd"
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,252.00,0,252.00
+Total,252.00,0,252.00
 
 Details
 Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
-01/09/2025,Senior One,Adjust Physiotherapy,Screening Client One,Village - Pre-employment,Pre-Employment Assessment,Service,1,01/09/2025,Village Road Show Theme Parks Pty Ltd,,120,0,12,132,0,1
+01/07/2026,Senior One,Adjust Physiotherapy,Real Client One,Private - Physio,Private Subs,Service,1,01/07/2026,Private,,120,0,0,120,0,1
+02/07/2026,Senior One,Adjust Physiotherapy,Screening Client One,Village - Pre-employment,Pre-Employment Assessment,Service,2,02/07/2026,Village Road Show Theme Parks Pty Ltd,,120,0,12,132,0,2
 
 `;
     const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
@@ -389,16 +443,19 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
       { id: "p2", name: "Massage One", role: "massage" },
     ]);
 
-    // Upload the "all" half first — no ucva yet, missing the "pre" half.
+    // Upload the "all" half first — the ledger has no rows yet for either
+    // provider, so ucva computes as the raw ratio (no pre-employment known
+    // yet), same as a genuinely zero-pre-employment provider would read.
     await applyNookalReport(client as never, "providers_and_practice_12mo", "2026-07-12", PVA_ALL_CSV);
-    expect(providerWeekly["p1:2026-07-12"].ucva).toBeUndefined();
+    expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(5, 4);
     expect(providerWeekly["p1:2026-07-12"].pva_services_all).toBe(1000);
     expect(providerWeekly["p1:2026-07-12"].pva_clients_all).toBe(200);
 
-    // The second half (in either order) triggers the real computation:
-    // Senior One: (1000-1)/(200-1) = 5.0201..., Massage One had zero
-    // pre-employment patients: (500-0)/(100-0) = 5.
-    await applyNookalReport(client as never, "activity_pre_employment_12mo", "2026-07-12", PVA_PRE_EMPLOYMENT_CSV);
+    // The normal weekly Activity Report adds a real ledger row and
+    // triggers the corrected computation: Senior One: (1000-1)/(200-1) =
+    // 999/199; Massage One had zero pre-employment patients this week —
+    // still no ledger row for them, so their ucva stays the raw ratio: 5.
+    await applyNookalReport(client as never, "activity", "2026-07-12", WEEKLY_ACTIVITY_CSV);
     expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(999 / 199, 4);
     expect(providerWeekly["p2:2026-07-12"].ucva).toBeCloseTo(5, 4);
     expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo(999 / 199, 4);

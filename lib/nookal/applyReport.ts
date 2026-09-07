@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { NookalReportType } from "@/lib/schema";
 import { cvaTierBucket } from "@/lib/cvaTier";
-import { extractSection, parseCsvRows, rowToRecord } from "@/lib/nookal/csv";
+import { shiftWeek } from "@/lib/week";
 import {
   parseActivityReport,
   parseAgedDebtorsReport,
@@ -101,13 +101,16 @@ export async function applyNookalReport(
   /**
    * PVA (excl. pre-employment) needs both halves before it can be computed —
    * the real 12-month Services/Unique Patients from providers_and_practice_12mo
-   * (pva_services_all/pva_clients_all) and the real 12-month pre-employment-
-   * only counts from activity_pre_employment_12mo (pva_services_pre/
-   * pva_clients_pre). Whichever report arrives second (either order) is what
-   * actually triggers the computation. Writes straight into the "ucva" KPI
-   * field so every existing UCVA display/target/chart/tier-average picks up
-   * the real PVA figure with no further changes — see the director's
-   * decision to replace UCVA with PVA excl. pre-employment (Sept 2026).
+   * (pva_services_all/pva_clients_all on this provider's own week), and the
+   * pre-employment subtraction, which comes from summing the trailing
+   * 52 weeks of pre_employment_activity_weekly (a ledger fed by the
+   * director's REGULAR weekly Activity Report upload — see the "activity"
+   * branch below). Whichever completes second (a fresh 12-month upload, or
+   * this week's Activity Report landing in the ledger) triggers the
+   * recompute. Writes straight into the "ucva" KPI field so every existing
+   * UCVA display/target/chart/tier-average picks up the real PVA figure
+   * with no further changes — see the director's decision to replace UCVA
+   * with PVA excl. pre-employment (Sept 2026).
    */
   async function recomputePvaForProvider(providerId: string) {
     const { data: existing } = await supabase
@@ -117,16 +120,24 @@ export async function applyNookalReport(
       .eq("week_ending", weekEnding)
       .maybeSingle();
     const m = (existing?.metrics ?? {}) as Record<string, unknown>;
-    const { pva_services_all: servicesAll, pva_clients_all: clientsAll, pva_services_pre: servicesPre, pva_clients_pre: clientsPre } = m;
-    if (
-      typeof servicesAll !== "number" ||
-      typeof clientsAll !== "number" ||
-      typeof servicesPre !== "number" ||
-      typeof clientsPre !== "number"
-    ) {
-      return;
+    const { pva_services_all: servicesAll, pva_clients_all: clientsAll } = m;
+    if (typeof servicesAll !== "number" || typeof clientsAll !== "number") return;
+
+    const windowStart = shiftWeek(weekEnding, -51);
+    const { data: ledgerRows } = await supabase
+      .from("pre_employment_activity_weekly")
+      .select("services, client_names")
+      .eq("provider_id", providerId)
+      .gte("week_ending", windowStart)
+      .lte("week_ending", weekEnding);
+    let servicesPre = 0;
+    const clientsPreSeen = new Set<string>();
+    for (const row of (ledgerRows ?? []) as { services: number; client_names: string[] }[]) {
+      servicesPre += row.services;
+      for (const c of row.client_names ?? []) clientsPreSeen.add(c);
     }
-    const clients = clientsAll - clientsPre;
+
+    const clients = clientsAll - clientsPreSeen.size;
     if (clients <= 0) return;
     await upsertProviderMetrics(providerId, { ucva: (servicesAll - servicesPre) / clients });
   }
@@ -242,6 +253,33 @@ export async function applyNookalReport(
         await upsertProviderMetrics(providerId, { [initKey]: initCount, [subKey]: subCount });
       }
     }
+
+    // Feeds pre_employment_activity_weekly — this week's pre-employment
+    // rows, per provider, from the director's normal Activity Report
+    // upload. A trailing-52-week sum of this ledger is PVA's rolling
+    // pre-employment subtraction, so no separate 12-month export is needed
+    // for it (see recomputePvaForProvider above). Write a confirmed zero
+    // for every provider NOT in this file too — absence means Nookal found
+    // no pre-employment patients for them this week, not "unknown".
+    for (const [name, data] of Object.entries(result.preEmploymentByProvider)) {
+      const p = findProvider(name);
+      if (!p) continue;
+      await supabase
+        .from("pre_employment_activity_weekly")
+        .upsert(
+          { provider_id: p.id, week_ending: weekEnding, services: data.services, client_names: data.clientNames },
+          { onConflict: "provider_id,week_ending" }
+        );
+      await recomputePvaForProvider(p.id);
+    }
+    for (const p of providers) {
+      if (matched.has(p.name) && result.preEmploymentByProvider[p.name]) continue;
+      await supabase
+        .from("pre_employment_activity_weekly")
+        .upsert({ provider_id: p.id, week_ending: weekEnding, services: 0, client_names: [] }, { onConflict: "provider_id,week_ending" });
+      await recomputePvaForProvider(p.id);
+    }
+    await recomputeCvaTierAverages();
   } else if (reportType === "occupancy") {
     const result = parseOccupancyReport(csvText);
     rowsFound = Object.keys(result.byProvider).length;
@@ -457,8 +495,10 @@ export async function applyNookalReport(
     }
   } else if (reportType === "providers_and_practice_12mo") {
     // Real Nookal-computed rolling-12-month Services/Unique Patients per
-    // provider, paired with activity_pre_employment_12mo (below) to compute
-    // the true PVA-excl-pre-employment figure that replaces UCVA. A full
+    // provider — the "all" half of PVA-excl-pre-employment (the pre-
+    // employment subtraction comes from the pre_employment_activity_weekly
+    // ledger instead, fed by the normal weekly Activity Report upload —
+    // see recomputePvaForProvider/the "activity" branch above). A full
     // 12-month Providers and Practice Report doesn't hit the row-volume
     // problem the equivalent Activity Report export does, so this one CAN
     // just be re-run with a rolling 12-month date range every week.
@@ -471,46 +511,6 @@ export async function applyNookalReport(
       if (!p) continue;
       rowsFound += 1;
       await upsertProviderMetrics(p.id, { pva_services_all: services, pva_clients_all: data.uniqueClients });
-      await recomputePvaForProvider(p.id);
-    }
-    await recomputeCvaTierAverages();
-  } else if (reportType === "activity_pre_employment_12mo") {
-    // Nookal Activity Report pre-filtered, via its own Payers parameter, to
-    // ONLY Village/Move OT/Top Golf pre-employment screening line items —
-    // small enough Nookal can actually export a full rolling 12 months of
-    // it (the unfiltered Activity Report crashes Nookal at that row volume,
-    // even split by quarter — confirmed 3/9/26). Every row here is already
-    // pre-employment by construction, so no case/item pattern-matching is
-    // needed, unlike the weekly Activity Report upload.
-    const rows = parseCsvRows(csvText);
-    const section = extractSection(rows, "Details");
-    const byProvider: Record<string, { services: number; clients: Set<string> }> = {};
-    if (section) {
-      for (const row of section.rows) {
-        const r = rowToRecord(section.header, row);
-        const provider = r["Staff"];
-        if (!provider) continue;
-        if (!byProvider[provider]) byProvider[provider] = { services: 0, clients: new Set() };
-        byProvider[provider].services += 1;
-        const clientName = r["Client"] || r["Patient"];
-        if (clientName) byProvider[provider].clients.add(clientName);
-      }
-    }
-    rowsFound = 0;
-    for (const [name, data] of Object.entries(byProvider)) {
-      const p = findProvider(name);
-      if (!p) continue;
-      rowsFound += 1;
-      await upsertProviderMetrics(p.id, { pva_services_pre: data.services, pva_clients_pre: data.clients.size });
-      await recomputePvaForProvider(p.id);
-    }
-    // Write a confirmed real zero for every OTHER provider too — absence
-    // from this file means Nookal found no pre-employment patients for them
-    // this period, not "unknown", and recomputePvaForProvider needs a real
-    // number (not a missing field) from both halves before it will compute.
-    for (const p of providers) {
-      if (matched.has(p.name)) continue;
-      await upsertProviderMetrics(p.id, { pva_services_pre: 0, pva_clients_pre: 0 });
       await recomputePvaForProvider(p.id);
     }
     await recomputeCvaTierAverages();
