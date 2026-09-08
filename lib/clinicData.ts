@@ -251,16 +251,27 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
  */
 export async function getNotRebookedClients(providerName: string): Promise<CancellationEventRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("cancellation_events")
-    .select("*")
-    .eq("provider", providerName)
-    .eq("status", "Cancelled")
-    .eq("not_rebooked_resolved", false)
-    .is("next_booking", null)
-    .order("appointment_date", { ascending: false });
+  const [cancellationsResult, noFutureBookingResult] = await Promise.all([
+    supabase
+      .from("cancellation_events")
+      .select("*")
+      .eq("provider", providerName)
+      .eq("status", "Cancelled")
+      .eq("not_rebooked_resolved", false)
+      .is("next_booking", null)
+      .order("appointment_date", { ascending: false }),
+    // Last Attendances Report — a second, distinct way onto this list: the
+    // client attended a real appointment (no cancellation at all, e.g.
+    // handed from one provider to another) and simply never booked again.
+    supabase
+      .from("no_future_booking_events")
+      .select("*")
+      .eq("provider", providerName)
+      .eq("not_rebooked_resolved", false)
+      .order("last_booking_date", { ascending: false }),
+  ]);
 
-  const rows = (data ?? []) as CancellationEventRow[];
+  const rows = (cancellationsResult.data ?? []) as CancellationEventRow[];
   const actionable = rows.filter(
     (r) =>
       !(r.note && isRescheduleNote(r.note)) &&
@@ -273,15 +284,38 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
       })
   );
 
-  // One row per cancellation instance — a client who's cancelled more than
-  // once without rebooking would otherwise show up repeatedly; keep just
-  // their most recent (rows are already newest-first).
+  const noFutureBookingRows = (noFutureBookingResult.data ?? []) as {
+    id: string;
+    client: string;
+    provider: string | null;
+    last_booking_date: string | null;
+    booking_type: string | null;
+    case_name: string | null;
+  }[];
+  const noFutureBooking: CancellationEventRow[] = noFutureBookingRows.map((r) => ({
+    id: r.id,
+    appointment_date: r.last_booking_date,
+    client: r.client,
+    provider: r.provider,
+    case_name: r.case_name,
+    status: "No Future Booking",
+    note: r.booking_type ? `Completed a ${r.booking_type} — nothing booked since` : "Nothing booked since their last visit",
+    next_booking: null,
+    modified_user: null,
+  }));
+
+  // Merge both sources, one row per client — a client who's both cancelled
+  // without rebooking AND drifted off via a separate case would otherwise
+  // show up twice. actionable comes first so a cancellation-based row (it
+  // carries a real staff note) wins over a no-future-booking row for the
+  // same client, then the result is sorted most-recent-first for display.
   const seen = new Set<string>();
-  return actionable.filter((r) => {
+  const merged = [...actionable, ...noFutureBooking].filter((r) => {
     if (seen.has(r.client)) return false;
     seen.add(r.client);
     return true;
   });
+  return merged.sort((a, b) => (b.appointment_date ?? "").localeCompare(a.appointment_date ?? ""));
 }
 
 export interface DropOutRatePoint {

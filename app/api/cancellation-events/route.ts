@@ -34,6 +34,19 @@ export async function PATCH(request: NextRequest) {
       .is("next_booking", null)
       .eq("not_rebooked_resolved", false);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // A client can also be on this list via no_future_booking_events (the
+    // Last Attendances Report — attended a real appointment, never
+    // cancelled anything, just never booked again) rather than a
+    // cancellation_events row — resolve that source too so "Dealt With"
+    // clears the client regardless of which report surfaced them.
+    const { error: nfbError } = await supabase
+      .from("no_future_booking_events")
+      .update({ not_rebooked_resolved: true })
+      .eq("provider", provider)
+      .eq("client", client)
+      .eq("not_rebooked_resolved", false);
+    if (nfbError) return NextResponse.json({ error: nfbError.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 

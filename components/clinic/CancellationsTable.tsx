@@ -10,7 +10,8 @@ export interface CancellationEventRow {
   client: string;
   provider: string | null;
   case_name: string | null;
-  status: "Cancelled" | "Did Not Arrive";
+  /** "No Future Booking" is not a cancellation at all — the client attended a real appointment and simply never booked again, from the Last Attendances Report (see lib/clinicData.ts getNotRebookedClients). */
+  status: "Cancelled" | "Did Not Arrive" | "No Future Booking";
   note: string | null;
   next_booking: string | null;
   modified_user: string | null;
@@ -158,7 +159,8 @@ export function CancellationsTable({
             // note = staff "saved" it; no Next Booking at all = not rebooked)
             // — only meaningful for real cancellations, not DNAs.
             const rescheduled = row.status === "Cancelled" && Boolean(row.note && isRescheduleNote(row.note));
-            const notRebooked = row.status === "Cancelled" && !row.next_booking && !rescheduled;
+            const notRebooked =
+              (row.status === "Cancelled" && !row.next_booking && !rescheduled) || row.status === "No Future Booking";
             const rowStyle: CSSProperties = {
               ...(rescheduled
                 ? { backgroundColor: "color-mix(in srgb, var(--color-success) 10%, transparent)" }
@@ -193,7 +195,9 @@ export function CancellationsTable({
                   style={
                     row.status === "Did Not Arrive"
                       ? { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" }
-                      : { color: "var(--color-muted)", backgroundColor: "var(--color-surface-raised)" }
+                      : row.status === "No Future Booking"
+                        ? { color: "var(--color-warning)", backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)" }
+                        : { color: "var(--color-muted)", backgroundColor: "var(--color-surface-raised)" }
                   }
                 >
                   {row.status}

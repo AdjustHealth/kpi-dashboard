@@ -5,6 +5,7 @@ import {
   parseBusinessPerformanceReport,
   parseCancellationsReport,
   parseClientsAndCasesReport,
+  parseLastAttendancesReport,
   parseOccupancyReport,
   parseProvidersAndPracticeReport,
   isRescheduleNote,
@@ -401,6 +402,45 @@ Appointment Date,Location,Patient,Phone,Provider,Case,Type,Status,Last Attendanc
     expect(result.byProvider["Jordan Real"].notRebooked).toBe(1);
     expect(result.detailRows).toHaveLength(1);
     expect(result.detailRows[0].client).toBe("Client One");
+  });
+});
+
+describe("parseLastAttendancesReport", () => {
+  const LAST_ATTENDANCES_CSV = `Last Attendances Report
+
+Parameters
+Dates,24/08/2026 - 30/08/2026
+
+Details
+Client,Last Booking,Provider,Booking Type,Location,Payment Type,Case,Case Status,Mobile,Email,Client ID
+Abbi Golightly,24/08/2026 - 15 days ago,Tayla Cattanach,EPC Initial 60 min 10960,Adjust Physiotherapy,Medicare,Medicare 2026,Active,0481 266 163,abbi@example.com,80583
+Geraldine Agurto,27/08/2026 - 12 days ago,Imogen O'Neill,Pre-Employment Assessment Non-Attendance,Adjust Physiotherapy,Village Road Show Theme Parks Pty Ltd,Village - Pre-Employment,Active,0450 204 767,geraldine@example.com,81063
+Closed Case Client,25/08/2026 - 14 days ago,Wilson Page,Private Subs 505,Adjust Physiotherapy,Private,Private - Physio,Discharged,0400 000 000,closed@example.com,1
+
+`;
+
+  it("reads real (non-pre-employment, Active) rows, discarding the '- N days ago' part of Last Booking", () => {
+    const result = parseLastAttendancesReport(LAST_ATTENDANCES_CSV);
+    expect(result.rows).toEqual([
+      {
+        client: "Abbi Golightly",
+        provider: "Tayla Cattanach",
+        lastBookingDate: "2026-08-24",
+        bookingType: "EPC Initial 60 min 10960",
+        caseName: "Medicare 2026",
+        caseStatus: "Active",
+      },
+    ]);
+  });
+
+  it("excludes Village/Pre-Employment corporate-screening cases, same as the Cancellations Report", () => {
+    const result = parseLastAttendancesReport(LAST_ATTENDANCES_CSV);
+    expect(result.rows.find((r) => r.client === "Geraldine Agurto")).toBeUndefined();
+  });
+
+  it("excludes non-Active cases — a properly discharged/closed client having no future booking is expected, not a drop-out", () => {
+    const result = parseLastAttendancesReport(LAST_ATTENDANCES_CSV);
+    expect(result.rows.find((r) => r.client === "Closed Case Client")).toBeUndefined();
   });
 });
 

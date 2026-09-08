@@ -230,6 +230,7 @@ export const NOOKAL_REPORT_TYPES = [
   "providers_and_practice",
   "providers_and_practice_12mo",
   "cancellations",
+  "last_attendances",
   "aged_debtors",
 ] as const;
 
@@ -243,5 +244,6 @@ export const NOOKAL_REPORT_LABELS: Record<NookalReportType, string> = {
   providers_and_practice: "Providers & Practice",
   providers_and_practice_12mo: "Providers & Practice (12-month, for PVA)",
   cancellations: "Cancellations",
+  last_attendances: "Last Attendances (no future booking)",
   aged_debtors: "Aged Debtors",
 };

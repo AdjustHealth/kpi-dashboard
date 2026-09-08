@@ -606,6 +606,61 @@ function toIsoDate(date: Date | null): string | null {
   return date ? date.toISOString().slice(0, 10) : null;
 }
 
+/**
+ * Last Attendances Report — clients whose most recent booking fell within
+ * the report's date range and who STILL have no future booking as of when
+ * the report was run. Catches the case the Cancellations Report structurally
+ * can't: a client who attended a real appointment (no cancellation involved
+ * at all — e.g. one provider handing a client to another, who then never
+ * books again) and simply never comes back. There's no cancellation note to
+ * exclude pre-employment/corporate-screening or non-Active cases the way
+ * isCancellationExcludedFromStats does, so this filters directly on Case
+ * (same CORPORATE_SCREENING_PATTERN) and Case Status (only "Active" — a
+ * properly discharged/closed case having no future booking is the expected,
+ * intentional outcome, not something to flag).
+ */
+export interface LastAttendancesReportResult {
+  rows: {
+    client: string;
+    provider: string | null;
+    lastBookingDate: string | null;
+    bookingType: string | null;
+    caseName: string | null;
+    caseStatus: string | null;
+  }[];
+}
+
+export function parseLastAttendancesReport(text: string): LastAttendancesReportResult {
+  const rows = parseCsvRows(text);
+  const section = extractSection(rows, "Details");
+  if (!section) return { rows: [] };
+
+  const result: LastAttendancesReportResult["rows"] = [];
+  for (const row of section.rows) {
+    const r = rowToRecord(section.header, row);
+    const client = r["Client"];
+    if (!client) continue;
+    const caseName = r["Case"] ?? null;
+    const caseStatus = (r["Case Status"] ?? "").trim();
+    if (caseStatus.toLowerCase() !== "active") continue;
+    if (CORPORATE_SCREENING_PATTERN.test(caseName ?? "")) continue;
+
+    // "Last Booking" reads "24/08/2026 - 15 days ago" — only the date part
+    // before " - " is a real date field; the "days ago" is relative to
+    // whenever the report was run, not useful to store.
+    const datePart = (r["Last Booking"] ?? "").split(" - ")[0];
+    result.push({
+      client,
+      provider: r["Provider"] || null,
+      lastBookingDate: toIsoDate(parseNookalDate(datePart)),
+      bookingType: r["Booking Type"] || null,
+      caseName,
+      caseStatus: r["Case Status"] ?? null,
+    });
+  }
+  return { rows: result };
+}
+
 // Corporate Pre-Employment screening visits (Village Road Show, Top Golf,
 // etc.) show up as "New Client: Yes" in Nookal like any other new client,
 // but they're one-off screenings, not a real new patient booking. Excluded

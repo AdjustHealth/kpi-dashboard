@@ -8,6 +8,7 @@ import {
   parseBusinessPerformanceReport,
   parseCancellationsReport,
   parseClientsAndCasesReport,
+  parseLastAttendancesReport,
   parseOccupancyReport,
   parseProvidersAndPracticeReport,
   isRescheduleNote,
@@ -402,6 +403,29 @@ export async function applyNookalReport(
           next_booking: row.nextBooking,
           modified_user: row.modifiedUser,
           modified_at: row.modifiedAt,
+        }))
+      );
+    }
+  } else if (reportType === "last_attendances") {
+    // Catches what the Cancellations Report structurally can't: a client
+    // who attended a real appointment (no cancellation involved at all —
+    // e.g. handed from one provider to another) and simply never books
+    // again. Same delete-then-insert-per-week convention as
+    // cancellation_events, feeding getNotRebookedClients as a second,
+    // clearly-labelled source (see lib/clinicData.ts).
+    const result = parseLastAttendancesReport(csvText);
+    rowsFound = result.rows.length;
+    await supabase.from("no_future_booking_events").delete().eq("week_ending", weekEnding);
+    if (result.rows.length > 0) {
+      await supabase.from("no_future_booking_events").insert(
+        result.rows.map((row) => ({
+          week_ending: weekEnding,
+          client: row.client,
+          provider: row.provider,
+          last_booking_date: row.lastBookingDate,
+          booking_type: row.bookingType,
+          case_name: row.caseName,
+          case_status: row.caseStatus,
         }))
       );
     }

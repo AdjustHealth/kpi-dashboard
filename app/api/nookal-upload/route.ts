@@ -11,6 +11,7 @@ const PARSEABLE_REPORT_TYPES: readonly NookalReportType[] = [
   "providers_and_practice",
   "providers_and_practice_12mo",
   "business_performance",
+  "last_attendances",
   "aged_debtors",
 ];
 

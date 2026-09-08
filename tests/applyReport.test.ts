@@ -21,6 +21,7 @@ function createFakeSupabase(providers: FakeProvider[]) {
   // key: `${provider_id}:${week_ending}` -> { services, client_names }
   const preEmploymentLedger: Record<string, { services: number; client_names: string[] }> = {};
   let cancellationEvents: Record<string, unknown>[] = [];
+  let noFutureBookingEvents: Record<string, unknown>[] = [];
 
   const client = {
     from(table: string) {
@@ -85,6 +86,23 @@ function createFakeSupabase(providers: FakeProvider[]) {
         };
       }
 
+      if (table === "no_future_booking_events") {
+        return {
+          delete() {
+            return {
+              async eq(col: string, val: string) {
+                if (col === "week_ending") noFutureBookingEvents = noFutureBookingEvents.filter((r) => r.week_ending !== val);
+                return { data: null, error: null };
+              },
+            };
+          },
+          async insert(rows: Record<string, unknown>[]) {
+            noFutureBookingEvents.push(...rows);
+            return { data: rows, error: null };
+          },
+        };
+      }
+
       if (table === "providers") {
         return {
           select: async () => ({ data: providers }),
@@ -138,7 +156,7 @@ function createFakeSupabase(providers: FakeProvider[]) {
     },
   };
 
-  return { client, providerWeekly, weeklyKpis };
+  return { client, providerWeekly, weeklyKpis, getNoFutureBookingEvents: () => noFutureBookingEvents };
 }
 
 const ACTIVITY_CSV = `Activity Report
@@ -500,5 +518,40 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(providerWeekly["a2:2026-07-05"].reschedule_rate_pct).toBeCloseTo(0, 4);
     expect(providerWeekly["a2:2026-07-05"].pct_of_total_clinic_cx).toBeCloseTo(1 / 3, 4);
     expect(providerWeekly["a2:2026-07-05"].booked_within_7_days_pct).toBeCloseTo(0, 4);
+  });
+
+  it("last_attendances: replaces the week's no_future_booking_events rows, excluding pre-employment and non-Active cases", async () => {
+    const LAST_ATTENDANCES_CSV = `Last Attendances Report
+
+Parameters
+Dates,24/08/2026 - 30/08/2026
+
+Details
+Client,Last Booking,Provider,Booking Type,Location,Payment Type,Case,Case Status,Mobile,Email,Client ID
+Abbi Golightly,24/08/2026 - 15 days ago,Tayla Cattanach,EPC Initial 60 min 10960,Adjust Physiotherapy,Medicare,Medicare 2026,Active,0481 266 163,abbi@example.com,80583
+Geraldine Agurto,27/08/2026 - 12 days ago,Imogen O'Neill,Pre-Employment Assessment Non-Attendance,Adjust Physiotherapy,Village Road Show Theme Parks Pty Ltd,Village - Pre-Employment,Active,0450 204 767,geraldine@example.com,81063
+
+`;
+    const { client, getNoFutureBookingEvents } = createFakeSupabase([
+      { id: "p1", name: "Tayla Cattanach", role: "physio" },
+      { id: "p2", name: "Imogen O'Neill", role: "physio" },
+    ]);
+
+    const result = await applyNookalReport(client as never, "last_attendances", "2026-08-30", LAST_ATTENDANCES_CSV);
+
+    const rows = getNoFutureBookingEvents();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      week_ending: "2026-08-30",
+      client: "Abbi Golightly",
+      provider: "Tayla Cattanach",
+      last_booking_date: "2026-08-24",
+      booking_type: "EPC Initial 60 min 10960",
+    });
+    expect(result.warning).toBeUndefined();
+
+    // Re-uploading the same week replaces its rows entirely rather than appending.
+    await applyNookalReport(client as never, "last_attendances", "2026-08-30", LAST_ATTENDANCES_CSV);
+    expect(getNoFutureBookingEvents()).toHaveLength(1);
   });
 });
