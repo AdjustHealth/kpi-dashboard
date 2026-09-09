@@ -52,8 +52,10 @@ async function classifyBatch(
         role: "user",
         content: `You're reviewing cancellation notes from a physiotherapy clinic's booking system. Staff write "rsx" or "rx" as shorthand for "reschedule". Your job: decide whether each note describes a CONFIRMED reschedule (staff actually locked in a new booking time for the client) versus something that was only offered, discussed, planned for later, or declined — NOT yet actually done.
 
-CONFIRMED reschedule examples: "rsx to Thurs 3.30pm", "rx. moved to 24/07", a bare "rsx" with nothing else (staff shorthand meaning "done").
-NOT confirmed examples: "offered rsx but declined", "will call back tomorrow to rsx" (a to-do, not done), "not able to rsx any time", "doesn't want to rsx", "lm to rsx to Tuesday" (still a to-do — the word "to" right before "rsx" signals a plan, not a completed action).
+Judge the note as a whole, not just the words right next to "rsx"/"rx" — the word "to" before the tag does NOT by itself mean unconfirmed. "will call back tomorrow to rsx" is a to-do (nothing has happened yet). But "needed to rx - moved to Monday" or "had to rsx, now booked in for Thurs" IS confirmed — "to rx/rsx" here just means "to reschedule" as part of describing what staff already did, and the rest of the note gives the resulting outcome (a specific day/time, "moved to X", "booked in for Y"). The test is whether the note ends with a settled outcome, not whether "to" appears before the tag.
+
+CONFIRMED reschedule examples: "rsx to Thurs 3.30pm", "rx. moved to 24/07", a bare "rsx" with nothing else (staff shorthand meaning "done"), "needed to rx - moved to Monday", "had to reschedule, now Thursday instead".
+NOT confirmed examples: "offered rsx but declined", "will call back tomorrow to rsx" (a to-do, nothing booked yet), "not able to rsx any time", "doesn't want to rsx", "lm to rsx to Tuesday" (still a to-do — a message was left, but nothing is confirmed booked).
 
 For each numbered line below, decide true (confirmed reschedule) or false (not confirmed).
 
