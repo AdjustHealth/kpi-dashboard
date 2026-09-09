@@ -275,6 +275,41 @@ describe("isRescheduleNote", () => {
     );
     expect(isRescheduleNote("offered him rsx")).toBe(false);
   });
+
+  it("catches 'will call ... rsx' and 'will keep us updated ... rsx' as unconfirmed plans, without a blanket 'contains will' rule that would wrongly flip genuine confirmations", () => {
+    // Real Koreena Nesbitt notes, one already flagged "Not rsx - DECLINED
+    // RX" by staff in the discussion note.
+    expect(
+      isRescheduleNote(
+        "Michelle Aitchison cnx still hasn't been able to clear up her pink eye and doesn't want to share with you, getting it popped? on saturday, will call next week to try and rsx"
+      )
+    ).toBe(false);
+    expect(
+      isRescheduleNote(
+        "Susan Hulley-Peachey cnx school has just called and said the little one is vomiting so turning around to go look after that. will call back this afternoon to try and figure out a rsx otherwise has appt next mon"
+      )
+    ).toBe(false);
+    expect(
+      isRescheduleNote("Paul Durrington cnx support worker called to cnx on his behalf as his wife is in hospital so he's with her - will keep us updated in regards to next week/rsx")
+    ).toBe(false);
+
+    // A blanket "contains will" rule would have wrongly excluded these real,
+    // genuinely-confirmed notes — a client literally named "Will Griffiths",
+    // and "will" describing something unrelated to the reschedule itself.
+    expect(isRescheduleNote("rx Will Griffiths rx to next week - got appt wrong on Monday - needs 7:30am so moved to next week")).toBe(true);
+    expect(isRescheduleNote("rx. will griffiths. marcio sick. moved to 06/08")).toBe(true);
+    expect(
+      isRescheduleNote(
+        "rsx Clint Subichin to Thurs morning, has a specilialist and surgery appt for his shoulder on Tuesday and will give us a call later this week if he needs to shift appt around again regarding surgery etc"
+      )
+    ).toBe(true);
+    expect(isRescheduleNote("rx. ellie raynor. moved to 03/08. couldn't make it week beginning 27/07 as she will be away.")).toBe(true);
+    expect(
+      isRescheduleNote(
+        "rx Jye Hombsch rx to 3 Sept. Is away for work so booked in next available and hope that it aligns with his schedule - he will let us know as soon as he knows if he has to reschedule"
+      )
+    ).toBe(true);
+  });
 });
 
 describe("parseCancellationsReport", () => {

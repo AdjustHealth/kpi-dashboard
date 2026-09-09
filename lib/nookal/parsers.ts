@@ -318,9 +318,23 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 // Koreena Nesbitt cancellations (Renee Malyon, Jenelle Wassef) that staff
 // had already manually flagged "Not rsx" in the discussion notes — both
 // read exactly this way.
+//
+// Two more phrasings found the same way (real Koreena Nesbitt notes,
+// currently miscounted as confirmed): "will call [back] ... to try and
+// rsx"/"...to try and figure out a rsx" (Michelle Aitchison, Susan
+// Hulley-Peachey — the latter's discussion note already says "Not rsx -
+// DECLINED RX"), and "will keep us updated in regards to ... rsx" (Paul
+// Durrington). Deliberately narrow, NOT a blanket "contains will" rule —
+// checked against every other real "will"-containing note that DOES
+// currently classify true, and a blanket rule would have wrongly flipped
+// several genuine confirmations: a client literally named "Will Griffiths"
+// ("rx Will Griffiths rx to next week... moved to next week"), and notes
+// where "will" describes something unrelated to the reschedule itself
+// ("rsx ... to Thurs morning... will give us a call later this week if he
+// needs to shift again", "rx. moved to 03/08... as she will be away").
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN =
-  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:\w+\s+)?(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
+  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:\w+\s+)?(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b|\bwill\s+call\w*\b[^.]{0,80}?(?:rsx|rx)\b|\bkeep\w*\s+(?:us|you|her|him|them)\s+(?:updated|posted)\b/i;
 
 export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
