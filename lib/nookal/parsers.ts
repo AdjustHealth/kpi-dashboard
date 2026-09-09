@@ -333,11 +333,29 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 // ("rsx ... to Thurs morning... will give us a call later this week if he
 // needs to shift again", "rx. moved to 03/08... as she will be away").
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
-const RESCHEDULE_NEGATION_PATTERN =
-  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:\w+\s+)?(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b|\bwill\s+call\w*\b[^.]{0,80}?(?:rsx|rx)\b|\bkeep\w*\s+(?:us|you|her|him|them)\s+(?:updated|posted)\b/i;
+
+// These negations hold regardless of anything else in the note — a decline,
+// an offer, or a flat "can't/won't" is never a confirmed reschedule no
+// matter what comes after it.
+const RESCHEDULE_STRONG_NEGATION_PATTERN =
+  /declin\w*|\bno\s+(?:rsx|rx)\b|\boffer\w*\s+(?:\w+\s+)?(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b|\bwill\s+call\w*\b[^.]{0,80}?(?:rsx|rx)\b|\bkeep\w*\s+(?:us|you|her|him|them)\s+(?:updated|posted)\b/i;
+
+// "to rsx/rx" is genuinely ambiguous on its own: "will call back tomorrow
+// to rsx" is an unconfirmed to-do, but "needed to rx - moved to Monday" is
+// staff describing what they already did, with the actual outcome named
+// right after. The word "to" before the tag can't tell these apart by
+// itself — what can is whether a concrete outcome follows shortly after.
+// Confirmed against a real Dayle Cobern note (Natasha Hill: "rx Natasha
+// Hill doing filming at work early so needed to rx - moved to Monday")
+// that this exact ambiguity had wrongly excluded.
+const TO_TAG_PATTERN = /\bto\s+(?:rsx|rx)\b/i;
+const CONFIRMED_OUTCOME_NEAR_TO_TAG = /\bto\s+(?:rsx|rx)\b[\s\S]{0,30}?\b(?:moved\s+to|booked\s+(?:in\s+)?for|now\s+booked|now\s+in\s+for)\b/i;
 
 export function isRescheduleNote(note: string): boolean {
-  return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);
+  if (!RESCHEDULE_TAG_PATTERN.test(note)) return false;
+  if (RESCHEDULE_STRONG_NEGATION_PATTERN.test(note)) return false;
+  if (TO_TAG_PATTERN.test(note) && !CONFIRMED_OUTCOME_NEAR_TO_TAG.test(note)) return false;
+  return true;
 }
 
 /** A note mentions "rsx"/"rx" at all — regardless of verdict. Used to pick out candidates worth sending to the LLM classifier (lib/nookal/rescheduleClassifier.ts) instead of every note in the file. */

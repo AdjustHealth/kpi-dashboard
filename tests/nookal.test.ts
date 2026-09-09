@@ -264,6 +264,17 @@ describe("isRescheduleNote", () => {
     expect(isRescheduleNote("will call back tomorrow to rsx")).toBe(false);
   });
 
+  it("'to rsx/rx' is confirmed when a concrete outcome follows shortly after, but stays unconfirmed otherwise", () => {
+    // Real Dayle Cobern note — "needed to rx" reads exactly like the
+    // unconfirmed "will call back tomorrow to rsx" pattern in isolation,
+    // but "- moved to Monday" right after it names the actual outcome.
+    expect(isRescheduleNote("rx Natasha Hill doing filming at work early so needed to rx - moved to Monday")).toBe(true);
+    // Same "to rx" shape, no stated outcome anywhere — must stay unconfirmed.
+    expect(isRescheduleNote("lm to rsx to Tuesday")).toBe(false);
+    expect(isRescheduleNote("not able to rsx any time")).toBe(false);
+    expect(isRescheduleNote("will call back tomorrow to rsx")).toBe(false);
+  });
+
   it("catches 'offered <pronoun> rsx' too — a pronoun between the verb and the tag shouldn't slip past the offer negation", () => {
     // The real Koreena Nesbitt notes staff had already manually flagged
     // "Not rsx" in the discussion notes — both read as an offer only, no
