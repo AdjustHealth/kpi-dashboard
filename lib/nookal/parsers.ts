@@ -309,9 +309,18 @@ export function parseOccupancyReport(text: string): OccupancyReportResult {
 //     real Kelly White cancellation that read exactly this way.
 // A bare "rsx" with nothing else DOES still count — the director confirmed
 // that's a real (if terse) reschedule note, not a placeholder.
+//
+// The "offer" branch originally only tolerated "offered a/the rsx" — real
+// notes routinely put a pronoun between the verb and the tag ("offered HER
+// rsx with Ilan", "offered HIM rsx to same time next week"), which slipped
+// straight past the pattern and counted as a confirmed reschedule despite
+// being just an offer with no stated outcome. Confirmed against two real
+// Koreena Nesbitt cancellations (Renee Malyon, Jenelle Wassef) that staff
+// had already manually flagged "Not rsx" in the discussion notes — both
+// read exactly this way.
 const RESCHEDULE_TAG_PATTERN = /\brsx\b|\brx\b/i;
 const RESCHEDULE_NEGATION_PATTERN =
-  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
+  /declin\w*|\bno\s+(?:rsx|rx)\b|\bto\s+(?:rsx|rx)\b|\boffer\w*\s+(?:\w+\s+)?(?:a\s+|the\s+)?(?:rsx|rx)\b|\b(?:can'?t|cannot|can\s+not|won'?t|don'?t|didn'?t|doesn'?t|did\s+not|not\s+able|not\s+wanting)\s+(?:to\s+)?(?:rsx|rx)\b/i;
 
 export function isRescheduleNote(note: string): boolean {
   return RESCHEDULE_TAG_PATTERN.test(note) && !RESCHEDULE_NEGATION_PATTERN.test(note);

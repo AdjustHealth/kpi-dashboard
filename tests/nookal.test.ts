@@ -263,6 +263,18 @@ describe("isRescheduleNote", () => {
     expect(isRescheduleNote("offered a rsx")).toBe(false);
     expect(isRescheduleNote("will call back tomorrow to rsx")).toBe(false);
   });
+
+  it("catches 'offered <pronoun> rsx' too — a pronoun between the verb and the tag shouldn't slip past the offer negation", () => {
+    // The real Koreena Nesbitt notes staff had already manually flagged
+    // "Not rsx" in the discussion notes — both read as an offer only, no
+    // stated outcome, but "her" between "offered" and "rsx" let them
+    // through the old pattern (which only tolerated "a"/"the" there).
+    expect(isRescheduleNote('Renee Malyon cnx via sms "sorry No can\'t make it" offered her rsx with Ilan')).toBe(false);
+    expect(isRescheduleNote("Jenelle Wassef cnx via sms. Can't call her at the moment as she is in Japan - offered her rsx to same time next week")).toBe(
+      false
+    );
+    expect(isRescheduleNote("offered him rsx")).toBe(false);
+  });
 });
 
 describe("parseCancellationsReport", () => {

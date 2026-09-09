@@ -55,7 +55,7 @@ async function classifyBatch(
 Judge the note as a whole, not just the words right next to "rsx"/"rx" — the word "to" before the tag does NOT by itself mean unconfirmed. "will call back tomorrow to rsx" is a to-do (nothing has happened yet). But "needed to rx - moved to Monday" or "had to rsx, now booked in for Thurs" IS confirmed — "to rx/rsx" here just means "to reschedule" as part of describing what staff already did, and the rest of the note gives the resulting outcome (a specific day/time, "moved to X", "booked in for Y"). The test is whether the note ends with a settled outcome, not whether "to" appears before the tag.
 
 CONFIRMED reschedule examples: "rsx to Thurs 3.30pm", "rx. moved to 24/07", a bare "rsx" with nothing else (staff shorthand meaning "done"), "needed to rx - moved to Monday", "had to reschedule, now Thursday instead".
-NOT confirmed examples: "offered rsx but declined", "will call back tomorrow to rsx" (a to-do, nothing booked yet), "not able to rsx any time", "doesn't want to rsx", "lm to rsx to Tuesday" (still a to-do — a message was left, but nothing is confirmed booked).
+NOT confirmed examples: "offered rsx but declined", "will call back tomorrow to rsx" (a to-do, nothing booked yet), "not able to rsx any time", "doesn't want to rsx", "lm to rsx to Tuesday" (still a to-do — a message was left, but nothing is confirmed booked), "offered her rsx with Ilan" and "offered her rsx to same time next week" (an offer was made — that's it, the note never says she took it up).
 
 For each numbered line below, decide true (confirmed reschedule) or false (not confirmed).
 
