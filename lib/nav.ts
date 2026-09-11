@@ -21,10 +21,10 @@ const TOOLS_NAV_GROUP: NavGroup = {
   items: [
     {
       // Deliberately NOT labelled "Program Tracker" — that name now belongs to
-      // the migrated /tracker page below, and two same-named sidebar links (one
-      // internal, one an external new-tab link) is exactly the kind of mix-up
-      // that sent someone to the wrong one. Name this by what's still only
-      // here: Meeting Notes, the dashboard, Archive/Cancelled.
+      // the migrated Adjust Gym pages below, and two same-named sidebar links
+      // (one internal, one an external new-tab link) is exactly the kind of
+      // mix-up that sent someone to the wrong one. Name this by what's
+      // actually still only here: Meeting Notes, the dashboard, Archive/Cancelled.
       label: "Program Tracker (Meeting Notes)",
       href: "https://adjust-programming.netlify.app/",
       description: "Meeting notes, dashboard, archive — not yet in the hub",
@@ -39,13 +39,18 @@ const TOOLS_NAV_GROUP: NavGroup = {
   ],
 };
 
-/** First page of the Program Tracker migrated into this app — reads/writes the
- * same live Program Tracker Supabase project (see lib/programTracker), no
- * data migration. Meeting Notes/Archive/Dashboard aren't migrated yet — see
- * TOOLS_NAV_GROUP's Program Tracker (Meeting Notes) link for those. */
-const PROGRAM_TRACKER_GROUP: NavGroup = {
-  label: "Program Tracker",
-  items: [{ label: "Members", href: "/tracker", description: "Client blocks and due dates" }],
+/** The Program Tracker migrated into this app, under its member-facing name
+ * "Adjust Gym" — reads/writes the same live Program Tracker Supabase project
+ * (see lib/programTracker), no data migration. Meeting Notes and a Dashboard
+ * are next; Rules and the two member views are live. See TOOLS_NAV_GROUP's
+ * Program Tracker (Meeting Notes) link for what's not migrated yet. */
+const ADJUST_GYM_GROUP: NavGroup = {
+  label: "Adjust Gym",
+  items: [
+    { label: "My List", href: "/gym/mine", description: "Your own clients, sortable" },
+    { label: "All Members", href: "/gym", description: "Every client block and due date" },
+    { label: "Rules", href: "/gym/rules", description: "Programming standards reference" },
+  ],
 };
 
 /** A restricted (non-director) login only sees the Providers meeting pages it's scoped to — see lib/auth/access.ts. */
@@ -58,7 +63,7 @@ export const RESTRICTED_NAV: NavGroup[] = [
     label: "Meetings",
     items: [{ label: "Providers", href: "/providers", description: "Your weekly provider meetings" }],
   },
-  PROGRAM_TRACKER_GROUP,
+  ADJUST_GYM_GROUP,
   TOOLS_NAV_GROUP,
 ];
 
@@ -103,6 +108,6 @@ export const NAV: NavGroup[] = [
       { label: "Settings", href: "/settings", description: "Clinic-wide setup" },
     ],
   },
-  PROGRAM_TRACKER_GROUP,
+  ADJUST_GYM_GROUP,
   TOOLS_NAV_GROUP,
 ];
