@@ -42,7 +42,7 @@ export default async function GymCancelledPage() {
                     </td>
                     <td className="px-4 py-3 text-muted">{fmtDate(r.block_start)}</td>
                     <td className="max-w-[280px] truncate px-4 py-3 text-muted">{r.notes || ""}</td>
-                    <td className="px-4 py-3 text-muted">{fmtDate(r.archived_at.split("T")[0])}</td>
+                    <td className="px-4 py-3 text-muted">{fmtDate(r.archived_at?.split("T")[0])}</td>
                   </tr>
                 ))}
               </tbody>
