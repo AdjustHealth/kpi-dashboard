@@ -5,8 +5,15 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NAV, RESTRICTED_NAV, NavGroup } from "@/lib/nav";
 
-function isActive(pathname: string, href: string) {
-  return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+// Only these have their own /[id] detail sub-route, so only these should
+// treat a longer pathname as "still this nav item" — everything else
+// (including /gym, which now has dashboard/mine/rules siblings one level
+// deeper) must match exactly, or every sibling page would show two nav
+// items active at once.
+const PREFIX_MATCH_HREFS = new Set(["/providers", "/senior", "/admin", "/reviews"]);
+
+export function isActive(pathname: string, href: string) {
+  return PREFIX_MATCH_HREFS.has(href) ? pathname.startsWith(href) : pathname === href;
 }
 
 function groupIsActive(pathname: string, group: NavGroup) {

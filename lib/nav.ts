@@ -41,12 +41,13 @@ const TOOLS_NAV_GROUP: NavGroup = {
 
 /** The Program Tracker migrated into this app, under its member-facing name
  * "Adjust Gym" — reads/writes the same live Program Tracker Supabase project
- * (see lib/programTracker), no data migration. Meeting Notes and a Dashboard
- * are next; Rules and the two member views are live. See TOOLS_NAV_GROUP's
- * Program Tracker (Meeting Notes) link for what's not migrated yet. */
+ * (see lib/programTracker), no data migration. Meeting Notes is next — see
+ * TOOLS_NAV_GROUP's Program Tracker (Meeting Notes) link for that until it
+ * lands here too. */
 const ADJUST_GYM_GROUP: NavGroup = {
   label: "Adjust Gym",
   items: [
+    { label: "Dashboard", href: "/gym/dashboard", description: "Headline counts and workload by coach" },
     { label: "My List", href: "/gym/mine", description: "Your own clients, sortable" },
     { label: "All Members", href: "/gym", description: "Every client block and due date" },
     { label: "Rules", href: "/gym/rules", description: "Programming standards reference" },

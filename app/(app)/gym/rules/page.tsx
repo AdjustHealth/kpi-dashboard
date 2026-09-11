@@ -4,7 +4,7 @@ import { PROGRAMMING_RULES, isChainSection } from "@/lib/programTracker/rules";
 export default function RulesPage() {
   return (
     <>
-      <PageHeader title="Programming Rules" subtitle="Coaching standards reference — same content as the standalone Program Tracker." showWeekSelector={false} />
+      <PageHeader title="Programming Rules" showWeekSelector={false} />
       <div className="flex flex-col gap-4 p-8">
         {PROGRAMMING_RULES.map((sec) => (
           <div key={sec.section} className="overflow-hidden rounded-xl border border-border bg-surface-raised/40">
