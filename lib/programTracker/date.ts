@@ -26,6 +26,15 @@ export function nextMonday(): string {
   return localISO(dt);
 }
 
+/** The Wednesday of the current Mon-Sun week, whatever day it is when a meeting is created — meetings always land on the day the team actually meets. */
+export function thisWednesday(): string {
+  const dt = new Date();
+  dt.setHours(0, 0, 0, 0);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() + (day === 0 ? -6 : 1 - day) + 2);
+  return localISO(dt);
+}
+
 export function holdEndOf(m: { hold_start?: string | null; hold_weeks?: number | null }): string | null {
   return m?.hold_start && m?.hold_weeks ? addWeeks(m.hold_start, m.hold_weeks) : null;
 }

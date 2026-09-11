@@ -27,6 +27,25 @@ export interface Member {
   updated_at: string;
 }
 
+export interface Meeting {
+  id: string;
+  meeting_date: string;
+  notes: Record<string, string>;
+  created_at: string;
+}
+
+/** Ported verbatim from the standalone Program Tracker — each entry's index is the key under meetings.notes. */
+export const AGENDA_DEFS: { title: string; sub: string }[] = [
+  { title: "Weekly overview", sub: "New agenda items / Issues? / Questions / Training needed?" },
+  { title: "New members — handover", sub: "Move from Glofox to Tracker" },
+  { title: "Membership cancellations", sub: "Cancel from Tracker / Reasoning followed up? / Missed payments?" },
+  { title: "Membership holds", sub: "Select Hold on Tracker / Reasoning / procedure followed?" },
+  { title: "New programming blocks", sub: "Testing result / New block intention + progressions" },
+  { title: "Lumin alerts check in", sub: "Check all your own clients / Action plan" },
+  { title: "Leave check in / cover", sub: "" },
+  { title: "Action steps", sub: "" },
+];
+
 export type MemberInput = {
   name: string;
   coach: string | null;
