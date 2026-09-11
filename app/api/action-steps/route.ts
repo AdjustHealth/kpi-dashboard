@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { shiftWeek } from "@/lib/week";
-import { normalizeActionItems, newActionItem } from "@/lib/actionItems";
+import { newActionItem } from "@/lib/actionItems";
 
 /**
  * POST — "Carry over" an action step: appends a fresh open item with the
  * same text onto NEXT week's action_steps (or action_plan[category]) for
- * this provider, read-merge-write same as the weekly_kpis carry-forward
- * side effects (bookings_following_week, m_pod_fortnightly). The item's
- * own week keeps its "carried" status as-is (set by the normal meeting_notes
- * PATCH from the client) — this only touches next week's row.
+ * this provider, atomically (see migration 0032). The item's own week keeps
+ * its "carried" status as-is (set by the normal meeting_notes PATCH from
+ * the client) — this only touches next week's row.
  */
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -36,30 +35,22 @@ export async function POST(request: NextRequest) {
   const { error: weekEnsureError } = await supabase.rpc("ensure_weekly_kpis_row", { p_week_ending: nextWeek });
   if (weekEnsureError) return NextResponse.json({ error: weekEnsureError.message }, { status: 500 });
 
-  const { data: existing, error: fetchError } = await supabase
-    .from("provider_weekly")
-    .select("meeting_notes")
-    .eq("provider_id", provider_id)
-    .eq("week_ending", nextWeek)
-    .maybeSingle();
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
-
-  const meetingNotes = (existing?.meeting_notes as Record<string, unknown>) ?? {};
   const item = newActionItem(text);
 
-  let patchedNotes: Record<string, unknown>;
-  if (field === "action_steps") {
-    const items = normalizeActionItems(meetingNotes.action_steps);
-    patchedNotes = { ...meetingNotes, action_steps: [...items, item] };
-  } else {
-    const plan = (meetingNotes.action_plan as Record<string, unknown>) ?? {};
-    const items = normalizeActionItems(plan[category as string]);
-    patchedNotes = { ...meetingNotes, action_plan: { ...plan, [category as string]: [...items, item] } };
-  }
-
-  const { error } = await supabase
-    .from("provider_weekly")
-    .upsert({ provider_id, week_ending: nextWeek, meeting_notes: patchedNotes }, { onConflict: "provider_id,week_ending" });
+  // Appending the carried-over item is done atomically inside Postgres (see
+  // migration 0032) rather than SELECT-then-JS-append-then-upsert — this
+  // could otherwise land in the same read/write gap as a normal Meeting
+  // Notes save (or another carry-over) happening on the same row and
+  // silently drop it. normalizeActionItems() (still used for display) is
+  // no longer needed here since the DB function appends without touching
+  // the rest of the array.
+  const { error } = await supabase.rpc("append_provider_weekly_action_item", {
+    p_provider_id: provider_id,
+    p_week_ending: nextWeek,
+    p_field: field,
+    p_category: category ?? null,
+    p_item: item,
+  });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ data: { carried_to: nextWeek, item } });

@@ -57,26 +57,19 @@ export async function PATCH(request: NextRequest) {
   const { error: weekEnsureError } = await supabase.rpc("ensure_weekly_kpis_row", { p_week_ending: week_ending });
   if (weekEnsureError) return NextResponse.json({ error: weekEnsureError.message }, { status: 500 });
 
-  const { data: existing, error: fetchError } = await supabase
-    .from("provider_weekly")
-    .select(section)
-    .eq("provider_id", provider_id)
-    .eq("week_ending", week_ending)
-    .maybeSingle();
-
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
-
-  const existingRow = existing as unknown as Record<string, Record<string, unknown>> | null;
-  const existingSection = existingRow?.[section] ?? {};
-  const merged = { ...existingSection, ...patch };
-
+  // Merging the patch into the section is done atomically inside Postgres
+  // (one statement) rather than SELECT-then-JS-merge-then-upsert — two
+  // people saving around the same time (e.g. Meeting Notes during a shared
+  // meeting) would otherwise both read the same "before" state and the
+  // later write would silently overwrite the earlier one's fields. See
+  // migration 0032.
   const { data, error } = await supabase
-    .from("provider_weekly")
-    .upsert(
-      { provider_id, week_ending, [section]: merged },
-      { onConflict: "provider_id,week_ending" }
-    )
-    .select("*")
+    .rpc("merge_provider_weekly_section", {
+      p_provider_id: provider_id,
+      p_week_ending: week_ending,
+      p_section: section,
+      p_patch: patch,
+    })
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
