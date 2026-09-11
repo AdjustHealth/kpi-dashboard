@@ -106,6 +106,9 @@ export const NAV: NavGroup[] = [
     label: "Team",
     items: [{ label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" }],
   },
+  ADJUST_GYM_GROUP,
+  ASSESSMENT_TOOL_GROUP,
+  TOOLS_NAV_GROUP,
   {
     label: "Configuration",
     items: [
@@ -113,7 +116,4 @@ export const NAV: NavGroup[] = [
       { label: "Settings", href: "/settings", description: "Clinic-wide setup" },
     ],
   },
-  ADJUST_GYM_GROUP,
-  ASSESSMENT_TOOL_GROUP,
-  TOOLS_NAV_GROUP,
 ];
