@@ -4,12 +4,15 @@ import { requireLogin } from "@/lib/programTracker/auth";
 import { addWeeks, calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member, MemberInput } from "@/lib/programTracker/types";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const unauthorized = await requireLogin();
   if (unauthorized) return unauthorized;
 
+  const coach = request.nextUrl.searchParams.get("coach");
   const supabase = createProgramTrackerAdminClient();
-  const { data, error } = await supabase.from("members").select("*");
+  let query = supabase.from("members").select("*");
+  if (coach) query = query.eq("coach", coach);
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // due_status is recomputed live, never trusted from the stored column —

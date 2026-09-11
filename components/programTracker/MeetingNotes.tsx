@@ -153,6 +153,7 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
                 }}
                 placeholder="Notes…"
                 className="min-h-[140px]"
+                style={{ border: "none", borderRadius: 0 }}
               />
             </div>
           ))}

@@ -22,7 +22,7 @@ const SORT_COLS: { key: SortCol; label: string }[] = [
   { key: "due_status", label: "Due status" },
 ];
 
-export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
+export function MembersTable({ initialMembers, coach }: { initialMembers: Member[]; /** Scopes this table to one coach (My List) — refresh() must re-request the same scope, or an edit/mark-done here silently widens back out to every member. */ coach?: string }) {
   const [members, setMembers] = useState(initialMembers);
   const [filter, setFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
@@ -78,7 +78,8 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
   }, [members, filter, search, sortCol, sortDir]);
 
   async function refresh() {
-    const res = await fetch("/api/program-tracker/members");
+    const url = coach ? `/api/program-tracker/members?coach=${encodeURIComponent(coach)}` : "/api/program-tracker/members";
+    const res = await fetch(url);
     const json = await res.json();
     if (res.ok) setMembers(json.data);
   }
@@ -179,6 +180,7 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
       {(editing || adding) && (
         <MemberModal
           member={editing}
+          defaultCoach={coach}
           onClose={() => {
             setEditing(null);
             setAdding(false);

@@ -30,7 +30,7 @@ export default async function MyListPage() {
         ) : error ? (
           <p className="text-sm text-danger">Could not load members: {error.message}</p>
         ) : (
-          <MembersTable initialMembers={members} />
+          <MembersTable initialMembers={members} coach={coach} />
         )}
       </div>
     </>
