@@ -71,8 +71,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 19, id: "cx_cancels", label: "Cancellations (count)", source: "calc", type: "number", category: "CX" },
   { idx: 20, id: "cx_pct", label: "Cancellation %", source: "calc", type: "percent", category: "CX" },
   { idx: 21, id: "cx_dnas", label: "Did Not Arrive (count)", source: "calc", type: "number", category: "CX" },
-  { idx: 22, id: "cx_nr", label: "Not Rebooked (count)", source: "calc", type: "number", category: "CX" },
-  { idx: 23, id: "cx_nr_pct", label: "Not Rebooked %", source: "calc", type: "percent", category: "CX" },
+  { idx: 22, id: "cx_nr", label: "Unretained (count)", source: "calc", type: "number", category: "CX" },
+  { idx: 23, id: "cx_nr_pct", label: "Unretained %", source: "calc", type: "percent", category: "CX" },
   { idx: 24, id: "cx_rsx_pct", label: "Reschedule %", source: "calc", type: "percent", category: "CX" },
   { idx: 25, id: "cx_in7_pct", label: "Booked Within 7 Days %", source: "calc", type: "percent", category: "CX" },
 

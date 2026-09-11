@@ -275,7 +275,7 @@ export default async function ClinicHealthPage({
               rawValue={retentionRate}
               target={retentionTarget}
               betterWhen="higher"
-              sublabel="100% − Not Rebooked %"
+              sublabel="100% − Unretained %"
             />
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">

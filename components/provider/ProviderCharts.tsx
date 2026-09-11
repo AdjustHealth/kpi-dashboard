@@ -103,7 +103,7 @@ export function ProviderCharts({
             <LineTrendChart title="Drop Out Rate" data={dropOutRateHistory} format="percent" colorIndex={1} accent />
             <p className="text-[11px] text-muted">
               % of that week&apos;s distinct cancelling clients still without a future booking — updates as clients get
-              rebooked and resolved from the Not Rebooked list above.
+              rebooked and resolved from the Unretained list above.
             </p>
           </div>
         )}

@@ -10,7 +10,7 @@ export interface CancellationEventRow {
   client: string;
   provider: string | null;
   case_name: string | null;
-  /** "No Future Booking" is not a cancellation at all — the client attended a real appointment and simply never booked again, from the Last Attendances Report (see lib/clinicData.ts getNotRebookedClients). */
+  /** "No Future Booking" is not a cancellation at all — the client attended a real appointment and simply never booked again, from the Last Attendances Report (see lib/clinicData.ts getNotRebookedClients). Both this and "Cancelled" display as "Unretained" on the Unretained list (showResolveAction) — see the status badge below. */
   status: "Cancelled" | "Did Not Arrive" | "No Future Booking";
   note: string | null;
   next_booking: string | null;
@@ -50,7 +50,7 @@ export function CancellationsTable({
   hideHandledBy?: boolean;
   /** Omit the "Provider" column — every row already shares the same value on a single provider's own page. */
   hideProvider?: boolean;
-  /** Show a "Dealt With" button that dismisses a row (sets not_rebooked_resolved) — only meaningful on the Not Rebooked list, not the general Cancellations tab. */
+  /** Show a "Dealt With" button that dismisses a row (sets not_rebooked_resolved) — only meaningful on the Unretained list, not the general Cancellations tab. Also switches the Status badge to a single unified "Unretained" label instead of the differing source statuses. */
   showResolveAction?: boolean;
 }) {
   const COLUMNS = ALL_COLUMNS.filter(
@@ -155,8 +155,8 @@ export function CancellationsTable({
         </thead>
         <tbody>
           {sortedRows.map((row) => {
-            // Same reschedule/not-rebooked signal the KPI stats use (RSX/RX
-            // note = staff "saved" it; no Next Booking at all = not rebooked)
+            // Same reschedule/unretained signal the KPI stats use (RSX/RX
+            // note = staff "saved" it; no Next Booking at all = unretained)
             // — only meaningful for real cancellations, not DNAs.
             const rescheduled = row.status === "Cancelled" && Boolean(row.note && isRescheduleNote(row.note));
             const notRebooked =
@@ -195,12 +195,16 @@ export function CancellationsTable({
                   style={
                     row.status === "Did Not Arrive"
                       ? { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" }
-                      : row.status === "No Future Booking"
+                      : row.status === "No Future Booking" || (showResolveAction && notRebooked)
                         ? { color: "var(--color-warning)", backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)" }
                         : { color: "var(--color-muted)", backgroundColor: "var(--color-surface-raised)" }
                   }
                 >
-                  {row.status}
+                  {/* On the Unretained list every row means the same thing regardless of
+                      which report surfaced it (a cancelled appointment vs. Last Attendances) —
+                      show one consistent label instead of the differing source statuses
+                      ("Cancelled" vs "No Future Booking") that made the list look inconsistent. */}
+                  {showResolveAction && notRebooked ? "Unretained" : row.status}
                 </span>
               </td>
               <td className="py-2 px-3 whitespace-nowrap text-muted">

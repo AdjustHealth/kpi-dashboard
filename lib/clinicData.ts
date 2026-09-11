@@ -239,13 +239,13 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
  * Same "Cancelled status, no next_booking, not a reschedule note"
  * definition already used for the Cancellations tab's red-row styling —
  * DNAs aren't included, matching that precedent. Also excludes whatever the
- * Cancellations/Not Rebooked KPI stats themselves exclude (bulk/whole-plan-
+ * Cancellations/Unretained KPI stats themselves exclude (bulk/whole-plan-
  * cancel notes, corporate screening partners, HotDoc placeholders, stale
  * ghost recurring slots — see isCancellationExcludedFromStats) — otherwise
  * a client whose whole plan was cancelled weeks ago keeps reappearing on
  * this follow-up list forever even though the KPI count (correctly) stopped
  * counting them as needing action. Confirmed against Tayla Cattanach's real
- * data: her weekly Not Rebooked count has read 0 for two months straight
+ * data: her weekly Unretained count has read 0 for two months straight
  * while this list kept surfacing the same handful of already-resolved
  * whole-plan cancellations (Bodhi Behan, Sophie Halbert, etc.) every week.
  */
@@ -331,7 +331,7 @@ export interface DropOutRatePoint {
  * resolved manual dismiss). Deduped by client so someone cancelling
  * several appointments in the same week without rebooking only counts
  * once, per the director's ask. Denominator is that week's distinct
- * cancelling clients — same convention as the existing Not Rebooked %
+ * cancelling clients — same convention as the existing Unretained %
  * clinic stat (a % of cancellations, not of total caseload, which isn't
  * tracked as a client list anywhere).
  *

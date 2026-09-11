@@ -419,11 +419,11 @@ export function isStaleCancellation(apptDate: Date | null, modifiedDate: Date | 
 
 /**
  * Same "not a fresh cancellation event this week" exclusions applied when
- * computing the Cancellations/Not Rebooked KPI stats (bulk/whole-plan-cancel
+ * computing the Cancellations/Unretained KPI stats (bulk/whole-plan-cancel
  * notes, corporate screening partners, HotDoc placeholder records, and
  * stale/ghost recurring slots cancelled well before this reporting week) —
  * shared here so any other view built from the same cancellation_events rows
- * (e.g. the live Not Rebooked follow-up list) can stay consistent with the
+ * (e.g. the live Unretained follow-up list) can stay consistent with the
  * KPI count instead of surfacing rows the stats have already decided don't
  * need action.
  */

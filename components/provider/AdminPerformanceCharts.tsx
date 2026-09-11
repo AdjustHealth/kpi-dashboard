@@ -45,7 +45,7 @@ export function AdminPerformanceCharts({
           betterWhen="higher"
         />
         <LineTrendChart
-          title="Cancellations Not Rebooked %"
+          title="Cancellations Unretained %"
           data={series(history, "cancellations_not_rebooked_pct")}
           format="percent"
           colorIndex={3}

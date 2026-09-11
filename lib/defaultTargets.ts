@@ -7,7 +7,7 @@ import { Provider } from "@/lib/types";
  * the provider's own targets nor its role_targets group has set yet (e.g.
  * a brand new install before the Targets page has been touched). These are
  * the director's own stated numbers: DNAs 0 (anything above is a miss),
- * Cancellations under 20, Not Rebooked under 5 (a raw count, not a %),
+ * Cancellations under 20, Unretained under 5 (a raw count, not a %),
  * Reschedule Rate above 30%, NCVA 20, Completed Consults 40. CVA (key:
  * ucva) varies by tier — New Grad 4, 2-5yr Physio 6, Senior 7 — massage/EP
  * have no stated CVA target, so none is set for them.

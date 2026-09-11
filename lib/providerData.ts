@@ -4,8 +4,8 @@ import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 
 /**
- * Retention Rate is the complement of Not Rebooked %, derived live from the
- * same raw "Not Rebooked" count and cancellation total shown on the KPI
+ * Retention Rate is the complement of Unretained %, derived live from the
+ * same raw "Unretained" count and cancellation total shown on the KPI
  * Scorecard (clinicians: cancellations, admin: cancellations_handled) —
  * NOT from the separately-stored *_pct fields the Nookal parse also writes.
  * Those percentages are computed once at upload time and go stale the

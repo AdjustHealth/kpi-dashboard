@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest) {
 
   const supabase = await createClient();
 
-  // "Dealt with" on the Not Rebooked list resolves every one of this
+  // "Dealt with" on the Unretained list resolves every one of this
   // client's currently-unresolved not-rebooked rows for this provider, not
   // just the single row shown — a client who's cancelled repeatedly
   // without rebooking (e.g. moving away, a chronic no-show) can have

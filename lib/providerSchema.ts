@@ -9,9 +9,10 @@
  * Field set and labels are taken directly from the real "Accountability
  * Meeting" template and the director's own paper notes — see KPI Scorecard
  * section (FBA, Occupancy, New Patient Booking Rate + its two calculation
- * inputs, UCVA/NCVA, DNAs, Cancellations, Not Rebooked). Reschedule Rate is
- * dropped from CLINICIAN_METRIC_FIELDS (director: redundant alongside Not
- * Rebooked/Retention Rate) — still tracked for admin, where it's genuinely
+ * inputs, UCVA/NCVA, DNAs, Cancellations, Not Rebooked — renamed "Unretained"
+ * on screen, see below). Reschedule Rate is dropped from
+ * CLINICIAN_METRIC_FIELDS (director: redundant alongside Unretained/
+ * Retention Rate) — still tracked for admin, where it's genuinely
  * useful. Diary Management and Booked Within 7 Days are clinic/admin-level,
  * not per-physio.
  *
@@ -85,7 +86,7 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
-  { key: "not_rebooked", label: "Not Rebooked", type: "number", betterWhen: "lower" },
+  { key: "not_rebooked", label: "Unretained", type: "number", betterWhen: "lower" },
   { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked" },
 ];
 
@@ -116,9 +117,9 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
 export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "cancellations_handled", label: "Cancellations Handled", type: "number" },
   { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
-  { key: "not_rebooked", label: "Number Not Rebooked", type: "number", betterWhen: "lower" },
-  { key: "cancellations_not_rebooked_pct", label: "Cancellations Not Rebooked %", type: "percent", betterWhen: "lower" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked (100% − Cancellations Not Rebooked %)" },
+  { key: "not_rebooked", label: "Number Unretained", type: "number", betterWhen: "lower" },
+  { key: "cancellations_not_rebooked_pct", label: "Cancellations Unretained %", type: "percent", betterWhen: "lower" },
+  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked (100% − Cancellations Unretained %)" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
   { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
