@@ -324,16 +324,25 @@ export interface DropOutRatePoint {
 }
 
 /**
- * Drop Out Rate — % of a provider's DISTINCT clients who cancelled in a
- * given week and, as of right now, still have no future booking — same
- * "genuinely not rebooked" definition as getNotRebookedClients above
- * (excludes reschedule-note cancellations, respects the not_rebooked_
- * resolved manual dismiss). Deduped by client so someone cancelling
- * several appointments in the same week without rebooking only counts
- * once, per the director's ask. Denominator is that week's distinct
- * cancelling clients — same convention as the existing Unretained %
- * clinic stat (a % of cancellations, not of total caseload, which isn't
- * tracked as a client list anywhere).
+ * Drop Out Rate — % of a provider's DISTINCT clients with a negative
+ * booking signal in a given week (cancelled without rebooking, or attended
+ * and simply never booked again) who, as of right now, still have no
+ * future booking — same "genuinely unretained" definition as
+ * getNotRebookedClients above, pulling from both of its sources:
+ * cancellation_events (excludes reschedule-note cancellations, respects
+ * the not_rebooked_resolved manual dismiss) AND no_future_booking_events,
+ * the Last Attendances Report source that structurally can't show up as a
+ * cancellation at all (see getNotRebookedClients for why a second table is
+ * needed). Missing this second source understated the rate — a client who
+ * attended and never rebooked (e.g. Abbi Golightly under Tayla Cattanach,
+ * week of 29/08) was invisible to this chart even though she was already
+ * correctly surfaced on the Unretained follow-up list itself.
+ *
+ * Deduped by client so someone cancelling several appointments in the same
+ * week without rebooking only counts once, per the director's ask.
+ * Denominator is that week's distinct affected clients — same convention
+ * as the existing Unretained % clinic stat (a % of cancellations, not of
+ * total caseload, which isn't tracked as a client list anywhere).
  *
  * Recomputed live from current data rather than stored per week, so a
  * past week's rate can improve later once someone confirms a client
@@ -344,14 +353,21 @@ export interface DropOutRatePoint {
 export async function getDropOutRateHistory(providerName: string, weeks: string[]): Promise<DropOutRatePoint[]> {
   if (weeks.length === 0) return [];
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("cancellation_events")
-    .select("week_ending, client, note, next_booking, not_rebooked_resolved, case_name, appointment_date, modified_at")
-    .eq("provider", providerName)
-    .eq("status", "Cancelled")
-    .in("week_ending", weeks);
+  const [cancellationsResult, noFutureBookingResult] = await Promise.all([
+    supabase
+      .from("cancellation_events")
+      .select("week_ending, client, note, next_booking, not_rebooked_resolved, case_name, appointment_date, modified_at")
+      .eq("provider", providerName)
+      .eq("status", "Cancelled")
+      .in("week_ending", weeks),
+    supabase
+      .from("no_future_booking_events")
+      .select("week_ending, client, not_rebooked_resolved")
+      .eq("provider", providerName)
+      .in("week_ending", weeks),
+  ]);
 
-  const rows = (data ?? []) as {
+  const rows = (cancellationsResult.data ?? []) as {
     week_ending: string;
     client: string;
     note: string | null;
@@ -373,13 +389,28 @@ export async function getDropOutRateHistory(providerName: string, weeks: string[
       })
   );
 
+  const noFutureBookingRows = (noFutureBookingResult.data ?? []) as {
+    week_ending: string;
+    client: string;
+    not_rebooked_resolved: boolean | null;
+  }[];
+
   return weeks.map((week_ending) => {
     const weekRows = notRescheduled.filter((r) => r.week_ending === week_ending);
-    const clients = new Set(weekRows.map((r) => r.client));
+    const weekNoFutureBookingRows = noFutureBookingRows.filter((r) => r.week_ending === week_ending);
+    const clients = new Set([
+      ...weekRows.map((r) => r.client),
+      ...weekNoFutureBookingRows.map((r) => r.client),
+    ]);
     if (clients.size === 0) return { week_ending, value: null };
-    const droppedOut = new Set(
-      weekRows.filter((r) => r.next_booking === null && !r.not_rebooked_resolved).map((r) => r.client)
-    );
+    // Every no_future_booking_events row is, by definition, a client with no
+    // future booking (that's what put them on the report) — so unlike the
+    // cancellation rows above, there's no next_booking check needed here,
+    // only the same manual-resolve dismiss.
+    const droppedOut = new Set([
+      ...weekRows.filter((r) => r.next_booking === null && !r.not_rebooked_resolved).map((r) => r.client),
+      ...weekNoFutureBookingRows.filter((r) => !r.not_rebooked_resolved).map((r) => r.client),
+    ]);
     return { week_ending, value: droppedOut.size / clients.size };
   });
 }
