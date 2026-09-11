@@ -34,6 +34,15 @@ const TOOLS_NAV_GROUP: NavGroup = {
   ],
 };
 
+/** First page of the Program Tracker migrated into this app — reads/writes the
+ * same live Program Tracker Supabase project (see lib/programTracker), no
+ * data migration. Meeting Notes/Archive/Dashboard aren't migrated yet, so the
+ * Tools link to the standalone site above still covers those for now. */
+const PROGRAM_TRACKER_GROUP: NavGroup = {
+  label: "Program Tracker",
+  items: [{ label: "Members", href: "/tracker", description: "Client blocks and due dates" }],
+};
+
 /** A restricted (non-director) login only sees the Providers meeting pages it's scoped to — see lib/auth/access.ts. */
 export const RESTRICTED_NAV: NavGroup[] = [
   {
@@ -44,6 +53,7 @@ export const RESTRICTED_NAV: NavGroup[] = [
     label: "Meetings",
     items: [{ label: "Providers", href: "/providers", description: "Your weekly provider meetings" }],
   },
+  PROGRAM_TRACKER_GROUP,
   TOOLS_NAV_GROUP,
 ];
 
@@ -88,5 +98,6 @@ export const NAV: NavGroup[] = [
       { label: "Settings", href: "/settings", description: "Clinic-wide setup" },
     ],
   },
+  PROGRAM_TRACKER_GROUP,
   TOOLS_NAV_GROUP,
 ];
