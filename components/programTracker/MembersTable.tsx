@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
 import { Member } from "@/lib/programTracker/types";
 import { fmtDate, holdEndOf } from "@/lib/programTracker/date";
@@ -136,8 +137,8 @@ export function MembersTable({ initialMembers, coach }: { initialMembers: Member
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
-                  No members match this filter.
+                <td colSpan={8} className="border-0 px-4 py-6">
+                  <EmptyState message="No members match this filter." />
                 </td>
               </tr>
             )}

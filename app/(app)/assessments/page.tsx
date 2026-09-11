@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
 import { createClient } from "@/lib/supabase/server";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 import { DeleteAssessmentButton } from "@/components/assessmentTool/DeleteAssessmentButton";
+
+const TYPE_ICON: Record<string, string> = {
+  performance: "M13 2 3 14h7l-1 8 10-12h-7l1-8Z",
+  youth1: "M12 4v3m0 10v3M4 12h3m10 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  youth2: "M12 4v3m0 10v3M4 12h3m10 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  movestrong: "M6.5 6.5 4 4m0 16 2.5-2.5M17.5 6.5 20 4m0 16-2.5-2.5M9 9h6v6H9z",
+};
 
 const TYPE_LABEL: Record<string, string> = {
   performance: "Performance",
@@ -97,13 +105,20 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
               <Link
                 key={t.key}
                 href={`/assessments/new?type=${t.type}${t.tier ? `&tier=${t.tier}` : ""}${clinicianParam}`}
-                className="flex flex-col gap-1 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40"
+                className="group flex flex-col gap-3 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40"
               >
-                <div className="flex items-baseline justify-between">
-                  <span className="font-semibold text-foreground">{t.name}</span>
-                  {t.sub && <span className="text-xs text-muted">{t.sub}</span>}
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d={TYPE_ICON[t.key]} />
+                  </svg>
                 </div>
-                <span className="text-xs font-semibold text-accent">Start →</span>
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">{t.name}</span>
+                    {t.sub && <span className="text-xs text-muted">{t.sub}</span>}
+                  </div>
+                  <span className="text-xs font-semibold text-accent">Start →</span>
+                </div>
               </Link>
             ))}
           </div>
@@ -131,7 +146,7 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
             </div>
 
             {filtered.length === 0 ? (
-              <p className="text-sm text-muted">No assessments of this type yet.</p>
+              <EmptyState message="No assessments of this type yet." />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-left text-sm">
