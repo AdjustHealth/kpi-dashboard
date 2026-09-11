@@ -20,18 +20,6 @@ const TOOLS_NAV_GROUP: NavGroup = {
   label: "Tools",
   items: [
     {
-      // Deliberately NOT labelled "Program Tracker" — that name now belongs to
-      // the migrated Adjust Gym pages below, and two same-named sidebar links
-      // (one internal, one an external new-tab link) is exactly the kind of
-      // mix-up that sent someone to the wrong one. Name this by what's
-      // actually still only here now that Dashboard and Meeting Notes have
-      // moved into Adjust Gym: just Archive/Cancelled history.
-      label: "Program Tracker (Archive)",
-      href: "https://adjust-programming.netlify.app/",
-      description: "Archive and Cancelled history — not yet in the hub",
-      external: true,
-    },
-    {
       // Same reasoning as the Program Tracker entry above — the list view now
       // lives at ASSESSMENT_TOOL_GROUP below, so this is only still needed for
       // actually running a new assessment or editing one already saved.
@@ -55,9 +43,9 @@ const ASSESSMENT_TOOL_GROUP: NavGroup = {
 
 /** The Program Tracker migrated into this app, under its member-facing name
  * "Adjust Gym" — reads/writes the same live Program Tracker Supabase project
- * (see lib/programTracker), no data migration. Meeting Notes is next — see
- * TOOLS_NAV_GROUP's Program Tracker (Meeting Notes) link for that until it
- * lands here too. */
+ * (see lib/programTracker), no data migration. Every screen the standalone
+ * site (adjust-programming.netlify.app) has is now here except CSV export,
+ * which is why that site no longer has a Tools nav link at all. */
 const ADJUST_GYM_GROUP: NavGroup = {
   label: "Adjust Gym",
   items: [
@@ -65,6 +53,8 @@ const ADJUST_GYM_GROUP: NavGroup = {
     { label: "My List", href: "/gym/mine", description: "Your own clients, sortable" },
     { label: "All Members", href: "/gym", description: "Every client block and due date" },
     { label: "Meeting Notes", href: "/gym/meetings", description: "Weekly agenda and notes" },
+    { label: "Archive", href: "/gym/archive", description: "Completed blocks history" },
+    { label: "Cancelled", href: "/gym/cancelled", description: "Members removed from the tracker" },
     { label: "Rules", href: "/gym/rules", description: "Programming standards reference" },
   ],
 };

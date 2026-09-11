@@ -27,6 +27,21 @@ export interface Member {
   updated_at: string;
 }
 
+export interface ArchiveRow {
+  id: string;
+  member_id: string;
+  name: string;
+  coach: string | null;
+  type: string | null;
+  status: string | null;
+  block_start: string | null;
+  block_weeks: number | null;
+  next_due: string | null;
+  notes: string | null;
+  archived_at: string;
+  archive_type: "block_complete" | "cancelled";
+}
+
 export interface Meeting {
   id: string;
   meeting_date: string;
