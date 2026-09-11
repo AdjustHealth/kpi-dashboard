@@ -6,8 +6,16 @@ import { Member, PROGRAM_TRACKER_COACHES, PROGRAM_TRACKER_PAID_TYPES, PROGRAM_TR
 
 /** Mirrors the standalone Program Tracker's own dashboard tab: headline counts, members per coach, workload by coach, and members by type. */
 export default async function GymDashboardPage() {
-  const supabase = createProgramTrackerAdminClient();
-  const { data, error } = await supabase.from("members").select("*");
+  let data: Member[] | null = null;
+  let error: { message: string } | null = null;
+  try {
+    const supabase = createProgramTrackerAdminClient();
+    const res = await supabase.from("members").select("*");
+    data = res.data as Member[] | null;
+    error = res.error;
+  } catch (e) {
+    error = { message: e instanceof Error ? e.message : "Unknown error" };
+  }
   if (error) {
     return (
       <>
