@@ -7,17 +7,20 @@ import { addWeeks, fmtDate } from "@/lib/programTracker/date";
 
 export function MemberModal({
   member,
+  defaultCoach,
   onClose,
   onSaved,
 }: {
   /** null = adding a new member */
   member: Member | null;
+  /** Pre-fills Coach when adding from a coach-scoped list (My List) — saves re-selecting your own name every time. Ignored when editing an existing member. */
+  defaultCoach?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [form, setForm] = useState<MemberInput>({
     name: member?.name ?? "",
-    coach: member?.coach ?? "",
+    coach: member?.coach ?? defaultCoach ?? "",
     type: member?.type ?? "",
     status: member?.status ?? "Active",
     block_start: member?.block_start ?? "",
