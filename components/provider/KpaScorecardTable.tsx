@@ -72,9 +72,23 @@ export function KpaScorecardTable({
   }
 
   // Most weeks' ratings repeat the week before almost exactly — copy every
-  // field's previous rating into the current (editable) week in one go
-  // instead of re-clicking through each one.
-  const previous = currentIndex > 0 ? history[currentIndex - 1]?.[section] : undefined;
+  // field's rating from the last completed week into the current (editable)
+  // week in one go instead of re-clicking through each one. Searches
+  // backward past any blank weeks in between (e.g. senior/admin meetings
+  // that get skipped some weeks) rather than only ever looking at the
+  // literal previous week — otherwise a single blank week in between makes
+  // this silently find nothing to copy, even though real ratings exist a
+  // few weeks further back. Confirmed on a real Marcio Dos Santos case:
+  // his Senior KPA group (Core Values etc.) was last actually rated
+  // 22/08, with two blank weeks after it — "Copy Last Week" against just
+  // the immediately preceding (blank) week copied nothing.
+  const previous = (() => {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const candidate = history[i]?.[section];
+      if (candidate && fields.some((f) => KPA_RATINGS.includes(candidate[f.key] as KpaRating))) return candidate;
+    }
+    return undefined;
+  })();
   function copyLastWeek() {
     if (!previous) return;
     const copied: Record<string, unknown> = {};
@@ -98,9 +112,9 @@ export function KpaScorecardTable({
               type="button"
               onClick={copyLastWeek}
               className="text-xs font-medium text-accent hover:underline"
-              title="Copy every rating from the previous week into this week"
+              title="Copy every rating from the last week these were actually filled in into this week"
             >
-              Copy last week
+              Copy last rated week
             </button>
           )}
           <SaveIndicator status={status} />
