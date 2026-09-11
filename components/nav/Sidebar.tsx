@@ -36,6 +36,21 @@ export function Sidebar({ restricted = false }: { restricted?: boolean }) {
               {group.items && (
                 <ul className="flex flex-col gap-1">
                   {group.items.map((item) => {
+                    if (item.external) {
+                      return (
+                        <li key={item.href}>
+                          <a
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-2 rounded-lg border border-transparent bg-surface-raised/60 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-surface-raised"
+                          >
+                            {item.label}
+                            <span className="text-xs text-foreground/50">↗</span>
+                          </a>
+                        </li>
+                      );
+                    }
                     const active = isActive(pathname, item.href);
                     return (
                       <li key={item.href}>
