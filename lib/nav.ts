@@ -24,10 +24,11 @@ const TOOLS_NAV_GROUP: NavGroup = {
       // the migrated Adjust Gym pages below, and two same-named sidebar links
       // (one internal, one an external new-tab link) is exactly the kind of
       // mix-up that sent someone to the wrong one. Name this by what's
-      // actually still only here: Meeting Notes, the dashboard, Archive/Cancelled.
-      label: "Program Tracker (Meeting Notes)",
+      // actually still only here now that Dashboard and Meeting Notes have
+      // moved into Adjust Gym: just Archive/Cancelled history.
+      label: "Program Tracker (Archive)",
       href: "https://adjust-programming.netlify.app/",
-      description: "Meeting notes, dashboard, archive — not yet in the hub",
+      description: "Archive and Cancelled history — not yet in the hub",
       external: true,
     },
     {
@@ -41,14 +42,16 @@ const TOOLS_NAV_GROUP: NavGroup = {
 
 /** The Program Tracker migrated into this app, under its member-facing name
  * "Adjust Gym" — reads/writes the same live Program Tracker Supabase project
- * (see lib/programTracker), no data migration. Meeting Notes and a Dashboard
- * are next; Rules and the two member views are live. See TOOLS_NAV_GROUP's
- * Program Tracker (Meeting Notes) link for what's not migrated yet. */
+ * (see lib/programTracker), no data migration. Meeting Notes is next — see
+ * TOOLS_NAV_GROUP's Program Tracker (Meeting Notes) link for that until it
+ * lands here too. */
 const ADJUST_GYM_GROUP: NavGroup = {
   label: "Adjust Gym",
   items: [
+    { label: "Dashboard", href: "/gym/dashboard", description: "Headline counts and workload by coach" },
     { label: "My List", href: "/gym/mine", description: "Your own clients, sortable" },
     { label: "All Members", href: "/gym", description: "Every client block and due date" },
+    { label: "Meeting Notes", href: "/gym/meetings", description: "Weekly agenda and notes" },
     { label: "Rules", href: "/gym/rules", description: "Programming standards reference" },
   ],
 };

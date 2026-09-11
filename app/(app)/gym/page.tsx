@@ -12,7 +12,7 @@ export default async function GymAllMembersPage() {
 
   return (
     <>
-      <PageHeader title="All Members" subtitle="Every client block — same live data as adjust-programming.netlify.app." showWeekSelector={false} />
+      <PageHeader title="All Members" showWeekSelector={false} />
       <div className="p-8">
         {error ? <p className="text-sm text-danger">Could not load members: {error.message}</p> : <MembersTable initialMembers={members} />}
       </div>

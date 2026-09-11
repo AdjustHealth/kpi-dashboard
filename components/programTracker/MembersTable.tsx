@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Field";
 import { Member } from "@/lib/programTracker/types";
 import { fmtDate, holdEndOf } from "@/lib/programTracker/date";
 import { MemberModal } from "@/components/programTracker/MemberModal";
+import { CoachBadge, TypeBadge, dueStatusTone } from "@/components/programTracker/badges";
 
 const FILTERS = ["All", "OVERDUE", "Due this week", "Upcoming", "On hold"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -20,38 +21,6 @@ const SORT_COLS: { key: SortCol; label: string }[] = [
   { key: "next_due", label: "Next due" },
   { key: "due_status", label: "Due status" },
 ];
-
-const COACH_COLORS: Record<string, string> = {
-  Dean: "#9c27b0",
-  Sam: "#d9690a",
-  Wilson: "#00897b",
-  Michael: "#1565c0",
-  Lachlan: "#558b2f",
-};
-
-function dueStatusTone(status: string | null): "neutral" | "good" | "warning" | "critical" {
-  if (status === "OVERDUE" || status === "Hold overdue") return "critical";
-  if (status === "Due this week" || status === "Hold ending soon") return "warning";
-  if (status === "Upcoming") return "good";
-  return "neutral";
-}
-
-function TypeBadge({ type }: { type: string | null }) {
-  const n = (type ?? "").toLowerCase().replace(/[\s-]/g, "");
-  if (n === "youth")
-    return (
-      <span className="rounded-full border px-2 py-0.5 text-[11px] font-semibold" style={{ color: "#a6e22e", borderColor: "#a6e22e88", backgroundColor: "#a6e22e26", boxShadow: "0 0 8px #a6e22e40" }}>
-        Youth
-      </span>
-    );
-  if (n === "movestrong")
-    return (
-      <span className="rounded-full border px-2 py-0.5 text-[11px] font-semibold" style={{ color: "#34d399", borderColor: "#34d39988", backgroundColor: "#34d39926", boxShadow: "0 0 8px #34d39940" }}>
-        Move Strong
-      </span>
-    );
-  return <span className="text-xs text-muted">{type || "—"}</span>;
-}
 
 export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
   const [members, setMembers] = useState(initialMembers);
@@ -174,18 +143,11 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
             {rows.map((m) => {
               const isHold = m.status === "Hold";
               const cellDate = isHold ? holdEndOf(m) : m.next_due;
-              const coachColor = m.coach ? COACH_COLORS[m.coach] : undefined;
               return (
                 <tr key={m.id} onClick={() => setEditing(m)} className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-raised/60">
                   <td className="px-4 py-3 font-medium text-foreground">{m.name}</td>
                   <td className="px-4 py-3">
-                    {m.coach ? (
-                      <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium" style={{ color: coachColor, borderColor: `${coachColor}55`, backgroundColor: `${coachColor}1a` }}>
-                        {m.coach}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted">—</span>
-                    )}
+                    <CoachBadge coach={m.coach} />
                   </td>
                   <td className="px-4 py-3">
                     <TypeBadge type={m.type} />
