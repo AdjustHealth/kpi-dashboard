@@ -10,7 +10,7 @@ import { NAV, RESTRICTED_NAV, NavGroup } from "@/lib/nav";
 // (including /gym, which now has dashboard/mine/rules siblings one level
 // deeper) must match exactly, or every sibling page would show two nav
 // items active at once.
-const PREFIX_MATCH_HREFS = new Set(["/providers", "/senior", "/admin", "/reviews"]);
+const PREFIX_MATCH_HREFS = new Set(["/providers", "/senior", "/admin", "/reviews", "/assessments"]);
 
 export function isActive(pathname: string, href: string) {
   return PREFIX_MATCH_HREFS.has(href) ? pathname.startsWith(href) : pathname === href;

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
-
-const ASSESSMENT_TOOL_URL = "https://adjust-health-performance-report.vercel.app";
+import { createClient } from "@/lib/supabase/server";
+import { firstNameFromEmail } from "@/lib/userDisplay";
+import { DeleteAssessmentButton } from "@/components/assessmentTool/DeleteAssessmentButton";
 
 const TYPE_LABEL: Record<string, string> = {
   performance: "Performance",
@@ -17,6 +18,13 @@ const FILTERS = [
   { key: "youth1", label: "Youth 1" },
   { key: "youth2", label: "Youth 2" },
   { key: "movestrong", label: "MoveStrong" },
+];
+
+const ASSESSMENT_TYPES = [
+  { key: "performance", type: "performance", tier: null as string | null, name: "Performance" },
+  { key: "youth1", type: "youth", tier: "y1", name: "Youth 1", sub: "Ages 8–12" },
+  { key: "youth2", type: "youth", tier: "y2", name: "Youth 2", sub: "Ages 13–18" },
+  { key: "movestrong", type: "movestrong", tier: null as string | null, name: "MoveStrong" },
 ];
 
 type Row = {
@@ -45,15 +53,22 @@ function scoreTone(score: number | null): "neutral" | "good" | "warning" | "crit
 }
 
 /**
- * Read-only first slice of the Assessment Tool inside the hub — mirrors its
- * own home page list. Each athlete name still links out to the standalone
- * site to view or edit the full multi-step assessment (that form itself
- * isn't ported here yet); this just means you don't have to log into a
- * second app to see what's been done.
+ * The Assessment Tool migrated into this app — reads/writes the same live
+ * Neon database its standalone site uses (see lib/assessmentTool/db.ts), no
+ * data migration. Starting a new assessment or opening a saved one now
+ * launches the actual multi-step clinical form (public/tool.html, embedded
+ * via AssessmentToolFrame) right here instead of on the standalone site.
  */
 export default async function AssessmentsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { filter } = await searchParams;
   const activeFilter = filter || "all";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const clinician = firstNameFromEmail(user?.email);
+  const clinicianParam = clinician ? `&clinician=${encodeURIComponent(clinician)}` : "";
 
   let assessments: Row[] = [];
   let error: string | null = null;
@@ -74,23 +89,45 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader title="Assessments" showWeekSelector={false} />
-      <div className="flex flex-col gap-4 p-8">
+      <div className="flex flex-col gap-6 p-8">
+        <div>
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Start an Assessment</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {ASSESSMENT_TYPES.map((t) => (
+              <Link
+                key={t.key}
+                href={`/assessments/new?type=${t.type}${t.tier ? `&tier=${t.tier}` : ""}${clinicianParam}`}
+                className="flex flex-col gap-1 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40"
+              >
+                <div className="flex items-baseline justify-between">
+                  <span className="font-semibold text-foreground">{t.name}</span>
+                  {t.sub && <span className="text-xs text-muted">{t.sub}</span>}
+                </div>
+                <span className="text-xs font-semibold text-accent">Start →</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
         {error ? (
           <p className="text-sm text-danger">Could not load assessments: {error}</p>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2">
-              {FILTERS.map((f) => (
-                <Link
-                  key={f.key}
-                  href={f.key === "all" ? "/assessments" : `/assessments?filter=${f.key}`}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    activeFilter === f.key ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-surface-raised/60 text-muted hover:text-foreground"
-                  }`}
-                >
-                  {f.label} ({counts[f.key]})
-                </Link>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Saved Assessments</p>
+              <div className="flex flex-wrap gap-2">
+                {FILTERS.map((f) => (
+                  <Link
+                    key={f.key}
+                    href={f.key === "all" ? "/assessments" : `/assessments?filter=${f.key}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      activeFilter === f.key ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-surface-raised/60 text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {f.label} ({counts[f.key]})
+                  </Link>
+                ))}
+              </div>
             </div>
 
             {filtered.length === 0 ? (
@@ -105,13 +142,14 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
                       <th className="px-4 py-3 font-medium">Clinician</th>
                       <th className="px-4 py-3 font-medium">Date</th>
                       <th className="px-4 py-3 font-medium">Overall</th>
+                      <th className="px-4 py-3 font-medium" />
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((a) => (
                       <tr key={a.id} className="border-b border-border last:border-0 hover:bg-surface-raised/60">
                         <td className="px-4 py-3 font-medium text-foreground">
-                          <a href={`${ASSESSMENT_TOOL_URL}/assessment/${a.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
+                          <a href={`/assessments/${a.id}`} className="hover:text-accent">
                             {a.athlete_name}
                           </a>
                         </td>
@@ -123,6 +161,9 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
                         <td className="px-4 py-3 text-muted">{a.assessment_date || "—"}</td>
                         <td className="px-4 py-3">
                           <Badge tone={scoreTone(a.overall_score)}>{a.overall_score != null ? a.overall_score.toFixed(1) : "—"}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <DeleteAssessmentButton id={a.id} athleteName={a.athlete_name} />
                         </td>
                       </tr>
                     ))}

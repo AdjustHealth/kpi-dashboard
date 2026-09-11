@@ -3,20 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/access";
 import { NAV, RESTRICTED_NAV } from "@/lib/nav";
 import { TileIcon } from "@/components/nav/tileIcons";
+import { firstNameFromEmail } from "@/lib/userDisplay";
 
 function greeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-/** "michael@adjust.com.au" -> "Michael" — no display name stored anywhere yet, so this is the friendliest thing available. */
-function firstNameFromEmail(email: string | null | undefined) {
-  if (!email) return null;
-  const local = email.split("@")[0];
-  const first = local.split(/[._-]/)[0];
-  return first ? first[0].toUpperCase() + first.slice(1) : null;
 }
 
 export default async function HomePage() {
