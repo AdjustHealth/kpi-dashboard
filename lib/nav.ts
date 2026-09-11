@@ -32,12 +32,25 @@ const TOOLS_NAV_GROUP: NavGroup = {
       external: true,
     },
     {
-      label: "Assessment Tool",
+      // Same reasoning as the Program Tracker entry above — the list view now
+      // lives at ASSESSMENT_TOOL_GROUP below, so this is only still needed for
+      // actually running a new assessment or editing one already saved.
+      label: "Assessment Tool (New/Edit)",
       href: "https://adjust-health-performance-report.vercel.app/",
-      description: "Performance, Youth and MoveStrong assessments",
+      description: "Run a new assessment or edit an existing one",
       external: true,
     },
   ],
+};
+
+/** Read-only first slice of the Assessment Tool inside the hub — reads the
+ * same live Neon database its own app uses (see lib/assessmentTool/db.ts),
+ * no data migration. Viewing/editing a specific assessment still opens the
+ * standalone site (see TOOLS_NAV_GROUP's Assessment Tool (New/Edit) link);
+ * that multi-step form isn't ported here yet. */
+const ASSESSMENT_TOOL_GROUP: NavGroup = {
+  label: "Assessment Tool",
+  items: [{ label: "Assessments", href: "/assessments", description: "Every saved assessment, filterable by type" }],
 };
 
 /** The Program Tracker migrated into this app, under its member-facing name
@@ -67,6 +80,7 @@ export const RESTRICTED_NAV: NavGroup[] = [
     items: [{ label: "Providers", href: "/providers", description: "Your weekly provider meetings" }],
   },
   ADJUST_GYM_GROUP,
+  ASSESSMENT_TOOL_GROUP,
   TOOLS_NAV_GROUP,
 ];
 
@@ -112,5 +126,6 @@ export const NAV: NavGroup[] = [
     ],
   },
   ADJUST_GYM_GROUP,
+  ASSESSMENT_TOOL_GROUP,
   TOOLS_NAV_GROUP,
 ];
