@@ -23,6 +23,8 @@ const ICONS: Record<string, ReactNode> = {
   "/gym/rules": <><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v3h3M9 11h6M9 15h6" /></>,
   "/gym/dashboard": <path d="M4 19V9m6 10V4m6 15v-7" />,
   "/gym/meetings": <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4m8-4v4M8 14h3m-3 4h6" /></>,
+  "/gym/archive": <><path d="M3 5h18v4H3z" /><path d="M5 9v10h14V9M10 13h4" /></>,
+  "/gym/cancelled": <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6m0-6-6 6" /></>,
   "/assessments": <><path d="M9 4h6a2 2 0 0 1 2 2v14l-5-3-5 3V6a2 2 0 0 1 2-2Z" /><path d="m9.5 11 1.8 1.8L14.5 9" /></>,
   "/senior": <><path d="m9 12 2 2 4-4" /><circle cx="12" cy="12" r="9" /></>,
   "/admin": <><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9 8h6M9 12h6M9 16h4" /></>,
