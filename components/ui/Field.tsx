@@ -30,6 +30,10 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${baseInput} ${props.className ?? ""}`} />;
 }
 
+export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={`${baseInput} ${props.className ?? ""}`} />;
+}
+
 /**
  * Continues a "- " dot-point list onto the next line on Enter, and clears
  * the bullet (ending the list) when Enter is pressed on an already-empty
