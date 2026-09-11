@@ -10,7 +10,7 @@ import { NAV, RESTRICTED_NAV, NavGroup } from "@/lib/nav";
 // (including /gym, which now has dashboard/mine/rules siblings one level
 // deeper) must match exactly, or every sibling page would show two nav
 // items active at once.
-const PREFIX_MATCH_HREFS = new Set(["/providers", "/senior", "/admin", "/reviews"]);
+const PREFIX_MATCH_HREFS = new Set(["/providers", "/senior", "/admin", "/reviews", "/assessments"]);
 
 export function isActive(pathname: string, href: string) {
   return PREFIX_MATCH_HREFS.has(href) ? pathname.startsWith(href) : pathname === href;
@@ -65,14 +65,23 @@ export function Sidebar({ restricted = false }: { restricted?: boolean }) {
               <li key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                    isCurrentGroup ? "text-accent" : "text-accent-secondary/80 hover:text-accent-secondary"
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                    isCurrentGroup ? "text-accent" : "text-muted hover:text-foreground"
                   }`}
                 >
                   {group.label}
-                  <span className={`text-[9px] transition-transform ${isOpen ? "rotate-90" : ""}`} aria-hidden>
-                    ▶
-                  </span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`h-3 w-3 shrink-0 opacity-60 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+                    aria-hidden
+                  >
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
                 </button>
                 {isOpen && (
                   <ul className="mb-1.5 flex flex-col gap-1 pb-1">

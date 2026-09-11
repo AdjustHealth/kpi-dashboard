@@ -13,32 +13,30 @@ export type NavGroup = {
   items: NavItem[];
 };
 
-/** The other Adjust Health tools, still their own separate logins/deployments for
- * now — see everyone regardless of director/restricted access here, since each
- * tool enforces its own access on its own login page. */
+/** Kept as a fallback link to the standalone Assessment Tool site while the
+ * newly-ported internal version (ASSESSMENT_TOOL_GROUP below) gets used for
+ * real — remove once that's confirmed working. */
 const TOOLS_NAV_GROUP: NavGroup = {
   label: "Tools",
   items: [
     {
-      // Same reasoning as the Program Tracker entry above — the list view now
-      // lives at ASSESSMENT_TOOL_GROUP below, so this is only still needed for
-      // actually running a new assessment or editing one already saved.
-      label: "Assessment Tool (New/Edit)",
+      label: "Assessment Tool (standalone, fallback)",
       href: "https://adjust-health-performance-report.vercel.app/",
-      description: "Run a new assessment or edit an existing one",
+      description: "The original site, in case something's missing here",
       external: true,
     },
   ],
 };
 
-/** Read-only first slice of the Assessment Tool inside the hub — reads the
- * same live Neon database its own app uses (see lib/assessmentTool/db.ts),
- * no data migration. Viewing/editing a specific assessment still opens the
- * standalone site (see TOOLS_NAV_GROUP's Assessment Tool (New/Edit) link);
- * that multi-step form isn't ported here yet. */
+/** The Assessment Tool migrated into this app — reads/writes the same live
+ * Neon database its standalone site uses (see lib/assessmentTool/db.ts), no
+ * data migration. Starting a new assessment or opening a saved one now runs
+ * the actual multi-step clinical form (public/tool.html, embedded via
+ * AssessmentToolFrame) right here — same as the standalone site, just
+ * restyled to match the hub. */
 const ASSESSMENT_TOOL_GROUP: NavGroup = {
   label: "Assessment Tool",
-  items: [{ label: "Assessments", href: "/assessments", description: "Every saved assessment, filterable by type" }],
+  items: [{ label: "Assessments", href: "/assessments", description: "Start a new assessment or open a saved one" }],
 };
 
 /** The Program Tracker migrated into this app, under its member-facing name
@@ -108,6 +106,9 @@ export const NAV: NavGroup[] = [
     label: "Team",
     items: [{ label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" }],
   },
+  ADJUST_GYM_GROUP,
+  ASSESSMENT_TOOL_GROUP,
+  TOOLS_NAV_GROUP,
   {
     label: "Configuration",
     items: [
@@ -115,7 +116,4 @@ export const NAV: NavGroup[] = [
       { label: "Settings", href: "/settings", description: "Clinic-wide setup" },
     ],
   },
-  ADJUST_GYM_GROUP,
-  ASSESSMENT_TOOL_GROUP,
-  TOOLS_NAV_GROUP,
 ];

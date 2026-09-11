@@ -13,8 +13,18 @@ export default async function MyListPage() {
   } = await supabase.auth.getUser();
   const coach = coachNameForUser(user?.email);
 
-  const trackerSupabase = createProgramTrackerAdminClient();
-  const { data, error } = coach ? await trackerSupabase.from("members").select("*").eq("coach", coach) : { data: [], error: null };
+  let data: Member[] | null = [];
+  let error: { message: string } | null = null;
+  if (coach) {
+    try {
+      const trackerSupabase = createProgramTrackerAdminClient();
+      const res = await trackerSupabase.from("members").select("*").eq("coach", coach);
+      data = res.data as Member[] | null;
+      error = res.error;
+    } catch (e) {
+      error = { message: e instanceof Error ? e.message : "Unknown error" };
+    }
+  }
 
   const members: Member[] = ((data ?? []) as Member[]).map((m) => ({ ...m, due_status: calcDueStatus(m.next_due, m.status, holdEndOf(m)) }));
 

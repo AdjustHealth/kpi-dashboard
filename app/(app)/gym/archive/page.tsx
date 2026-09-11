@@ -6,8 +6,19 @@ import { ArchiveRow } from "@/lib/programTracker/types";
 
 /** Completed blocks — one row per "✓ Done" click on the Members table, same as the standalone site's Archive tab. */
 export default async function GymArchivePage() {
-  const supabase = createProgramTrackerAdminClient();
-  const { data, error } = await supabase.from("archive").select("*").eq("archive_type", "block_complete").order("archived_at", { ascending: false });
+  let data: ArchiveRow[] | null = null;
+  let error: { message: string } | null = null;
+  try {
+    const supabase = createProgramTrackerAdminClient();
+    const res = await supabase.from("archive").select("*").eq("archive_type", "block_complete").order("archived_at", { ascending: false });
+    data = res.data as ArchiveRow[] | null;
+    error = res.error;
+  } catch (e) {
+    // A thrown/rejected fetch (network hiccup, cold-start timeout) isn't caught by
+    // the { error } shape above — without this the whole page crashes instead of
+    // showing the same "couldn't load" message a normal Postgrest error gets.
+    error = { message: e instanceof Error ? e.message : "Unknown error" };
+  }
 
   return (
     <>
@@ -46,7 +57,7 @@ export default async function GymArchivePage() {
                     <td className="px-4 py-3 text-muted">{r.block_weeks ?? "—"}</td>
                     <td className="px-4 py-3 text-muted">{fmtDate(r.next_due)}</td>
                     <td className="max-w-[220px] truncate px-4 py-3 text-muted">{r.notes || ""}</td>
-                    <td className="px-4 py-3 text-muted">{fmtDate(r.archived_at.split("T")[0])}</td>
+                    <td className="px-4 py-3 text-muted">{fmtDate(r.archived_at?.split("T")[0])}</td>
                   </tr>
                 ))}
               </tbody>

@@ -21,6 +21,8 @@ describe("isActive", () => {
     expect(isActive("/senior/xyz", "/senior")).toBe(true);
     expect(isActive("/admin/xyz", "/admin")).toBe(true);
     expect(isActive("/reviews/xyz", "/reviews")).toBe(true);
+    expect(isActive("/assessments/new", "/assessments")).toBe(true);
+    expect(isActive("/assessments/abc123", "/assessments")).toBe(true);
   });
 
   it("does not match an unrelated page with the same prefix text", () => {
