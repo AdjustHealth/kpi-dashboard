@@ -10,6 +10,17 @@ import { MemberModal } from "@/components/programTracker/MemberModal";
 const FILTERS = ["All", "OVERDUE", "Due this week", "Upcoming", "On hold"] as const;
 type Filter = (typeof FILTERS)[number];
 
+type SortCol = "name" | "coach" | "type" | "status" | "next_due" | "due_status";
+const DUE_STATUS_ORDER: Record<string, number> = { OVERDUE: 0, "Hold overdue": 0, "Due this week": 1, "Hold ending soon": 1, Upcoming: 2, "On hold": 3, "": 4 };
+const SORT_COLS: { key: SortCol; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "coach", label: "Coach" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "next_due", label: "Next due" },
+  { key: "due_status", label: "Due status" },
+];
+
 const COACH_COLORS: Record<string, string> = {
   Dean: "#9c27b0",
   Sam: "#d9690a",
@@ -46,6 +57,16 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
   const [members, setMembers] = useState(initialMembers);
   const [filter, setFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<SortCol>("name");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+
+  function toggleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortCol(col);
+      setSortDir(1);
+    }
+  }
   const [editing, setEditing] = useState<Member | null>(null);
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -72,8 +93,20 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
         if (sl && !`${m.name} ${m.coach ?? ""} ${m.notes ?? ""}`.toLowerCase().includes(sl)) return false;
         return true;
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [members, filter, search]);
+      .sort((a, b) => {
+        if (sortCol === "due_status") {
+          const av = DUE_STATUS_ORDER[a.due_status ?? ""] ?? 4;
+          const bv = DUE_STATUS_ORDER[b.due_status ?? ""] ?? 4;
+          return (av - bv) * sortDir || a.name.localeCompare(b.name);
+        }
+        if (sortCol === "next_due") {
+          const av = a.next_due ?? "";
+          const bv = b.next_due ?? "";
+          return (av < bv ? -1 : av > bv ? 1 : 0) * sortDir;
+        }
+        return (a[sortCol] ?? "").toString().localeCompare((b[sortCol] ?? "").toString()) * sortDir;
+      });
+  }, [members, filter, search, sortCol, sortDir]);
 
   async function refresh() {
     const res = await fetch("/api/program-tracker/members");
@@ -120,12 +153,12 @@ export function MembersTable({ initialMembers }: { initialMembers: Member[] }) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border bg-surface-raised text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Coach</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Next due</th>
-              <th className="px-4 py-3 font-medium">Due status</th>
+              {SORT_COLS.map((c) => (
+                <th key={c.key} className="cursor-pointer select-none px-4 py-3 font-medium hover:text-foreground" onClick={() => toggleSort(c.key)}>
+                  {c.label}
+                  {sortCol === c.key && <span className="ml-1 text-accent">{sortDir === 1 ? "▲" : "▼"}</span>}
+                </th>
+              ))}
               <th className="px-4 py-3 font-medium">Notes</th>
               <th className="px-4 py-3" />
             </tr>
