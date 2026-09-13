@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
 import { fmtDate } from "@/lib/programTracker/date";
 import { ArchiveRow } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 const CANCELLED_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -14,6 +15,7 @@ const CANCELLED_ICON = (
 
 /** Members removed from the tracker — one row per "Remove from tracker" click in the member edit modal, same as the standalone site's Cancelled tab. */
 export default async function GymCancelledPage() {
+  await requireSection("adjust_gym");
   let data: ArchiveRow[] | null = null;
   let error: { message: string } | null = null;
   try {

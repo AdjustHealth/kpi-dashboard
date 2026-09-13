@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { coachNameForUser } from "@/lib/programTracker/coach";
 import { Member } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function MyListPage() {
+  await requireSection("adjust_gym");
   const supabase = await createClient();
   const {
     data: { user },

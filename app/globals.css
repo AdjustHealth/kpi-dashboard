@@ -34,6 +34,18 @@
   --font-display: var(--font-display);
 }
 
+/* Home hub tiles — border colour on hover comes from each tile's business-area
+   colour (set inline as --tile-accent per tile in app/(app)/home/page.tsx), a
+   plain CSS custom property so this needs no client-side JS for a Server
+   Component page. Falls back to the standard accent when a tile has none
+   (Overview, Configuration). */
+.hub-tile {
+  border-color: var(--border);
+}
+.hub-tile:hover {
+  border-color: var(--tile-accent, var(--accent));
+}
+
 .brand-gradient-text {
   background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
   -webkit-background-clip: text;

@@ -6,7 +6,7 @@ import { getClinicHistory, getRoleTargets } from "@/lib/clinicData";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
-import { requireDirector } from "@/lib/auth/access";
+import { requireProviderRole } from "@/lib/auth/access";
 
 export default async function AdminDetailPage({
   params,
@@ -15,7 +15,7 @@ export default async function AdminDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ week?: string }>;
 }) {
-  await requireDirector();
+  await requireProviderRole("admin");
   const { id } = await params;
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();

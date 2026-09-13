@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { requireLogin } from "@/lib/programTracker/auth";
+import { requireSection } from "@/lib/requireLogin";
 import { addWeeks, calcDueStatus, nextMonday } from "@/lib/programTracker/date";
 import { Member } from "@/lib/programTracker/types";
 
 /** Archives the current block, then rolls block_start to next Monday and next_due forward — same as the Program Tracker's own "✓ Done" button. */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 

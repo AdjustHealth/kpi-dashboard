@@ -3,6 +3,7 @@ import { CoachBadge } from "@/components/programTracker/badges";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
 import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member, PROGRAM_TRACKER_COACHES, PROGRAM_TRACKER_PAID_TYPES, PROGRAM_TRACKER_TYPES, normType } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 function KpiIcon({ path }: { path: string }) {
   return (
@@ -22,6 +23,7 @@ const ICON_PATHS = {
 
 /** Mirrors the standalone Program Tracker's own dashboard tab: headline counts, members per coach, workload by coach, and members by type. */
 export default async function GymDashboardPage() {
+  await requireSection("adjust_gym");
   let data: Member[] | null = null;
   let error: { message: string } | null = null;
   try {

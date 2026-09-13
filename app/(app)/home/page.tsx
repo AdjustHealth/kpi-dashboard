@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/access";
-import { NAV, RESTRICTED_NAV } from "@/lib/nav";
+import { buildNav, SECTION_COLORS } from "@/lib/nav";
 import { TileIcon } from "@/components/nav/tileIcons";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 
@@ -17,12 +17,13 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { isDirector } = await getAccessContext();
+  const access = await getAccessContext();
   const name = firstNameFromEmail(user?.email);
 
   // Same data the sidebar renders from, minus the Home link itself (you're on it) —
-  // one source of truth, so a tool added to lib/nav.ts shows up here automatically.
-  const groups = (isDirector ? NAV : RESTRICTED_NAV)
+  // one source of truth, so a tool added to lib/nav.ts shows up here automatically,
+  // and a login only ever sees the exact areas it's been granted.
+  const groups = buildNav(access)
     .map((group) => ({ ...group, items: group.items.filter((item) => item.href !== "/home") }))
     .filter((group) => group.items.length > 0);
 
@@ -39,44 +40,51 @@ export default async function HomePage() {
       </div>
 
       <div className="flex flex-col gap-8">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
-              {group.label}
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.items.map((item) => {
-                const content = (
-                  <>
-                    <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-accent/15 text-accent">
-                      <TileIcon href={item.href} external={item.external} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                        {item.label}
-                        {item.external && <span className="text-xs text-muted">↗</span>}
+        {groups.map((group) => {
+          const color = group.colorKey ? SECTION_COLORS[group.colorKey] : undefined;
+          return (
+            <div key={group.label}>
+              <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+                {color && <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ backgroundColor: color }} aria-hidden />}
+                {group.label}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.items.map((item) => {
+                  const content = (
+                    <>
+                      <div
+                        className="flex h-10 w-10 flex-none items-center justify-center rounded-lg"
+                        style={{ color: color ?? "var(--accent)", backgroundColor: `${color ?? "#a6e22e"}26` }}
+                      >
+                        <TileIcon href={item.href} external={item.external} />
                       </div>
-                      {item.description && (
-                        <p className="mt-0.5 truncate text-xs text-muted">{item.description}</p>
-                      )}
-                    </div>
-                  </>
-                );
-                const className =
-                  "group flex items-center gap-4 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent/50 hover:bg-surface-raised";
-                return item.external ? (
-                  <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
-                    {content}
-                  </a>
-                ) : (
-                  <Link key={item.href} href={item.href} className={className}>
-                    {content}
-                  </Link>
-                );
-              })}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                          {item.label}
+                          {item.external && <span className="text-xs text-muted">↗</span>}
+                        </div>
+                        {item.description && (
+                          <p className="mt-0.5 truncate text-xs text-muted">{item.description}</p>
+                        )}
+                      </div>
+                    </>
+                  );
+                  const className = "hub-tile group flex items-center gap-4 rounded-xl border bg-surface p-4 transition-colors hover:bg-surface-raised";
+                  const style = { "--tile-accent": color ? `${color}80` : undefined } as React.CSSProperties;
+                  return item.external ? (
+                    <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+                      {content}
+                    </a>
+                  ) : (
+                    <Link key={item.href} href={item.href} className={className} style={style}>
+                      {content}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { NAV, RESTRICTED_NAV, NavGroup } from "@/lib/nav";
+import { NavGroup, SECTION_COLORS } from "@/lib/nav";
 
 // Only these have their own /[id] detail sub-route, so only these should
 // treat a longer pathname as "still this nav item" — everything else
@@ -29,12 +29,11 @@ function groupIsActive(pathname: string, group: NavGroup) {
  * sync it, and stays open once you've clicked it open even after you
  * navigate elsewhere.
  */
-export function Sidebar({ restricted = false }: { restricted?: boolean }) {
+export function Sidebar({ nav }: { nav: NavGroup[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const week = searchParams.get("week");
   const withWeek = (href: string) => (week ? `${href}?week=${week}` : href);
-  const nav = restricted ? RESTRICTED_NAV : NAV;
 
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
@@ -61,15 +60,16 @@ export function Sidebar({ restricted = false }: { restricted?: boolean }) {
           {nav.map((group) => {
             const isCurrentGroup = groupIsActive(pathname, group);
             const isOpen = isCurrentGroup || expanded.has(group.label);
+            const color = group.colorKey ? SECTION_COLORS[group.colorKey] : undefined;
             return (
               <li key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-                    isCurrentGroup ? "text-accent" : "text-muted hover:text-foreground"
-                  }`}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
+                  style={{ color: isCurrentGroup ? (color ?? "var(--accent)") : "var(--muted)" }}
                 >
-                  {group.label}
+                  {color && <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ backgroundColor: color }} aria-hidden />}
+                  <span className="flex-1 truncate">{group.label}</span>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -106,11 +106,17 @@ export function Sidebar({ restricted = false }: { restricted?: boolean }) {
                         <li key={item.href}>
                           <Link
                             href={withWeek(item.href)}
-                            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                            style={
                               active
-                                ? "border-accent/40 bg-accent/15 font-semibold text-accent shadow-sm"
-                                : "border-transparent bg-surface-raised/60 font-medium text-foreground hover:border-border hover:bg-surface-raised"
-                            }`}
+                                ? {
+                                    borderColor: `${color ?? "#a6e22e"}66`,
+                                    backgroundColor: `${color ?? "#a6e22e"}22`,
+                                    color: color ?? "var(--accent)",
+                                    fontWeight: 600,
+                                  }
+                                : { borderColor: "transparent", backgroundColor: "var(--surface-raised)", opacity: 0.85, color: "var(--foreground)" }
+                            }
                           >
                             {item.label}
                           </Link>

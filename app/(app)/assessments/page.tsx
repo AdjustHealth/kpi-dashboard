@@ -6,6 +6,7 @@ import { assessmentToolSql } from "@/lib/assessmentTool/db";
 import { createClient } from "@/lib/supabase/server";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 import { DeleteAssessmentButton } from "@/components/assessmentTool/DeleteAssessmentButton";
+import { requireSection } from "@/lib/auth/access";
 
 const TYPE_ICON: Record<string, string> = {
   performance: "M13 2 3 14h7l-1 8 10-12h-7l1-8Z",
@@ -68,6 +69,7 @@ function scoreTone(score: number | null): "neutral" | "good" | "warning" | "crit
  * via AssessmentToolFrame) right here instead of on the standalone site.
  */
 export default async function AssessmentsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+  await requireSection("assessment_tool");
   const { filter } = await searchParams;
   const activeFilter = filter || "all";
 

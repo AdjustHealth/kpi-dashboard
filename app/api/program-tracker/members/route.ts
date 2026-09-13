@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { requireLogin } from "@/lib/programTracker/auth";
+import { requireSection } from "@/lib/requireLogin";
 import { addWeeks, calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member, MemberInput } from "@/lib/programTracker/types";
 
 export async function GET(request: NextRequest) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
 
   const coach = request.nextUrl.searchParams.get("coach");
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
 
   const body = (await request.json()) as MemberInput;

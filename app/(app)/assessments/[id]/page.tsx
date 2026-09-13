@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
 import { AssessmentToolFrame } from "@/components/assessmentTool/AssessmentToolFrame";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireSection("assessment_tool");
   const { id } = await params;
 
   const sql = assessmentToolSql();

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { requireLogin } from "@/lib/programTracker/auth";
+import { requireSection } from "@/lib/requireLogin";
 
 /** Merges one agenda item's text into meetings.notes atomically via merge_meeting_note — the same Postgres function added to fix the standalone site's identical save race, so two people saving different boxes here can't clobber each other either. */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 

@@ -6,10 +6,10 @@ import { ReviewDetailView } from "@/components/reviews/ReviewDetailView";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 import { getEffectiveTargets } from "@/lib/defaultTargets";
 import { reviewCadenceMonths } from "@/lib/performanceReview";
-import { requireDirector } from "@/lib/auth/access";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function ReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireDirector();
+  await requireSection("team");
   const { id } = await params;
   const { review, provider } = await getPerformanceReview(id);
   if (!review || !provider) notFound();

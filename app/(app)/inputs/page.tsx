@@ -3,14 +3,14 @@ import { WeeklyInputForm } from "@/components/inputs/WeeklyInputForm";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding } from "@/lib/week";
 import { Provider, ProviderWeekly, WeeklyKpis } from "@/lib/types";
-import { requireDirector } from "@/lib/auth/access";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function InputsPage({
   searchParams,
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
-  await requireDirector();
+  await requireSection("data_entry");
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 

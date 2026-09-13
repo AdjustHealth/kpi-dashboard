@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { PROGRAMMING_RULES, isChainSection } from "@/lib/programTracker/rules";
+import { requireSection } from "@/lib/auth/access";
 
-export default function RulesPage() {
+export default async function RulesPage() {
+  await requireSection("adjust_gym");
   return (
     <>
       <PageHeader title="Programming Rules" showWeekSelector={false} />
