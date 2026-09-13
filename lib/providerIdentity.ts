@@ -14,14 +14,20 @@ import { WeekMetrics } from "@/components/provider/PerformanceTable";
  * person here) just because "Samantha".startsWith("Sam"). Uses the admin
  * client since a practitioner with no Meetings grant can't otherwise read
  * any providers row at all, including their own — see lib/supabase/admin.ts.
+ *
+ * Returns the query error alongside the result rather than swallowing it
+ * into "no match found" — a bad/stale SUPABASE_SERVICE_ROLE_KEY or an RLS
+ * surprise would otherwise look identical to "this person genuinely isn't
+ * a provider", which is a much harder thing to debug from a support message.
  */
-export async function myProvider(email: string | null | undefined): Promise<Provider | null> {
-  if (!email) return null;
+export async function myProvider(email: string | null | undefined): Promise<{ provider: Provider | null; error: string | null }> {
+  if (!email) return { provider: null, error: null };
   const local = email.split("@")[0].split(/[._-]/)[0].toLowerCase();
   const supabase = createAdminClient();
-  const { data } = await supabase.from("providers").select("*").eq("active", true);
+  const { data, error } = await supabase.from("providers").select("*").eq("active", true);
+  if (error) return { provider: null, error: error.message };
   const providers = (data ?? []) as Provider[];
-  return providers.find((p) => p.name.split(" ")[0].toLowerCase() === local) ?? null;
+  return { provider: providers.find((p) => p.name.split(" ")[0].toLowerCase() === local) ?? null, error: null };
 }
 
 /**
@@ -34,17 +40,21 @@ export async function myProvider(email: string | null | undefined): Promise<Prov
  * providerData.ts so that file's own unit tests (which import its pure
  * retentionPct() at module load) never transitively pull in "server-only".
  */
-export async function getMyProviderHistory(providerId: string, week: string, historyWeeks = 12): Promise<WeekMetrics[]> {
+export async function getMyProviderHistory(providerId: string, week: string, historyWeeks = 12): Promise<{ history: WeekMetrics[]; error: string | null }> {
   const supabase = createAdminClient();
   const weeks = recentWeeks(week, historyWeeks);
 
-  const { data } = await supabase.from("provider_weekly").select("*").eq("provider_id", providerId).in("week_ending", weeks);
+  const { data, error } = await supabase.from("provider_weekly").select("*").eq("provider_id", providerId).in("week_ending", weeks);
+  if (error) return { history: [], error: error.message };
   const rows = (data ?? []) as ProviderWeekly[];
   const rowsByWeek = new Map(rows.map((r) => [r.week_ending, r]));
 
-  return weeks.map((w) => ({
-    week_ending: w,
-    metrics: rowsByWeek.get(w)?.metrics ?? {},
-    kpas: rowsByWeek.get(w)?.kpas ?? {},
-  }));
+  return {
+    history: weeks.map((w) => ({
+      week_ending: w,
+      metrics: rowsByWeek.get(w)?.metrics ?? {},
+      kpas: rowsByWeek.get(w)?.kpas ?? {},
+    })),
+    error: null,
+  };
 }
