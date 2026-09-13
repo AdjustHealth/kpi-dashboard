@@ -21,6 +21,12 @@ describe("buildNav", () => {
     expect(labels(nav)).toEqual(["Overview"]);
   });
 
+  it("Overview always has Home and My Dashboard, regardless of grants", () => {
+    const nav = buildNav(access());
+    const overview = nav.find((g) => g.label === "Overview")!;
+    expect(overview.items.map((i) => i.href)).toEqual(["/home", "/me"]);
+  });
+
   it("never shows Configuration to a non-director, no matter what sections are granted", () => {
     const nav = buildNav(access({ allowedSections: ["data_entry", "clinic_reports", "meetings", "team", "adjust_gym", "assessment_tool"] }));
     expect(labels(nav)).not.toContain("Configuration");
@@ -52,7 +58,7 @@ describe("buildNav", () => {
     const nav = buildNav(access({ isDirector: true }));
     const overview = nav.find((g) => g.label === "Overview")!;
     const clinicReports = nav.find((g) => g.label === "Clinic Reports")!;
-    expect(overview.items.map((i) => i.href)).toEqual(["/home"]);
+    expect(overview.items.map((i) => i.href)).not.toContain("/dashboard");
     expect(clinicReports.items.map((i) => i.href)).toContain("/dashboard");
   });
 });
