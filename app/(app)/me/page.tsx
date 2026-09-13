@@ -15,7 +15,8 @@ import { Card } from "@/components/ui/Card";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 
-export default async function MyDashboardPage() {
+export default async function MyDashboardPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
+  const { week: weekParam } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,7 +52,7 @@ export default async function MyDashboardPage() {
     );
   }
 
-  const week = defaultWeekEnding();
+  const week = weekParam ?? defaultWeekEnding();
   let history: Awaited<ReturnType<typeof getMyProviderHistory>>["history"] = [];
   let statsError: string | null = null;
   let occupancyTarget: number | null = null;
@@ -93,7 +94,7 @@ export default async function MyDashboardPage() {
 
   return (
     <>
-      <PageHeader title="My Dashboard" subtitle={provider ? ROLE_LABELS[provider.role] : undefined} showWeekSelector={false} />
+      <PageHeader title="My Dashboard" subtitle={provider ? ROLE_LABELS[provider.role] : undefined} />
       <div className="flex flex-col gap-6 p-8">
         {provider &&
           (statsError ? (
@@ -106,7 +107,7 @@ export default async function MyDashboardPage() {
             </>
           ))}
 
-        {provider && <MyCancellationsSection />}
+        {provider && <MyCancellationsSection key={week} week={week} />}
 
         {gymError && <p className="text-sm text-danger">Could not load your coaching load: {gymError}</p>}
         {gymCounts && (

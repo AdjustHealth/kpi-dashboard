@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { CancellationsTable, CancellationEventRow } from "@/components/clinic/CancellationsTable";
 import { MyFollowUpsCard } from "@/components/me/MyFollowUpsCard";
 import { FollowUpRow } from "@/lib/providerIdentity";
+import { formatWeekLabel } from "@/lib/week";
 
 /**
  * Fetches this week's cancellations/follow-ups client-side, after the rest
@@ -13,7 +14,7 @@ import { FollowUpRow } from "@/lib/providerIdentity";
  * can never take the whole page down with it (stats/goals/coaching load all
  * come from separate queries that shouldn't depend on this one succeeding).
  */
-export function MyCancellationsSection() {
+export function MyCancellationsSection({ week }: { week: string }) {
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "error"; message: string }
@@ -22,7 +23,7 @@ export function MyCancellationsSection() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/my-week-events")
+    fetch(`/api/my-week-events?week=${week}`)
       .then(async (res) => {
         const body = await res.json();
         if (cancelled) return;
@@ -38,11 +39,13 @@ export function MyCancellationsSection() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [week]);
+
+  const weekLabel = `Week Ending ${formatWeekLabel(week)}`;
 
   if (state.status === "loading") {
     return (
-      <Card title="This Week's Cancellations">
+      <Card title={`Cancellations — ${weekLabel}`}>
         <p className="text-sm text-muted">Loading…</p>
       </Card>
     );
@@ -54,7 +57,7 @@ export function MyCancellationsSection() {
 
   return (
     <>
-      <Card title={`This Week's Cancellations${state.cancellations.length > 0 ? ` (${state.cancellations.length})` : ""}`}>
+      <Card title={`Cancellations — ${weekLabel}${state.cancellations.length > 0 ? ` (${state.cancellations.length})` : ""}`}>
         {state.cancellations.length === 0 ? (
           <p className="text-sm text-muted">No cancellations or DNAs of yours this week.</p>
         ) : (

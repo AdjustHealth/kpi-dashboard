@@ -12,7 +12,7 @@ import { defaultWeekEnding } from "@/lib/week";
  * one extra pair of admin-client queries doesn't add to the concurrent load
  * on the same request that's already fetching provider history/targets.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,7 +23,8 @@ export async function GET() {
   if (providerError) return NextResponse.json({ error: providerError }, { status: 500 });
   if (!provider) return NextResponse.json({ cancellations: [], followUps: [] });
 
-  const week = defaultWeekEnding();
+  const weekParam = request.nextUrl.searchParams.get("week");
+  const week = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? weekParam : defaultWeekEnding();
   const [cancellationsResult, followUpsResult] = await Promise.all([
     getMyWeekCancellations(provider.name, week),
     getMyWeekFollowUps(provider.name, week),
