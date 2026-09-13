@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recentWeeks } from "@/lib/week";
 import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
+import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
 
 /**
  * There's no stored mapping from a kpi-dashboard login to a providers row
@@ -57,4 +58,59 @@ export async function getMyProviderHistory(providerId: string, week: string, his
     })),
     error: null,
   };
+}
+
+export interface FollowUpRow {
+  id: string;
+  client: string;
+  last_booking_date: string | null;
+  booking_type: string | null;
+  case_name: string | null;
+  dealt_with?: boolean;
+}
+
+/**
+ * A practitioner's own cancellations/DNAs for one week, scoped strictly to
+ * that week_ending — deliberately NOT the cross-week "however long ago they
+ * cancelled" definition getNotRebookedClients (lib/clinicData.ts) uses for
+ * the director's Unretained meeting list. My Dashboard's own cancellations
+ * tab mirrors the director's real weekly Cancellations spreadsheet
+ * workflow instead: each week is its own self-contained list that never
+ * carries a row into the next one. Uses the admin client for the same
+ * reason myProvider()/getMyProviderHistory() do above — cancellation_events
+ * read access is scoped to Meetings provider-role access (migration
+ * 0029_scoped_staff_access.sql), which a practitioner with only Adjust
+ * Gym/Assessment Tool grants doesn't have, even for their own rows.
+ */
+export async function getMyWeekCancellations(providerName: string, week: string): Promise<{ rows: CancellationEventRow[]; error: string | null }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("cancellation_events")
+    .select("*")
+    .eq("provider", providerName)
+    .eq("week_ending", week)
+    .order("appointment_date", { ascending: true });
+  if (error) return { rows: [], error: error.message };
+  return { rows: (data ?? []) as CancellationEventRow[], error: null };
+}
+
+/**
+ * A practitioner's own "Last Attendances" follow-ups for one week — clients
+ * who attended a real appointment (no cancellation at all) and simply
+ * haven't booked again, same week-scoping reasoning as
+ * getMyWeekCancellations above. no_future_booking_events has always
+ * allowed any authenticated read (no Meetings-role restriction was ever
+ * added to it), but the admin client is used here too for one consistent
+ * pattern across both of My Dashboard's own weekly lists.
+ */
+export async function getMyWeekFollowUps(providerName: string, week: string): Promise<{ rows: FollowUpRow[]; error: string | null }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("no_future_booking_events")
+    .select("*")
+    .eq("provider", providerName)
+    .eq("week_ending", week)
+    .order("last_booking_date", { ascending: false });
+  if (error) return { rows: [], error: error.message };
+  return { rows: (data ?? []) as FollowUpRow[], error: null };
 }

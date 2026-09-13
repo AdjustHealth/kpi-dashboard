@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { createClient } from "@/lib/supabase/server";
-import { myProvider, getMyProviderHistory } from "@/lib/providerIdentity";
+import { myProvider, getMyProviderHistory, getMyWeekCancellations, getMyWeekFollowUps } from "@/lib/providerIdentity";
 import { getRoleTargets } from "@/lib/clinicData";
 import { coachNameForUser } from "@/lib/programTracker/coach";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
@@ -8,7 +8,9 @@ import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member } from "@/lib/programTracker/types";
 import { MyStatsCharts } from "@/components/me/MyStatsCharts";
 import { MyGoalsCard } from "@/components/me/MyGoalsCard";
+import { MyFollowUpsCard } from "@/components/me/MyFollowUpsCard";
 import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
+import { CancellationsTable } from "@/components/clinic/CancellationsTable";
 import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { Card } from "@/components/ui/Card";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
@@ -55,13 +57,23 @@ export default async function MyDashboardPage() {
   let statsError: string | null = null;
   let occupancyTarget: number | null = null;
   let newPatientNames: string[] = [];
+  let cancellations: Awaited<ReturnType<typeof getMyWeekCancellations>>["rows"] = [];
+  let cancellationsError: string | null = null;
+  let followUps: Awaited<ReturnType<typeof getMyWeekFollowUps>>["rows"] = [];
+  let followUpsError: string | null = null;
   if (provider) {
-    const [historyResult, roleTargets] = await Promise.all([
+    const [historyResult, roleTargets, cancellationsResult, followUpsResult] = await Promise.all([
       getMyProviderHistory(provider.id, week, trackingHistoryWeeks(week)),
       getRoleTargets(),
+      getMyWeekCancellations(provider.name, week),
+      getMyWeekFollowUps(provider.name, week),
     ]);
     history = historyResult.history;
     statsError = historyResult.error;
+    cancellations = cancellationsResult.rows;
+    cancellationsError = cancellationsResult.error;
+    followUps = followUpsResult.rows;
+    followUpsError = followUpsResult.error;
     const effectiveTargets = { ...(roleTargets[provider.role] ?? {}), ...(provider.targets ?? {}) };
     occupancyTarget = typeof effectiveTargets.occupancy_pct === "number" ? effectiveTargets.occupancy_pct : null;
     const thisWeekNames = history.find((h) => h.week_ending === week)?.metrics.new_patient_names;
@@ -100,6 +112,27 @@ export default async function MyDashboardPage() {
               <MyGoalsCard goals={provider.goals ?? []} />
             </>
           ))}
+
+        {provider && (
+          <>
+            {cancellationsError ? (
+              <p className="text-sm text-danger">Could not load your cancellations: {cancellationsError}</p>
+            ) : (
+              <Card title={`This Week's Cancellations${cancellations.length > 0 ? ` (${cancellations.length})` : ""}`}>
+                {cancellations.length === 0 ? (
+                  <p className="text-sm text-muted">No cancellations or DNAs of yours this week.</p>
+                ) : (
+                  <CancellationsTable rows={cancellations} hideProvider showDealtWithToggle />
+                )}
+              </Card>
+            )}
+            {followUpsError ? (
+              <p className="text-sm text-danger">Could not load your follow-ups: {followUpsError}</p>
+            ) : (
+              <MyFollowUpsCard rows={followUps} />
+            )}
+          </>
+        )}
 
         {gymError && <p className="text-sm text-danger">Could not load your coaching load: {gymError}</p>}
         {gymCounts && (

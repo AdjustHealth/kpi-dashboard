@@ -19,6 +19,8 @@ export interface CancellationEventRow {
   flagged_for_discussion?: boolean;
   discussion_note?: string | null;
   not_rebooked_resolved?: boolean;
+  /** A practitioner's own persistent "I've dealt with this" tick on their My Dashboard cancellations tab — unlike not_rebooked_resolved, ticking this never removes the row from view (see showDealtWithToggle below). */
+  dealt_with?: boolean;
 }
 
 type SortKey = "appointment_date" | "client" | "provider" | "status" | "next_booking" | "modified_user";
@@ -44,6 +46,7 @@ export function CancellationsTable({
   hideHandledBy,
   hideProvider,
   showResolveAction,
+  showDealtWithToggle,
 }: {
   rows: CancellationEventRow[];
   /** Omit the "Handled By" column — every row already shares the same value on a single admin's own page. */
@@ -52,6 +55,8 @@ export function CancellationsTable({
   hideProvider?: boolean;
   /** Show a "Dealt With" button that dismisses a row (sets not_rebooked_resolved) — only meaningful on the Unretained list, not the general Cancellations tab. Also switches the Status badge to a single unified "Unretained" label instead of the differing source statuses. */
   showResolveAction?: boolean;
+  /** Show a persistent "Dealt with" tick (sets dealt_with via /api/my-week-events) — for a practitioner's own My Dashboard cancellations tab. Unlike showResolveAction, ticking this never removes the row: it just marks it done (struck through) for the rest of the week, since the whole point is that nothing silently disappears from the weekly list. */
+  showDealtWithToggle?: boolean;
 }) {
   const COLUMNS = ALL_COLUMNS.filter(
     (c) => !(hideHandledBy && c.key === "modified_user") && !(hideProvider && c.key === "provider")
@@ -99,6 +104,20 @@ export function CancellationsTable({
     if (!res.ok) {
       // Revert on failure — put it back so it isn't silently lost.
       setLocalRows((prev) => [...prev, row]);
+    }
+  }
+
+  async function toggleDealtWith(row: CancellationEventRow) {
+    const next = !row.dealt_with;
+    setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, dealt_with: next } : r)));
+    const res = await fetch("/api/my-week-events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "cancellation", id: row.id, dealt_with: next }),
+    });
+    if (!res.ok) {
+      // Revert on failure.
+      setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, dealt_with: !next } : r)));
     }
   }
 
@@ -151,6 +170,7 @@ export function CancellationsTable({
             <th className="py-2 px-3 font-medium">Note</th>
             <th className="py-2 px-3 font-medium">Meeting Note</th>
             {showResolveAction && <th className="py-2 px-3 font-medium" />}
+            {showDealtWithToggle && <th className="py-2 px-3 text-center font-medium">Dealt With</th>}
           </tr>
         </thead>
         <tbody>
@@ -168,6 +188,7 @@ export function CancellationsTable({
                   ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 8%, transparent)" }
                   : {}),
               ...(row.flagged_for_discussion ? { boxShadow: "inset 3px 0 0 var(--color-warning)" } : {}),
+              ...(showDealtWithToggle && row.dealt_with ? { opacity: 0.5 } : {}),
             };
             return (
             <tr key={row.id} className="border-b border-border/60 last:border-0 align-top" style={rowStyle}>
@@ -185,7 +206,12 @@ export function CancellationsTable({
               <td className="py-2 pr-3 pl-0 whitespace-nowrap text-muted">
                 {row.appointment_date ? formatWeekLabel(row.appointment_date) : "—"}
               </td>
-              <td className="py-2 px-3 whitespace-nowrap text-foreground">{row.client}</td>
+              <td
+                className="py-2 px-3 whitespace-nowrap text-foreground"
+                style={showDealtWithToggle && row.dealt_with ? { textDecoration: "line-through" } : undefined}
+              >
+                {row.client}
+              </td>
               {!hideProvider && (
                 <td className="py-2 px-3 whitespace-nowrap text-muted">{row.provider ?? "—"}</td>
               )}
@@ -224,6 +250,23 @@ export function CancellationsTable({
                   className="w-full resize-none rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground outline-none placeholder:text-muted focus:border-accent transition-colors"
                 />
               </td>
+              {showDealtWithToggle && (
+                <td className="py-2 px-3 text-center whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => toggleDealtWith(row)}
+                    title={row.dealt_with ? "Mark as not yet dealt with" : "Mark as dealt with — stays visible for the rest of the week"}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-colors"
+                    style={
+                      row.dealt_with
+                        ? { borderColor: "var(--color-success)", color: "var(--color-success)", backgroundColor: "color-mix(in srgb, var(--color-success) 18%, transparent)" }
+                        : { borderColor: "var(--color-border)", color: "var(--color-muted)" }
+                    }
+                  >
+                    ✓
+                  </button>
+                </td>
+              )}
               {showResolveAction && (
                 <td className="py-2 px-3 whitespace-nowrap">
                   <button
