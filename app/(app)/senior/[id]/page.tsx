@@ -5,7 +5,7 @@ import { getProviderDetailData } from "@/lib/providerData";
 import { getClinicHistory, getRoleTargets, getNotRebookedClients, getDropOutRateHistory } from "@/lib/clinicData";
 import { createClient } from "@/lib/supabase/server";
 import { defaultWeekEnding, weeksBetween, TRACKING_START_WEEK_ENDING } from "@/lib/week";
-import { requireDirector } from "@/lib/auth/access";
+import { requireProviderRole } from "@/lib/auth/access";
 
 export default async function SeniorPhysioPage({
   params,
@@ -14,7 +14,7 @@ export default async function SeniorPhysioPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ week?: string }>;
 }) {
-  await requireDirector();
+  await requireProviderRole("senior_physio");
   const { id } = await params;
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();

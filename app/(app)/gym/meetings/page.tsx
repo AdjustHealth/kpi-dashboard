@@ -2,8 +2,10 @@ import { PageHeader } from "@/components/nav/PageHeader";
 import { MeetingNotes } from "@/components/programTracker/MeetingNotes";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
 import { Meeting } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function MeetingsPage() {
+  await requireSection("adjust_gym");
   let data: Meeting[] | null = null;
   let error: { message: string } | null = null;
   try {

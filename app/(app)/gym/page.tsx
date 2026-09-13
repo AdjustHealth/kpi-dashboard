@@ -3,8 +3,10 @@ import { MembersTable } from "@/components/programTracker/MembersTable";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
 import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 export default async function GymAllMembersPage() {
+  await requireSection("adjust_gym");
   let data: Member[] | null = null;
   let error: { message: string } | null = null;
   try {

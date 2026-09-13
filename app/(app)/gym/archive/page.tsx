@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
 import { fmtDate } from "@/lib/programTracker/date";
 import { ArchiveRow } from "@/lib/programTracker/types";
+import { requireSection } from "@/lib/auth/access";
 
 const ARCHIVE_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -14,6 +15,7 @@ const ARCHIVE_ICON = (
 
 /** Completed blocks — one row per "✓ Done" click on the Members table, same as the standalone site's Archive tab. */
 export default async function GymArchivePage() {
+  await requireSection("adjust_gym");
   let data: ArchiveRow[] | null = null;
   let error: { message: string } | null = null;
   try {

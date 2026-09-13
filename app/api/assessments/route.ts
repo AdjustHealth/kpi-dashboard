@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
-import { requireLogin } from "@/lib/requireLogin";
+import { requireSection } from "@/lib/requireLogin";
 import type { AssessmentSummary } from "@/lib/assessmentTool/types";
 
 export async function POST(request: NextRequest) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("assessment_tool");
   if (unauthorized) return unauthorized;
 
   const { formData, summary } = (await request.json()) as {

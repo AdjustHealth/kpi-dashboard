@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
-import { requireLogin } from "@/lib/requireLogin";
+import { requireSection } from "@/lib/requireLogin";
 import type { AssessmentSummary } from "@/lib/assessmentTool/types";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("assessment_tool");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 
@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("assessment_tool");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 

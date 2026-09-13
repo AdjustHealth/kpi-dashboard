@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { requireLogin } from "@/lib/programTracker/auth";
+import { requireSection } from "@/lib/requireLogin";
 import { addWeeks, calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { MemberInput } from "@/lib/programTracker/types";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 

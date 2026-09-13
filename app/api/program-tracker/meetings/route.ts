@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { requireLogin } from "@/lib/programTracker/auth";
+import { requireSection } from "@/lib/requireLogin";
 import { thisWednesday } from "@/lib/programTracker/date";
 
 export async function GET() {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
 
   const supabase = createProgramTrackerAdminClient();
@@ -16,7 +16,7 @@ export async function GET() {
 
 /** Creates this week's meeting (Wednesday) if it doesn't already exist — same one-per-week rule as the standalone site. */
 export async function POST() {
-  const unauthorized = await requireLogin();
+  const unauthorized = await requireSection("adjust_gym");
   if (unauthorized) return unauthorized;
 
   const wed = thisWednesday();
