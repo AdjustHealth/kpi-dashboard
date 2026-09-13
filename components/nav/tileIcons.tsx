@@ -12,6 +12,7 @@ const ICONS: Record<string, ReactNode> = {
     <path d="M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
   ),
   "/dashboard": <path d="M4 19V9m6 10V4m6 15v-7" />,
+  "/me": <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3 3-5 7-5s7 2 7 5" /><path d="M15 14v4m2-2h-4" /></>,
   "/inputs": <path d="M12 4v12m0 0-4-4m4 4 4-4M4 19h16" />,
   "/clinic/revenue": <path d="M3 17 9 11l4 4 8-8M21 7h-6v6" />,
   "/clinic/health": <path d="M20.8 8.6c0 4.4-8.8 10.4-8.8 10.4S3.2 13 3.2 8.6a4.6 4.6 0 0 1 8.8-1.8 4.6 4.6 0 0 1 8.8 1.8Z" />,

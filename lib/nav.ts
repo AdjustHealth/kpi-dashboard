@@ -126,7 +126,13 @@ export function buildNav(access: AccessContext): NavGroup[] {
   const groups: NavGroup[] = [
     {
       label: "Overview",
-      items: [{ label: "Home", href: "/home", description: "Your Adjust Hub" }],
+      items: [
+        { label: "Home", href: "/home", description: "Your Adjust Hub" },
+        // Unconditional — this is identity-scoped (it resolves the login's
+        // own provider/coach record), not gated by a grantable section, so
+        // it shows for absolutely everyone the same way Home does.
+        { label: "My Dashboard", href: "/me", description: "Your own stats, goals, and coaching load" },
+      ],
     },
   ];
 
