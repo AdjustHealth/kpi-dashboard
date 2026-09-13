@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Section } from "@/lib/auth/access";
 
 /**
  * One icon per nav destination, keyed by href, for the /home hub tiles.
@@ -51,6 +52,36 @@ export function TileIcon({ href, external }: { href: string; external?: boolean 
   const path = ICONS[href] ?? (external ? EXTERNAL_TOOL_ICON : FALLBACK_ICON);
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      {path}
+    </svg>
+  );
+}
+
+/** One representative icon per business area — reuses the same paths as
+ * that area's own first page, so the Sidebar's group icon and the Home
+ * hub's tile icon for the same area always match. */
+const SECTION_ICONS: Record<Section, ReactNode> = {
+  data_entry: ICONS["/inputs"],
+  clinic_reports: ICONS["/dashboard"],
+  meetings: ICONS["/providers"],
+  team: ICONS["/reviews"],
+  adjust_gym: ICONS["/gym"],
+  assessment_tool: ICONS["/assessments"],
+};
+
+export function SectionIcon({
+  section,
+  fallbackHref = "/home",
+  className = "h-3.5 w-3.5",
+}: {
+  section?: Section;
+  /** Icon to fall back to for the two groups with no business-area colour (Overview, Configuration). */
+  fallbackHref?: string;
+  className?: string;
+}) {
+  const path = section ? SECTION_ICONS[section] : (ICONS[fallbackHref] ?? ICONS["/home"]);
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}>
       {path}
     </svg>
   );
