@@ -8,7 +8,9 @@ import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
 import { Member } from "@/lib/programTracker/types";
 import { MyStatsCharts } from "@/components/me/MyStatsCharts";
 import { MyGoalsCard } from "@/components/me/MyGoalsCard";
-import { StatTile } from "@/components/ui/StatTile";
+import { MyCancellationsSection } from "@/components/me/MyCancellationsSection";
+import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
+import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { Card } from "@/components/ui/Card";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
@@ -53,6 +55,7 @@ export default async function MyDashboardPage() {
   let history: Awaited<ReturnType<typeof getMyProviderHistory>>["history"] = [];
   let statsError: string | null = null;
   let occupancyTarget: number | null = null;
+  let newPatientNames: string[] = [];
   if (provider) {
     const [historyResult, roleTargets] = await Promise.all([
       getMyProviderHistory(provider.id, week, trackingHistoryWeeks(week)),
@@ -62,6 +65,8 @@ export default async function MyDashboardPage() {
     statsError = historyResult.error;
     const effectiveTargets = { ...(roleTargets[provider.role] ?? {}), ...(provider.targets ?? {}) };
     occupancyTarget = typeof effectiveTargets.occupancy_pct === "number" ? effectiveTargets.occupancy_pct : null;
+    const thisWeekNames = history.find((h) => h.week_ending === week)?.metrics.new_patient_names;
+    newPatientNames = Array.isArray(thisWeekNames) ? (thisWeekNames as string[]) : [];
   }
 
   let gymCounts: { active: number; onHold: number; overdue: number; dueThisWeek: number } | null = null;
@@ -92,18 +97,21 @@ export default async function MyDashboardPage() {
           ) : (
             <>
               <MyStatsCharts history={history} occupancyTarget={occupancyTarget} />
+              <NewPatientsCard names={newPatientNames} />
               <MyGoalsCard goals={provider.goals ?? []} />
             </>
           ))}
+
+        {provider && <MyCancellationsSection />}
 
         {gymError && <p className="text-sm text-danger">Could not load your coaching load: {gymError}</p>}
         {gymCounts && (
           <Card title="Adjust Gym — Your Coaching Load">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatTile label="Active" value={String(gymCounts.active)} />
-              <StatTile label="On Hold" value={String(gymCounts.onHold)} />
-              <StatTile label="Overdue" value={String(gymCounts.overdue)} />
-              <StatTile label="Due This Week" value={String(gymCounts.dueThisWeek)} />
+              <ColorKpiTile label="Active" value={gymCounts.active} color="var(--success)" iconPath={KPI_ICON_PATHS.active} />
+              <ColorKpiTile label="On Hold" value={gymCounts.onHold} color="var(--muted)" iconPath={KPI_ICON_PATHS.hold} />
+              <ColorKpiTile label="Overdue" value={gymCounts.overdue} color="var(--danger)" iconPath={KPI_ICON_PATHS.overdue} />
+              <ColorKpiTile label="Due This Week" value={gymCounts.dueThisWeek} color="var(--warning)" iconPath={KPI_ICON_PATHS.dueWeek} />
             </div>
           </Card>
         )}
