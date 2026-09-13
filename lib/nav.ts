@@ -3,29 +3,14 @@ export type NavItem = {
   href: string;
   /** One line shown as the tile's subtitle on the /home hub page — sidebar ignores this. */
   description?: string;
-  /** Opens in a new tab instead of client-side routing — for the other Adjust Health
-   * tools (Program Tracker, Assessment Tool) until they're migrated into this app. */
+  /** Opens in a new tab instead of client-side routing — for any external link
+   * (none currently; both other Adjust Health tools are now fully migrated in). */
   external?: boolean;
 };
 
 export type NavGroup = {
   label: string;
   items: NavItem[];
-};
-
-/** Kept as a fallback link to the standalone Assessment Tool site while the
- * newly-ported internal version (ASSESSMENT_TOOL_GROUP below) gets used for
- * real — remove once that's confirmed working. */
-const TOOLS_NAV_GROUP: NavGroup = {
-  label: "Tools",
-  items: [
-    {
-      label: "Assessment Tool (standalone, fallback)",
-      href: "https://adjust-health-performance-report.vercel.app/",
-      description: "The original site, in case something's missing here",
-      external: true,
-    },
-  ],
 };
 
 /** The Assessment Tool migrated into this app — reads/writes the same live
@@ -69,7 +54,6 @@ export const RESTRICTED_NAV: NavGroup[] = [
   },
   ADJUST_GYM_GROUP,
   ASSESSMENT_TOOL_GROUP,
-  TOOLS_NAV_GROUP,
 ];
 
 export const NAV: NavGroup[] = [
@@ -108,7 +92,6 @@ export const NAV: NavGroup[] = [
   },
   ADJUST_GYM_GROUP,
   ASSESSMENT_TOOL_GROUP,
-  TOOLS_NAV_GROUP,
   {
     label: "Configuration",
     items: [
