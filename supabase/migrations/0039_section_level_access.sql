@@ -23,7 +23,10 @@ language sql stable security definer set search_path = public as $$
     or can_access_section('meetings');
 $$;
 
-create or replace function get_my_access() returns table(is_director boolean, allowed_provider_roles text[], allowed_sections text[])
+-- Postgres won't let create-or-replace change a function's return columns,
+-- so the old two-column get_my_access() has to go first.
+drop function get_my_access();
+create function get_my_access() returns table(is_director boolean, allowed_provider_roles text[], allowed_sections text[])
 language sql stable security definer set search_path = public as $$
   select coalesce(sa.is_director, true), coalesce(sa.allowed_provider_roles, '{}'::text[]), coalesce(sa.allowed_sections, '{}'::text[])
   from (select 1) as one_row
