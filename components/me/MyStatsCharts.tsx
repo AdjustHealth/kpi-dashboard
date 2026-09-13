@@ -11,10 +11,20 @@ function series(history: WeekMetrics[], key: string): TrendPoint[] {
   }));
 }
 
-/** Deliberately just New Patients + Occupancy — director's call on what a
+/** New Patients + Occupancy, plus PVA and FBA — director's call on what a
  * self-service dashboard shows vs. what stays review-gated (turnover, KPA
  * ratings) or is being built elsewhere (a dedicated cancellations tab). */
-export function MyStatsCharts({ history, occupancyTarget }: { history: WeekMetrics[]; occupancyTarget: number | null }) {
+export function MyStatsCharts({
+  history,
+  occupancyTarget,
+  pvaTarget,
+  fbaTarget,
+}: {
+  history: WeekMetrics[];
+  occupancyTarget: number | null;
+  pvaTarget: number | null;
+  fbaTarget: number | null;
+}) {
   return (
     <Card title="Your Stats">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -26,6 +36,24 @@ export function MyStatsCharts({ history, occupancyTarget }: { history: WeekMetri
           colorIndex={2}
           accent
           target={occupancyTarget}
+          betterWhen="higher"
+        />
+        <LineTrendChart
+          title="PVA"
+          data={series(history, "ucva")}
+          format="decimal"
+          colorIndex={1}
+          accent
+          target={pvaTarget}
+          betterWhen="higher"
+        />
+        <LineTrendChart
+          title="FBA"
+          data={series(history, "fba")}
+          format="decimal"
+          colorIndex={6}
+          accent
+          target={fbaTarget}
           betterWhen="higher"
         />
       </div>

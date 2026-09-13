@@ -55,6 +55,8 @@ export default async function MyDashboardPage() {
   let history: Awaited<ReturnType<typeof getMyProviderHistory>>["history"] = [];
   let statsError: string | null = null;
   let occupancyTarget: number | null = null;
+  let pvaTarget: number | null = null;
+  let fbaTarget: number | null = null;
   let newPatientNames: string[] = [];
   if (provider) {
     const [historyResult, roleTargets] = await Promise.all([
@@ -65,6 +67,8 @@ export default async function MyDashboardPage() {
     statsError = historyResult.error;
     const effectiveTargets = { ...(roleTargets[provider.role] ?? {}), ...(provider.targets ?? {}) };
     occupancyTarget = typeof effectiveTargets.occupancy_pct === "number" ? effectiveTargets.occupancy_pct : null;
+    pvaTarget = typeof effectiveTargets.ucva === "number" ? effectiveTargets.ucva : null;
+    fbaTarget = typeof effectiveTargets.fba === "number" ? effectiveTargets.fba : null;
     const thisWeekNames = history.find((h) => h.week_ending === week)?.metrics.new_patient_names;
     newPatientNames = Array.isArray(thisWeekNames) ? (thisWeekNames as string[]) : [];
   }
@@ -96,7 +100,7 @@ export default async function MyDashboardPage() {
             <p className="text-sm text-danger">Could not load your stats: {statsError}</p>
           ) : (
             <>
-              <MyStatsCharts history={history} occupancyTarget={occupancyTarget} />
+              <MyStatsCharts history={history} occupancyTarget={occupancyTarget} pvaTarget={pvaTarget} fbaTarget={fbaTarget} />
               <NewPatientsCard names={newPatientNames} />
               <MyGoalsCard goals={provider.goals ?? []} />
             </>

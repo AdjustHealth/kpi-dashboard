@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useMemo, useState } from "react";
 import { formatWeekLabel } from "@/lib/week";
 import { isRescheduleNote } from "@/lib/nookal/parsers";
 
@@ -64,7 +64,14 @@ export function CancellationsTable({
   // Local copy so a flag toggle can update the UI immediately — flags are
   // saved independently of the CSV-sourced columns via /api/cancellation-events.
   const [localRows, setLocalRows] = useState(rows);
-  useEffect(() => setLocalRows(rows), [rows]);
+  // Re-sync when the server hands down a fresh set of rows (e.g. switching
+  // weeks) — adjusting state during render instead of an Effect, per
+  // React's own guidance for "resetting state when a prop changes".
+  const [prevRows, setPrevRows] = useState(rows);
+  if (rows !== prevRows) {
+    setPrevRows(rows);
+    setLocalRows(rows);
+  }
   // Default sort matches the server's own order (date, then client).
   const [sortKey, setSortKey] = useState<SortKey>("appointment_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -168,7 +175,7 @@ export function CancellationsTable({
               </th>
             ))}
             <th className="py-2 px-3 font-medium">Note</th>
-            <th className="py-2 px-3 font-medium">Meeting Note</th>
+            <th className="py-2 px-3 font-medium">Notes</th>
             {showResolveAction && <th className="py-2 px-3 font-medium" />}
             {showDealtWithToggle && <th className="py-2 px-3 text-center font-medium">Dealt With</th>}
           </tr>
@@ -239,11 +246,15 @@ export function CancellationsTable({
               {!hideHandledBy && (
                 <td className="py-2 px-3 whitespace-nowrap text-muted">{row.modified_user ?? "—"}</td>
               )}
-              <td className="max-w-md py-2 px-3 text-foreground">{row.note ?? "—"}</td>
+              <td className="max-w-[16rem] py-2 px-3 text-foreground">
+                <span className="line-clamp-2" title={row.note ?? undefined}>
+                  {row.note ?? "—"}
+                </span>
+              </td>
               <td className="min-w-56 py-2 px-3">
                 <textarea
                   value={row.discussion_note ?? ""}
-                  placeholder="What to raise…"
+                  placeholder="Notes…"
                   onChange={(e) => editNote(row.id, e.target.value)}
                   onBlur={() => saveNote(row)}
                   rows={2}
