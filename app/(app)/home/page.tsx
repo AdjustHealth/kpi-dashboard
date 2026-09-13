@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/access";
 import { buildNav, SECTION_COLORS } from "@/lib/nav";
-import { TileIcon } from "@/components/nav/tileIcons";
+import { TileIcon, SectionIcon } from "@/components/nav/tileIcons";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 
 function greeting() {
@@ -44,8 +44,13 @@ export default async function HomePage() {
           const color = group.colorKey ? SECTION_COLORS[group.colorKey] : undefined;
           return (
             <div key={group.label}>
-              <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
-                {color && <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ backgroundColor: color }} aria-hidden />}
+              <h2 className="mb-3 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+                <span
+                  className="flex h-5 w-5 flex-none items-center justify-center rounded-md"
+                  style={{ color: color ?? "var(--accent)", backgroundColor: `${color ?? "#a6e22e"}22` }}
+                >
+                  <SectionIcon section={group.colorKey} fallbackHref={group.label === "Configuration" ? "/settings" : "/home"} className="h-3 w-3" />
+                </span>
                 {group.label}
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NavGroup, SECTION_COLORS } from "@/lib/nav";
+import { SectionIcon } from "@/components/nav/tileIcons";
 
 // Only these have their own /[id] detail sub-route, so only these should
 // treat a longer pathname as "still this nav item" — everything else
@@ -65,11 +66,20 @@ export function Sidebar({ nav }: { nav: NavGroup[] }) {
               <li key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
-                  style={{ color: isCurrentGroup ? (color ?? "var(--accent)") : "var(--muted)" }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors"
                 >
-                  {color && <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ backgroundColor: color }} aria-hidden />}
-                  <span className="flex-1 truncate">{group.label}</span>
+                  <span
+                    className="flex h-6 w-6 flex-none items-center justify-center rounded-md"
+                    style={{ color: color ?? "var(--accent)", backgroundColor: `${color ?? "#a6e22e"}22` }}
+                  >
+                    <SectionIcon section={group.colorKey} fallbackHref={group.label === "Configuration" ? "/settings" : "/home"} />
+                  </span>
+                  <span
+                    className="flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.08em]"
+                    style={{ color: isCurrentGroup ? (color ?? "var(--accent)") : "var(--muted)" }}
+                  >
+                    {group.label}
+                  </span>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"

@@ -19,17 +19,19 @@ export type NavGroup = {
 
 /** One accent colour per grantable business area, so a director looking at
  * the full nav (or the Home hub, which shows every group at once) can tell
- * areas apart at a glance — same idea as the coloured coach badges already
- * used in Adjust Gym. Overview and Configuration deliberately have none:
- * Overview is just "you, home", and Configuration is a system area, not a
- * business one. */
+ * areas apart at a glance. Each is a stop along Adjust's own brand gradient
+ * (lime --accent to mint --accent-secondary, the same one the marketing
+ * site's "Get Better. Get Moving. Get Strong." headline uses) rather than
+ * an arbitrary rainbow — every colour here is recognisably "an Adjust
+ * colour". Overview and Configuration deliberately have none: Overview is
+ * just "you, home", and Configuration is a system area, not a business one. */
 export const SECTION_COLORS: Record<Section, string> = {
-  data_entry: "#3b82f6",
-  clinic_reports: "#a6e22e",
-  meetings: "#8b5cf6",
-  team: "#f59e0b",
-  adjust_gym: "#34d399",
-  assessment_tool: "#22d3ee",
+  data_entry: "#a6e22e",
+  clinic_reports: "#8fdf43",
+  meetings: "#78dc59",
+  team: "#62d96e",
+  adjust_gym: "#4bd684",
+  assessment_tool: "#34d399",
 };
 
 const ADJUST_GYM_GROUP: NavGroup = {
