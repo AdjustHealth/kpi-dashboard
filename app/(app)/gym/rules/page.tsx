@@ -6,9 +6,14 @@ export default function RulesPage() {
     <>
       <PageHeader title="Programming Rules" showWeekSelector={false} />
       <div className="flex flex-col gap-4 p-8">
-        {PROGRAMMING_RULES.map((sec) => (
+        {PROGRAMMING_RULES.map((sec, i) => (
           <div key={sec.section} className="overflow-hidden rounded-xl border border-border bg-surface-raised/40">
-            <div className="border-b border-border bg-surface-raised px-4 py-3 text-sm font-semibold text-accent">{sec.section}</div>
+            <div className="flex items-center gap-3 border-b border-border bg-surface-raised px-4 py-3">
+              <span className="font-display flex h-6 w-6 flex-none items-center justify-center rounded-md bg-accent/15 text-xs font-bold text-accent">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="text-sm font-semibold text-foreground">{sec.section}</span>
+            </div>
             {isChainSection(sec) ? (
               <div className="p-4">
                 <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted">{sec.chainLabel}</div>

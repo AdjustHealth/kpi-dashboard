@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Textarea } from "@/components/ui/Field";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { AGENDA_DEFS, Meeting } from "@/lib/programTracker/types";
 import { fmtDate } from "@/lib/programTracker/date";
 
@@ -106,18 +107,20 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
         {meetings.map((m) => (
-          <div key={m.id} className="flex items-center gap-1">
+          <div
+            key={m.id}
+            className={`group flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1.5 text-sm font-medium transition-colors ${
+              activeId === m.id ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-surface-raised/60 text-muted hover:text-foreground"
+            }`}
+          >
+            <button onClick={() => setActiveId(m.id)}>{fmtDate(m.meeting_date)}</button>
             <button
-              onClick={() => setActiveId(m.id)}
-              className={`rounded-t-lg border-x border-t px-3 py-1.5 text-sm font-medium ${
-                activeId === m.id ? "border-border bg-surface text-accent" : "border-transparent text-muted hover:text-foreground"
-              }`}
+              onClick={() => deleteMeeting(m.id)}
+              title="Delete this meeting"
+              className="flex h-4 w-4 items-center justify-center rounded-full text-muted/70 opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
             >
-              {fmtDate(m.meeting_date)}
-            </button>
-            <button onClick={() => deleteMeeting(m.id)} title="Delete this meeting" className="text-muted hover:text-danger">
               ×
             </button>
           </div>
@@ -125,14 +128,14 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
         <button
           onClick={createMeeting}
           disabled={creating}
-          className="ml-auto rounded-lg border border-accent px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
+          className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-secondary disabled:opacity-50"
         >
           + New meeting
         </button>
       </div>
 
       {!active ? (
-        <p className="text-sm text-muted">No meetings yet — create one above.</p>
+        <EmptyState message="No meetings yet — create one above." />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {AGENDA_DEFS.map((def, idx) => (

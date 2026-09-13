@@ -30,7 +30,7 @@ export default async function HomePage() {
     <div className="flex flex-col gap-10 p-8 pb-16">
       <div>
         <p className="text-sm font-medium text-accent-secondary">{greeting()}{name ? `, ${name}` : ""}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+        <h1 className="font-display mt-1 text-4xl font-bold uppercase tracking-wide">
           <span className="brand-gradient-text">Adjust Hub</span>
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted">
@@ -41,7 +41,7 @@ export default async function HomePage() {
       <div className="flex flex-col gap-8">
         {groups.map((group) => (
           <div key={group.label}>
-            <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-accent-secondary/80">
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
               {group.label}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
