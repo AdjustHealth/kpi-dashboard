@@ -1,7 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { myProvider } from "@/lib/providerIdentity";
+import { myProvider, getMyWeekCancellations, getMyWeekFollowUps } from "@/lib/providerIdentity";
+import { defaultWeekEnding } from "@/lib/week";
+
+/**
+ * Fetched client-side by MyCancellationsSection instead of awaited inline in
+ * app/(app)/me/page.tsx's server render — kept off that page's critical
+ * path so a slow/failing cancellations lookup can never take down the rest
+ * of My Dashboard (stats, goals, coaching load) along with it, and so this
+ * one extra pair of admin-client queries doesn't add to the concurrent load
+ * on the same request that's already fetching provider history/targets.
+ */
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const { provider, error: providerError } = await myProvider(user.email);
+  if (providerError) return NextResponse.json({ error: providerError }, { status: 500 });
+  if (!provider) return NextResponse.json({ cancellations: [], followUps: [] });
+
+  const week = defaultWeekEnding();
+  const [cancellationsResult, followUpsResult] = await Promise.all([
+    getMyWeekCancellations(provider.name, week),
+    getMyWeekFollowUps(provider.name, week),
+  ]);
+  if (cancellationsResult.error) return NextResponse.json({ error: cancellationsResult.error }, { status: 500 });
+  if (followUpsResult.error) return NextResponse.json({ error: followUpsResult.error }, { status: 500 });
+
+  return NextResponse.json({ cancellations: cancellationsResult.rows, followUps: followUpsResult.rows });
+}
 
 /**
  * Lets a practitioner tick their own cancellation/follow-up rows as dealt
