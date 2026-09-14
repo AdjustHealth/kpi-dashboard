@@ -32,7 +32,7 @@ export function ProviderCharts({
   showTpr?: boolean;
   /** Effective targets (role defaults + this provider's overrides) — same object already passed to the KPI Scorecard table, reused here so the trend charts show the same on-track/off-track signal. */
   targets?: Record<string, unknown>;
-  /** % of this provider's distinct cancelling clients per week who still have no future booking — see lib/clinicData.ts getDropOutRateHistory. Recomputed live, so past weeks can improve once a client's confirmed rebooked. */
+  /** % of this provider's distinct cancelling clients per week who had no future booking on file — see lib/clinicData.ts getDropOutRateHistory. Fixed per week once that week's Cancellations report is uploaded, not affected by the Unretained list's "Dealt with" dismiss. */
   dropOutRateHistory?: TrendPoint[];
 }) {
   const ncvaTarget = typeof targets.ncva === "number" ? targets.ncva : null;
