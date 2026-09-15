@@ -54,6 +54,19 @@ describe("buildNav", () => {
     expect(labels(nav)).not.toContain("Meetings");
   });
 
+  it("specialty_services-only access shows a Clinic Reports group with just Specialty Services", () => {
+    const nav = buildNav(access({ allowedSections: ["specialty_services"] }));
+    const clinicReports = nav.find((g) => g.label === "Clinic Reports");
+    expect(clinicReports?.items.map((i) => i.label)).toEqual(["Specialty Services"]);
+  });
+
+  it("full 'clinic_reports' section access unlocks every Clinic Reports page, including Specialty Services", () => {
+    const nav = buildNav(access({ allowedSections: ["clinic_reports"] }));
+    const clinicReports = nav.find((g) => g.label === "Clinic Reports");
+    expect(clinicReports?.items.map((i) => i.label)).toContain("Specialty Services");
+    expect(clinicReports?.items.length).toBeGreaterThan(1);
+  });
+
   it("puts the clinic-wide Dashboard under Clinic Reports, not Overview", () => {
     const nav = buildNav(access({ isDirector: true }));
     const overview = nav.find((g) => g.label === "Overview")!;

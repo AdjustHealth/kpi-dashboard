@@ -32,6 +32,9 @@ export const SECTION_COLORS: Record<Section, string> = {
   team: "#62d96e",
   adjust_gym: "#4bd684",
   assessment_tool: "#34d399",
+  // Shares Clinic Reports' own colour — a specialty_services-only grant
+  // still shows as a (narrower) Clinic Reports group, not a separate area.
+  specialty_services: "#8fdf43",
 };
 
 const ADJUST_GYM_GROUP: NavGroup = {
@@ -60,18 +63,40 @@ const DATA_ENTRY_GROUP: NavGroup = {
   items: [{ label: "Weekly Input", href: "/inputs", description: "Upload this week's Nookal reports" }],
 };
 
-const CLINIC_REPORTS_GROUP: NavGroup = {
-  label: "Clinic Reports",
-  colorKey: "clinic_reports",
-  items: [
-    { label: "Dashboard", href: "/dashboard", description: "Clinic-wide KPIs at a glance" },
-    { label: "Revenue", href: "/clinic/revenue", description: "Trend, target and payer mix" },
-    { label: "Clinic Health", href: "/clinic/health", description: "Activity, occupancy, retention" },
-    { label: "Specialty Services", href: "/clinic/specialty", description: "Specialty consults and JBV growth" },
-    { label: "Cancellations", href: "/clinic/cancellations", description: "Every cancellation and DNA" },
-    { label: "Quarterly Review", href: "/clinic/quarterly", description: "This quarter vs. last" },
-  ],
+const SPECIALTY_SERVICES_ITEM: NavItem = {
+  label: "Specialty Services",
+  href: "/clinic/specialty",
+  description: "Specialty consults and JBV growth",
 };
+
+/**
+ * Full "clinic_reports" unlocks every Clinic Reports page. A
+ * specialty_services-only grant (no clinic_reports) unlocks just Specialty
+ * Services on its own — same "one narrower grant carves a single page out
+ * of a wider section" pattern as Marcio's physio/massage/ep-only Meetings
+ * access below. See requireAnySection() in lib/auth/access.ts for the page
+ * side of this.
+ */
+function clinicReportsGroup(access: AccessContext): NavGroup | null {
+  if (hasSection(access, "clinic_reports")) {
+    return {
+      label: "Clinic Reports",
+      colorKey: "clinic_reports",
+      items: [
+        { label: "Dashboard", href: "/dashboard", description: "Clinic-wide KPIs at a glance" },
+        { label: "Revenue", href: "/clinic/revenue", description: "Trend, target and payer mix" },
+        { label: "Clinic Health", href: "/clinic/health", description: "Activity, occupancy, retention" },
+        SPECIALTY_SERVICES_ITEM,
+        { label: "Cancellations", href: "/clinic/cancellations", description: "Every cancellation and DNA" },
+        { label: "Quarterly Review", href: "/clinic/quarterly", description: "This quarter vs. last" },
+      ],
+    };
+  }
+  if (hasSection(access, "specialty_services")) {
+    return { label: "Clinic Reports", colorKey: "clinic_reports", items: [SPECIALTY_SERVICES_ITEM] };
+  }
+  return null;
+}
 
 const TEAM_GROUP: NavGroup = {
   label: "Team",
@@ -137,7 +162,8 @@ export function buildNav(access: AccessContext): NavGroup[] {
   ];
 
   if (hasSection(access, "data_entry")) groups.push(DATA_ENTRY_GROUP);
-  if (hasSection(access, "clinic_reports")) groups.push(CLINIC_REPORTS_GROUP);
+  const clinicReports = clinicReportsGroup(access);
+  if (clinicReports) groups.push(clinicReports);
 
   const meetings = meetingsGroup(access);
   if (meetings) groups.push(meetings);
