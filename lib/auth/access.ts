@@ -8,7 +8,15 @@ export const PROVIDER_ROLES = ["physio", "massage", "ep", "senior_physio", "admi
 /** The business areas that can be granted independently of the coarse
  * director/restricted split — see migration 0039_section_level_access.sql.
  * Configuration is deliberately not one of these: directors only, always. */
-export const SECTIONS = ["data_entry", "clinic_reports", "meetings", "team", "adjust_gym", "assessment_tool"] as const;
+export const SECTIONS = [
+  "data_entry",
+  "clinic_reports",
+  "meetings",
+  "team",
+  "adjust_gym",
+  "assessment_tool",
+  "specialty_services",
+] as const;
 export type Section = (typeof SECTIONS)[number];
 
 export interface AccessContext {
@@ -47,6 +55,18 @@ export async function requireDirector(): Promise<void> {
 export async function requireSection(section: Section): Promise<void> {
   const { isDirector, allowedSections } = await getAccessContext();
   if (!isDirector && !allowedSections.includes(section)) redirect("/home");
+}
+
+/**
+ * For a page one specific narrower grant can also unlock on its own, on
+ * top of the section it normally lives under — currently just Specialty
+ * Services (specialty_services unlocks /clinic/specialty by itself,
+ * without the rest of Clinic Reports; clinic_reports still covers it too,
+ * same as every other Clinic Reports page).
+ */
+export async function requireAnySection(sections: Section[]): Promise<void> {
+  const { isDirector, allowedSections } = await getAccessContext();
+  if (!isDirector && !sections.some((s) => allowedSections.includes(s))) redirect("/home");
 }
 
 /** Senior Physio and Admin (the two Meetings sub-pages not open to every Meetings-scoped role) call this first. */

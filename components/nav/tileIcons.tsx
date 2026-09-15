@@ -68,6 +68,10 @@ const SECTION_ICONS: Record<Section, ReactNode> = {
   team: ICONS["/reviews"],
   adjust_gym: ICONS["/gym"],
   assessment_tool: ICONS["/assessments"],
+  // Never actually looked up — a specialty_services-only grant's nav group
+  // always uses colorKey "clinic_reports" (see lib/nav.ts clinicReportsGroup),
+  // present here only because SECTION_ICONS is a Record over every Section.
+  specialty_services: ICONS["/clinic/specialty"],
 };
 
 export function SectionIcon({
