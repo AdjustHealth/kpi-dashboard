@@ -33,15 +33,31 @@ const SPECIALTIES: { name: string; key: string; colorIndex: number; hasInitialSu
   { name: "Hydro", key: "specialty_hydro", colorIndex: 7, hasInitialSubSplit: false },
 ];
 
-/** % change from `weeksBack` weeks ago to the latest week — a growth-rate framing, not a target (none is stated for these categories). */
-function growthRatePct(history: ClinicWeekRow[], key: string, weeksBack: number): number | null {
+/**
+ * % change from the first week this category has a real (non-null) value
+ * through to the latest week — i.e. growth since tracking began, not a
+ * fixed recent window. Most of these specialties only started being
+ * auto-detected from the Activity Report recently, so "since tracking
+ * began" is a meaningful, stable figure rather than a moving 4-week
+ * comparison that swings on whatever two weeks happen to get compared.
+ * Also returns how many weeks of history that covers, and the implied
+ * average weekly compounding rate — the total % alone isn't comparable
+ * between two specialties tracked for very different lengths of time,
+ * the weekly rate is (same framing JBV's own 3%/week target already uses).
+ */
+function totalGrowth(history: ClinicWeekRow[], key: string): { pct: number | null; weeks: number; weeklyPct: number | null } {
+  const firstIdx = history.findIndex((h) => typeof h[key] === "number");
   const latest = history[history.length - 1]?.[key];
-  const past = history[history.length - 1 - weeksBack]?.[key];
-  if (typeof latest !== "number" || typeof past !== "number" || past === 0) return null;
-  return ((latest - past) / past) * 100;
+  if (firstIdx === -1 || typeof latest !== "number") return { pct: null, weeks: 0, weeklyPct: null };
+  const first = history[firstIdx][key] as number;
+  const weeks = history.length - 1 - firstIdx;
+  if (first === 0 || weeks === 0) return { pct: null, weeks, weeklyPct: null };
+  const pct = ((latest - first) / first) * 100;
+  const weeklyPct = (Math.pow(latest / first, 1 / weeks) - 1) * 100;
+  return { pct, weeks, weeklyPct };
 }
 
-function GrowthStat({ label, pct }: { label: string; pct: number | null }) {
+function GrowthStat({ label, pct, sublabel }: { label: string; pct: number | null; sublabel?: string }) {
   const color = pct === null ? undefined : pct >= 0 ? STATUS.good : STATUS.critical;
   return (
     <div>
@@ -49,6 +65,7 @@ function GrowthStat({ label, pct }: { label: string; pct: number | null }) {
       <div className="text-lg font-semibold text-foreground" style={color ? { color } : undefined}>
         {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
       </div>
+      {sublabel && <div className="text-[11px] text-muted">{sublabel}</div>}
     </div>
   );
 }
@@ -63,7 +80,6 @@ export default async function SpecialtyServicesPage({
   const week = weekParam ?? defaultWeekEnding();
   const historyWeeks = clinicHistoryWeeks(week);
   const clinicHistory = await getClinicHistory(week, historyWeeks);
-  const growthWindow = Math.min(4, clinicHistory.length - 1);
 
   // Verified against the real senior-physio sheet's JBV Trend column
   // (17.00 -> 17.51 -> 18.04 -> 18.58 compounds at 3%/week, not 5%).
@@ -101,15 +117,21 @@ export default async function SpecialtyServicesPage({
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {SPECIALTIES.map((s) => (
+          {SPECIALTIES.map((s) => {
+            const growth = totalGrowth(clinicHistory, `${s.key}_total`);
+            return (
             <Card key={s.key} title={s.name}>
               <div className="mb-3 flex flex-wrap gap-6">
                 {s.hasInitialSubSplit !== false && (
                   <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
                 )}
                 <StatTile {...clinicStatTile(clinicHistory, `${s.key}_total`)} label="Total Consults" />
-                {growthWindow > 0 && (
-                  <GrowthStat label={`${growthWindow}-Week Growth`} pct={growthRatePct(clinicHistory, `${s.key}_total`, growthWindow)} />
+                {growth.weeks > 0 && (
+                  <GrowthStat
+                    label={`Growth Since Tracking Began (${growth.weeks}wk)`}
+                    pct={growth.pct}
+                    sublabel={growth.weeklyPct !== null ? `${growth.weeklyPct >= 0 ? "+" : ""}${growth.weeklyPct.toFixed(1)}%/week avg` : undefined}
+                  />
                 )}
               </div>
               <LineTrendChart
@@ -119,7 +141,8 @@ export default async function SpecialtyServicesPage({
                 colorIndex={s.colorIndex}
               />
             </Card>
-          ))}
+            );
+          })}
 
           <Card title="Women's Health">
             <p className="mb-3 text-xs text-muted">
