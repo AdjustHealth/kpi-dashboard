@@ -70,7 +70,9 @@ export default async function GymArchivePage() {
                       <td className="px-4 py-3 text-muted">{fmtDate(r.block_start)}</td>
                       <td className="px-4 py-3 text-muted">{r.block_weeks ?? "—"}</td>
                       <td className="px-4 py-3 text-muted">{fmtDate(r.next_due)}</td>
-                      <td className="max-w-[220px] truncate px-4 py-3 text-muted">{r.notes || ""}</td>
+                      <td className="max-w-[220px] truncate px-4 py-3 text-muted" title={r.notes ?? undefined}>
+                        {r.notes || ""}
+                      </td>
                       <td className="px-4 py-3 text-muted">{fmtDate(r.archived_at?.split("T")[0])}</td>
                     </tr>
                   ))}
