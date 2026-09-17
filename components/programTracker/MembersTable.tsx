@@ -1,13 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { CSSProperties, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
+import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { Member } from "@/lib/programTracker/types";
 import { fmtDate, holdEndOf } from "@/lib/programTracker/date";
 import { MemberModal } from "@/components/programTracker/MemberModal";
 import { CoachBadge, TypeBadge, dueStatusTone } from "@/components/programTracker/badges";
+
+/** Same urgency read as the due_status Badge, as a subtle full-row tint — an
+ * overdue member should be scannable at a glance down the whole table, not
+ * just from a small pill in one column. */
+function rowTint(dueStatus: string | null): CSSProperties | undefined {
+  if (dueStatus === "OVERDUE" || dueStatus === "Hold overdue") {
+    return { backgroundColor: "color-mix(in srgb, var(--color-danger) 7%, transparent)" };
+  }
+  if (dueStatus === "Due this week" || dueStatus === "Hold ending soon") {
+    return { backgroundColor: "color-mix(in srgb, var(--color-warning) 7%, transparent)" };
+  }
+  return undefined;
+}
 
 const FILTERS = ["All", "OVERDUE", "Due this week", "Upcoming", "On hold"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -40,6 +54,20 @@ export function MembersTable({ initialMembers, coach }: { initialMembers: Member
   const [editing, setEditing] = useState<Member | null>(null);
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  /** Same headline definitions as the Adjust Gym Dashboard's own KPI tiles
+   * (app/(app)/gym/dashboard/page.tsx) — status-based, not the due_status
+   * filter-pill buckets below, so "Active" here means the same thing it
+   * does everywhere else in the app. */
+  const summary = useMemo(
+    () => ({
+      active: members.filter((m) => m.status === "Active").length,
+      onHold: members.filter((m) => m.status === "Hold").length,
+      overdue: members.filter((m) => m.due_status === "OVERDUE" || m.due_status === "Hold overdue").length,
+      dueThisWeek: members.filter((m) => m.due_status === "Due this week" || m.due_status === "Hold ending soon").length,
+    }),
+    [members]
+  );
 
   const counts = useMemo(() => {
     const c: Record<Filter, number> = { All: members.length, OVERDUE: 0, "Due this week": 0, Upcoming: 0, "On hold": 0 };
@@ -98,6 +126,13 @@ export function MembersTable({ initialMembers, coach }: { initialMembers: Member
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <ColorKpiTile label="Active" value={summary.active} color="var(--success)" iconPath={KPI_ICON_PATHS.active} />
+        <ColorKpiTile label="Overdue" value={summary.overdue} color="var(--danger)" iconPath={KPI_ICON_PATHS.overdue} />
+        <ColorKpiTile label="Due This Week" value={summary.dueThisWeek} color="var(--warning)" iconPath={KPI_ICON_PATHS.dueWeek} />
+        <ColorKpiTile label="On Hold" value={summary.onHold} color="var(--muted)" iconPath={KPI_ICON_PATHS.hold} />
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
@@ -146,7 +181,12 @@ export function MembersTable({ initialMembers, coach }: { initialMembers: Member
               const isHold = m.status === "Hold";
               const cellDate = isHold ? holdEndOf(m) : m.next_due;
               return (
-                <tr key={m.id} onClick={() => setEditing(m)} className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-raised/60">
+                <tr
+                  key={m.id}
+                  onClick={() => setEditing(m)}
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-raised/60"
+                  style={rowTint(m.due_status)}
+                >
                   <td className="px-4 py-3 font-medium text-foreground">{m.name}</td>
                   <td className="px-4 py-3">
                     <CoachBadge coach={m.coach} />
@@ -159,7 +199,9 @@ export function MembersTable({ initialMembers, coach }: { initialMembers: Member
                   <td className="px-4 py-3">
                     <Badge tone={dueStatusTone(m.due_status)}>{m.due_status || "—"}</Badge>
                   </td>
-                  <td className="max-w-[220px] truncate px-4 py-3 text-muted">{m.notes || ""}</td>
+                  <td className="max-w-[220px] truncate px-4 py-3 text-muted" title={m.notes ?? undefined}>
+                    {m.notes || ""}
+                  </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     {!isHold && (
                       <button
