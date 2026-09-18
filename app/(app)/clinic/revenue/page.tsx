@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { StackedBarChart } from "@/components/charts/StackedBarChart";
@@ -12,6 +13,8 @@ import { targetColor } from "@/lib/targetColor";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
 import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 import { requireSection } from "@/lib/auth/access";
+import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
+import { Member } from "@/lib/programTracker/types";
 
 export default async function RevenuePage({
   searchParams,
@@ -82,6 +85,25 @@ export default async function RevenuePage({
 
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
   const glofoxLatest = typeof latest.m_glofox === "number" ? latest.m_glofox : 0;
+
+  // Live member count alongside the revenue those members generate — reads
+  // straight from the Program Tracker (same admin client the Adjust Gym
+  // pages use), not a stored weekly_kpis figure, so it's always current
+  // rather than only as fresh as the last upload.
+  let gymMemberCounts: { active: number; onHold: number } | null = null;
+  try {
+    const trackerSupabase = createProgramTrackerAdminClient();
+    const { data: membersData, error: membersError } = await trackerSupabase.from("members").select("status");
+    if (!membersError) {
+      const members = (membersData ?? []) as Pick<Member, "status">[];
+      gymMemberCounts = {
+        active: members.filter((m) => m.status === "Active").length,
+        onHold: members.filter((m) => m.status === "Hold").length,
+      };
+    }
+  } catch {
+    // Falls back to not showing the tile below — the revenue figures above don't depend on this.
+  }
 
   // Only include payer categories with at least one real week of revenue —
   // an all-zero series just adds legend noise for categories this clinic
@@ -206,6 +228,12 @@ export default async function RevenuePage({
               )}
             </Card>
           </div>
+          {gymMemberCounts && (
+            <div className="mt-4 grid max-w-md grid-cols-2 gap-4">
+              <ColorKpiTile label="Active Gym Members" value={gymMemberCounts.active} color="var(--accent-secondary)" iconPath={KPI_ICON_PATHS.members} />
+              <ColorKpiTile label="On Hold" value={gymMemberCounts.onHold} color="var(--muted)" iconPath={KPI_ICON_PATHS.hold} />
+            </div>
+          )}
         </div>
 
         <div>
