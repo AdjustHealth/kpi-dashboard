@@ -14,7 +14,7 @@ import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
 import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 import { requireSection } from "@/lib/auth/access";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { Member } from "@/lib/programTracker/types";
+import { Member, PROGRAM_TRACKER_PAID_TYPES, normType } from "@/lib/programTracker/types";
 
 export default async function RevenuePage({
   searchParams,
@@ -86,20 +86,19 @@ export default async function RevenuePage({
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
   const glofoxLatest = typeof latest.m_glofox === "number" ? latest.m_glofox : 0;
 
-  // Live member count alongside the revenue those members generate — reads
-  // straight from the Program Tracker (same admin client the Adjust Gym
-  // pages use), not a stored weekly_kpis figure, so it's always current
-  // rather than only as fresh as the last upload.
-  let gymMemberCounts: { active: number; onHold: number } | null = null;
+  // Live paid membership count alongside the revenue those members
+  // generate — reads straight from the Program Tracker (same admin client
+  // the Adjust Gym pages use), not a stored weekly_kpis figure, so it's
+  // always current rather than only as fresh as the last upload. Same
+  // "Total paid" definition as the Adjust Gym Dashboard's own tile —
+  // active members whose type actually bills (excludes Online/Sponsored).
+  let gymPaidMemberCount: number | null = null;
   try {
     const trackerSupabase = createProgramTrackerAdminClient();
-    const { data: membersData, error: membersError } = await trackerSupabase.from("members").select("status");
+    const { data: membersData, error: membersError } = await trackerSupabase.from("members").select("status, type");
     if (!membersError) {
-      const members = (membersData ?? []) as Pick<Member, "status">[];
-      gymMemberCounts = {
-        active: members.filter((m) => m.status === "Active").length,
-        onHold: members.filter((m) => m.status === "Hold").length,
-      };
+      const members = (membersData ?? []) as Pick<Member, "status" | "type">[];
+      gymPaidMemberCount = members.filter((m) => m.status === "Active" && PROGRAM_TRACKER_PAID_TYPES.includes(normType(m.type))).length;
     }
   } catch {
     // Falls back to not showing the tile below — the revenue figures above don't depend on this.
@@ -150,9 +149,13 @@ export default async function RevenuePage({
                   ...(breakeven !== null ? [CATEGORICAL[2]] : []),
                 ]}
               />
-              {weeklyTarget === null && (
+              {(weeklyTarget === null || breakeven === null) && (
                 <p className="mt-2 text-[11px] text-muted">
-                  Set a Weekly Revenue Target on the Targets page to show it here.
+                  {weeklyTarget === null && breakeven === null
+                    ? "Set a Weekly Revenue Target and Weekly Break-Even on the Targets page to show them here."
+                    : weeklyTarget === null
+                      ? "Set a Weekly Revenue Target on the Targets page to show it here."
+                      : "Set a Weekly Break-Even on the Targets page to show it here."}
                 </p>
               )}
             </Card>
@@ -228,10 +231,9 @@ export default async function RevenuePage({
               )}
             </Card>
           </div>
-          {gymMemberCounts && (
-            <div className="mt-4 grid max-w-md grid-cols-2 gap-4">
-              <ColorKpiTile label="Active Gym Members" value={gymMemberCounts.active} color="var(--accent-secondary)" iconPath={KPI_ICON_PATHS.members} />
-              <ColorKpiTile label="On Hold" value={gymMemberCounts.onHold} color="var(--muted)" iconPath={KPI_ICON_PATHS.hold} />
+          {gymPaidMemberCount !== null && (
+            <div className="mt-4 max-w-[220px]">
+              <ColorKpiTile label="Paid Gym Members" value={gymPaidMemberCount} color="var(--accent-secondary)" iconPath={KPI_ICON_PATHS.members} />
             </div>
           )}
         </div>
