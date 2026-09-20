@@ -39,7 +39,10 @@ const SORT_COLS: { key: SortCol; label: string }[] = [
 
 export function MembersTable({ initialMembers, coach }: { initialMembers: Member[]; /** Scopes this table to one coach (My List) — refresh() must re-request the same scope, or an edit/mark-done here silently widens back out to every member. */ coach?: string }) {
   const [members, setMembers] = useState(initialMembers);
-  const [filter, setFilter] = useState<Filter>("All");
+  // Defaults to "Due this week" rather than "All" — opening My List or All
+  // Members should immediately answer "what's due", not require an extra
+  // click every time (e.g. every Monday morning) before it does.
+  const [filter, setFilter] = useState<Filter>("Due this week");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<SortCol>("name");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
