@@ -10,13 +10,15 @@ describe("calcDueStatus", () => {
     d.setDate(d.getDate() + n);
     return iso(d);
   };
-  // "This week" is Monday-Sunday, so how many days out Sunday falls varies
-  // by which day the suite happens to run on — computed here the same way
-  // calcDueStatus itself does, rather than a fixed offset, so these tests
-  // are correct on every day of the week (including Sunday, where today
-  // itself is the last day of the current week).
+  // "Due this week" runs through the coming Monday inclusive (due dates
+  // land on Mondays, since blocks run in whole weeks) — how many days out
+  // that Monday falls varies by which day the suite happens to run on,
+  // computed here the same way calcDueStatus itself does (dueWindowEnd),
+  // so these tests are correct on every day of the week, Monday included
+  // (where the window still reaches all the way to the FOLLOWING Monday,
+  // not today).
   const day = today.getDay();
-  const daysToSunday = day === 0 ? 0 : 7 - day;
+  const daysToNextMonday = ((8 - day) % 7) || 7;
 
   it("is empty when there's no next_due and not on hold", () => {
     expect(calcDueStatus(null, "Active", null)).toBe("");
@@ -26,13 +28,13 @@ describe("calcDueStatus", () => {
     expect(calcDueStatus(daysFromNow(-1), "Active", null)).toBe("OVERDUE");
   });
 
-  it("is Due this week for today through the end of this Monday-Sunday week", () => {
+  it("is Due this week for today through the coming Monday, inclusive", () => {
     expect(calcDueStatus(daysFromNow(0), "Active", null)).toBe("Due this week");
-    expect(calcDueStatus(daysFromNow(daysToSunday), "Active", null)).toBe("Due this week");
+    expect(calcDueStatus(daysFromNow(daysToNextMonday), "Active", null)).toBe("Due this week");
   });
 
-  it("is Upcoming once next_due falls into next week", () => {
-    expect(calcDueStatus(daysFromNow(daysToSunday + 1), "Active", null)).toBe("Upcoming");
+  it("is Upcoming once next_due falls after the coming Monday", () => {
+    expect(calcDueStatus(daysFromNow(daysToNextMonday + 1), "Active", null)).toBe("Upcoming");
   });
 
   it("On hold with no hold_end is just On hold", () => {
@@ -43,12 +45,12 @@ describe("calcDueStatus", () => {
     expect(calcDueStatus(null, "Hold", daysFromNow(-1))).toBe("Hold overdue");
   });
 
-  it("Hold ending soon through the end of this Monday-Sunday week", () => {
-    expect(calcDueStatus(null, "Hold", daysFromNow(daysToSunday))).toBe("Hold ending soon");
+  it("Hold ending soon through the coming Monday, inclusive", () => {
+    expect(calcDueStatus(null, "Hold", daysFromNow(daysToNextMonday))).toBe("Hold ending soon");
   });
 
-  it("On hold when the hold's end date falls into next week", () => {
-    expect(calcDueStatus(null, "Hold", daysFromNow(daysToSunday + 1))).toBe("On hold");
+  it("On hold when the hold's end date falls after the coming Monday", () => {
+    expect(calcDueStatus(null, "Hold", daysFromNow(daysToNextMonday + 1))).toBe("On hold");
   });
 });
 

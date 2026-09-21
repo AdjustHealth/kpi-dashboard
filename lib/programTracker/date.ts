@@ -3,8 +3,10 @@
  * a member's status here always agreed with what the standalone Program
  * Tracker site showed. That site is retired now — the Hub is the only
  * place this is tracked — so calcDueStatus below has since moved off its
- * original rolling-7-day "due this week" window onto a real Monday-Sunday
- * calendar week; everything else here (block/hold date math) is unchanged.
+ * original rolling-7-day "due this week" window onto a due-by-next-Monday
+ * window (see dueWindowEnd) that matches how programming actually gets
+ * planned a week ahead; everything else here (block/hold date math) is
+ * unchanged.
  */
 
 export function localISO(dt: Date): string {
@@ -20,12 +22,17 @@ export function addWeeks(dateStr: string, weeks: number): string {
   return localISO(dt);
 }
 
+/** Days from `day` (0=Sunday..6=Saturday) to the next Monday — always
+ * strictly in the future, even when `day` is itself Monday (gives 7, not 0). */
+function daysUntilNextMonday(day: number): number {
+  return ((8 - day) % 7) || 7;
+}
+
 /** The start of the NEXT block — always the coming Monday, strictly after today (even if today is itself a Monday). */
 export function nextMonday(): string {
   const dt = new Date();
   dt.setHours(0, 0, 0, 0);
-  const days = ((8 - dt.getDay()) % 7) || 7;
-  dt.setDate(dt.getDate() + days);
+  dt.setDate(dt.getDate() + daysUntilNextMonday(dt.getDay()));
   return localISO(dt);
 }
 
@@ -44,23 +51,26 @@ export function holdEndOf(m: { hold_start?: string | null; hold_weeks?: number |
 
 export type DueStatus = "" | "OVERDUE" | "Due this week" | "Upcoming" | "On hold" | "Hold overdue" | "Hold ending soon";
 
-/** The coming Sunday (today itself, if today is a Sunday) — the end of the
- * current Monday-through-Sunday week, at midnight. */
-function endOfWeek(from: Date): Date {
+/** The coming Monday, at midnight — see daysUntilNextMonday. Block/hold due
+ * dates land on Mondays (blocks run in whole weeks), so this is the actual
+ * next point anything can be due, not just a calendar boundary. */
+function dueWindowEnd(from: Date): Date {
   const d = new Date(from);
-  const day = d.getDay(); // 0 = Sunday .. 6 = Saturday
-  d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day));
+  d.setDate(d.getDate() + daysUntilNextMonday(d.getDay()));
   return d;
 }
 
 /**
- * "Due this week" means the current Monday-Sunday calendar week, not a
- * rolling 7-days-from-whenever-you-look window — so opening this on a
- * Monday shows everything due through Sunday, and it doesn't quietly go
- * near-empty by the weekend the way a rolling window does. (Previously
- * kept as a rolling window to match the standalone Program Tracker site's
- * own math 1:1 — that site is retired now the Hub is the only place this
- * is tracked, so nothing external needs to agree with this anymore.)
+ * "Due this week" means "due by the start of next week" — i.e. from today
+ * through the coming Monday inclusive, so a block due next Monday already
+ * shows up a full week ahead rather than only appearing the day it's due
+ * (there'd be no time left to actually program it). Checked from ANY day —
+ * Wednesday still shows everything through next Monday, not just to this
+ * Sunday — since due dates land on Mondays, not scattered through the
+ * week. (Previously a rolling 7-days-from-whenever-you-look window, kept
+ * that way to match the standalone Program Tracker site's own math 1:1 —
+ * that site is retired now the Hub is the only place this is tracked, so
+ * nothing external needs to agree with this anymore.)
  */
 export function calcDueStatus(nextDue: string | null, status: string | null, holdEnd: string | null): DueStatus {
   if (status === "Hold") {
@@ -69,7 +79,7 @@ export function calcDueStatus(nextDue: string | null, status: string | null, hol
     t.setHours(0, 0, 0, 0);
     const d = new Date(holdEnd + "T00:00:00");
     if (d < t) return "Hold overdue";
-    if (d <= endOfWeek(t)) return "Hold ending soon";
+    if (d <= dueWindowEnd(t)) return "Hold ending soon";
     return "On hold";
   }
   if (!nextDue) return "";
@@ -77,7 +87,7 @@ export function calcDueStatus(nextDue: string | null, status: string | null, hol
   t.setHours(0, 0, 0, 0);
   const d = new Date(nextDue + "T00:00:00");
   if (d < t) return "OVERDUE";
-  if (d <= endOfWeek(t)) return "Due this week";
+  if (d <= dueWindowEnd(t)) return "Due this week";
   return "Upcoming";
 }
 
