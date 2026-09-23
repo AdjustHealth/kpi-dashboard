@@ -1,32 +1,34 @@
 /** The Initial Consultation / Client-Centred Consult note — fields mirror the
- * clinic's own CCC scripting structure (Subjective -> Objective -> Clinical
- * Reasoning -> Treatment) so physios fill it out the same way they already
- * take notes, nothing new to learn. */
+ * clinic's own real note template (Goals -> Subjective -> Objective ->
+ * Clinical Reasoning -> Treatment) so physios fill it out the same way they
+ * already take notes, nothing new to learn. */
 export type ConsultNote = {
   patientName: string;
   clinician: string;
   consultDate: string;
   referralSource: string;
+  goals: {
+    whyNow: string;
+    todayGoal: string;
+    longTermGoal: string;
+    roadblockPerceived: string;
+  };
   subjective: {
-    hpc: string;
-    aggs: string;
-    eases: string;
-    pnn: string;
-    redFlags: string;
-    ix: string;
-    pmhx: string;
-    roadblocks: string;
-    shxWork: string;
-    exercise: string;
+    hpcBodyChart: string;
+    pastHistory: string;
+    imagingRedFlags: string;
+    pmhxSurgeryMeds: string;
+    occupationSocial: string;
   };
   objective: {
     obs: string;
-    functionGait: string;
+    functionalTesting: string;
     rom: string;
-    mmt: string;
+    isokineticTesting: string;
+    functionalFindingsVald: string;
     specialTests: string;
     ndts: string;
-    paivmsPams: string;
+    jointMobility: string;
     palpation: string;
   };
   clinicalReasoning: {
@@ -43,14 +45,29 @@ export type ConsultNote = {
   nextAppointment: string;
 };
 
+/** Pre-filled with the clinic's own HPC/Body Chart labels so a new note
+ * starts looking like the template physios already fill in in Nookal. */
+const HPC_BODY_CHART_TEMPLATE = "HPC:\nPNN:\nAGGS:\nEASES:\n24HR:\nCLICKING/CATCHING/LOCKING:";
+
 export function emptyConsultNote(): ConsultNote {
   return {
     patientName: "",
     clinician: "",
     consultDate: "",
     referralSource: "",
-    subjective: { hpc: "", aggs: "", eases: "", pnn: "", redFlags: "", ix: "", pmhx: "", roadblocks: "", shxWork: "", exercise: "" },
-    objective: { obs: "", functionGait: "", rom: "", mmt: "", specialTests: "", ndts: "", paivmsPams: "", palpation: "" },
+    goals: { whyNow: "", todayGoal: "", longTermGoal: "", roadblockPerceived: "" },
+    subjective: { hpcBodyChart: HPC_BODY_CHART_TEMPLATE, pastHistory: "", imagingRedFlags: "", pmhxSurgeryMeds: "", occupationSocial: "" },
+    objective: {
+      obs: "",
+      functionalTesting: "",
+      rom: "",
+      isokineticTesting: "",
+      functionalFindingsVald: "",
+      specialTests: "",
+      ndts: "",
+      jointMobility: "",
+      palpation: "",
+    },
     clinicalReasoning: { impression: "", workingClinicalModel: "", diagnosis: "", prognosis: "" },
     treatmentPlan: { symptomReduction: "", restorative: "", consolidation: "" },
     nextAppointment: "",
