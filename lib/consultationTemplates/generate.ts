@@ -13,7 +13,11 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.
 - Never use em dashes or double hyphens (—, --). Write in plain sentences using periods and commas instead — that stylistic tic is one of the clearest tells that something was written by AI, and this needs to read like a person wrote it.`;
 
-export type GenerateResult = { sections: ReportSection[]; nookalNotes: string; focusArea: string } | null;
+export type GenerateResult = {
+  sections: ReportSection[];
+  nookalNotes: string;
+  focusArea: string;
+} | null;
 
 /**
  * Turns a filled Initial Consultation note into (a) a warm, plain-language
@@ -25,7 +29,9 @@ export type GenerateResult = { sections: ReportSection[]; nookalNotes: string; f
  * classifyRescheduleNotes(), since this is a genuinely optional step on top
  * of a note that's already saved either way.
  */
-export async function generateConsultOutputs(note: ConsultNote): Promise<GenerateResult> {
+export async function generateConsultOutputs(
+  note: ConsultNote,
+): Promise<GenerateResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -37,7 +43,10 @@ export async function generateConsultOutputs(note: ConsultNote): Promise<Generat
       max_tokens: 4096,
       messages: [{ role: "user", content: buildPrompt(note) }],
     });
-    const text = response.content.find((block): block is Anthropic.TextBlock => block.type === "text")?.text ?? "";
+    const text =
+      response.content.find(
+        (block): block is Anthropic.TextBlock => block.type === "text",
+      )?.text ?? "";
     return parseResult(text);
   } catch {
     return null;
@@ -46,7 +55,13 @@ export async function generateConsultOutputs(note: ConsultNote): Promise<Generat
 
 function formatPhase(phase: TreatmentPhase): string {
   const cadence = [phase.frequency, phase.duration].filter(Boolean).join(", ");
-  const parts = [cadence, phase.focus, phase.interventions ? `Key interventions: ${phase.interventions.replace(/\n/g, "; ")}` : ""].filter(Boolean);
+  const parts = [
+    cadence,
+    phase.focus,
+    phase.interventions
+      ? `Key interventions: ${phase.interventions.replace(/\n/g, "; ")}`
+      : "",
+  ].filter(Boolean);
   return parts.length > 0 ? parts.join(" — ") : "—";
 }
 
@@ -87,9 +102,11 @@ Diagnosis: ${note.clinicalReasoning.diagnosis || "—"}
 Prognosis: ${note.clinicalReasoning.prognosis || "—"}
 
 TREATMENT PLAN
+Estimated overall recovery timeframe: ${note.treatmentPlan.estimatedTimeframe.trim() || "not specified"}
 Phase 1 — Symptom Reduction: ${formatPhase(note.treatmentPlan.symptomReduction)}
 Phase 2 — Restorative: ${formatPhase(note.treatmentPlan.restorative)}
 Phase 3 — Consolidation: ${formatPhase(note.treatmentPlan.consolidation)}
+Return to function criteria (do NOT re-list these, they're shown separately in full): ${note.treatmentPlan.returnToFunctionCriteria.trim() || "not specified"}
 Next appointment: ${note.nextAppointment || "—"}
 
 Produce THREE things:
@@ -115,15 +132,31 @@ function parseResult(text: string): GenerateResult {
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const { reportSections, nookalNotes, focusArea } = parsed as Record<string, unknown>;
-  if (!Array.isArray(reportSections) || typeof nookalNotes !== "string") return null;
+  const { reportSections, nookalNotes, focusArea } = parsed as Record<
+    string,
+    unknown
+  >;
+  if (!Array.isArray(reportSections) || typeof nookalNotes !== "string")
+    return null;
 
   const sections: ReportSection[] = [];
   for (const s of reportSections) {
-    if (s && typeof s === "object" && typeof (s as Record<string, unknown>).heading === "string" && typeof (s as Record<string, unknown>).body === "string") {
-      sections.push({ heading: (s as Record<string, unknown>).heading as string, body: (s as Record<string, unknown>).body as string });
+    if (
+      s &&
+      typeof s === "object" &&
+      typeof (s as Record<string, unknown>).heading === "string" &&
+      typeof (s as Record<string, unknown>).body === "string"
+    ) {
+      sections.push({
+        heading: (s as Record<string, unknown>).heading as string,
+        body: (s as Record<string, unknown>).body as string,
+      });
     }
   }
   if (sections.length === 0) return null;
-  return { sections, nookalNotes, focusArea: typeof focusArea === "string" ? focusArea : "" };
+  return {
+    sections,
+    nookalNotes,
+    focusArea: typeof focusArea === "string" ? focusArea : "",
+  };
 }
