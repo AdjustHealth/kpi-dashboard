@@ -13,7 +13,7 @@ function labels(nav: ReturnType<typeof buildNav>) {
 describe("buildNav", () => {
   it("gives a director every group, including Configuration", () => {
     const nav = buildNav(access({ isDirector: true }));
-    expect(labels(nav)).toEqual(["Overview", "Data Entry", "Clinic Reports", "Meetings", "Team", "Adjust Gym", "Assessment Tool", "Configuration"]);
+    expect(labels(nav)).toEqual(["Overview", "Data Entry", "Clinic Reports", "Meetings", "Team", "Adjust Gym", "Assessment Tool", "Consultation Templates", "Configuration"]);
   });
 
   it("gives a login with no grants only Overview", () => {
