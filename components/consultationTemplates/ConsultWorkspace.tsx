@@ -6,29 +6,32 @@ import Link from "next/link";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import type { ConsultFormData, ConsultNote, GeneratedReport } from "@/lib/consultationTemplates/types";
 
-type Section = keyof Pick<ConsultNote, "subjective" | "objective" | "clinicalReasoning" | "treatmentPlan">;
+type Section = keyof Pick<ConsultNote, "goals" | "subjective" | "objective" | "clinicalReasoning" | "treatmentPlan">;
 
-const SUBJECTIVE_FIELDS: [keyof ConsultNote["subjective"], string][] = [
-  ["hpc", "History of Presenting Complaint"],
-  ["aggs", "Aggravating Factors"],
-  ["eases", "Easing Factors"],
-  ["pnn", "Pain Nature / Night Pain"],
-  ["redFlags", "Red Flags"],
-  ["ix", "Investigations"],
-  ["pmhx", "Past Medical History"],
-  ["roadblocks", "Roadblocks to Recovery"],
-  ["shxWork", "Social History / Work"],
-  ["exercise", "Exercise History"],
+const GOALS_FIELDS: [keyof ConsultNote["goals"], string][] = [
+  ["whyNow", "What made you decide to come into physio now? Why Adjust?"],
+  ["todayGoal", "What do you want to get out of today?"],
+  ["longTermGoal", "And long term — what do you want to get out of physiotherapy? Why is that important to you?"],
+  ["roadblockPerceived", "What do you think is stopping you from getting better?"],
+];
+
+const SUBJECTIVE_FIELDS: [keyof ConsultNote["subjective"], string, string?][] = [
+  ["hpcBodyChart", "HPC / Body Chart", "HPC, PNN, AGGS, EASES, 24hr, clicking/catching/locking"],
+  ["pastHistory", "Past History"],
+  ["imagingRedFlags", "Imaging / Red Flags"],
+  ["pmhxSurgeryMeds", "PMHx / Surgery / Medications"],
+  ["occupationSocial", "Occupation / Social"],
 ];
 
 const OBJECTIVE_FIELDS: [keyof ConsultNote["objective"], string][] = [
   ["obs", "Observation"],
-  ["functionGait", "Function / Gait"],
+  ["functionalTesting", "Functional Testing"],
   ["rom", "Range of Motion"],
-  ["mmt", "Muscle Strength Testing (MMT)"],
+  ["isokineticTesting", "Isokinetic Testing (VALD)"],
+  ["functionalFindingsVald", "Functional Findings (VALD)"],
   ["specialTests", "Special Tests"],
   ["ndts", "Neurodynamic Tests"],
-  ["paivmsPams", "PAIVMs / PAMs"],
+  ["jointMobility", "Joint Mobility"],
   ["palpation", "Palpation"],
 ];
 
@@ -186,11 +189,25 @@ export function ConsultWorkspace({
         </Field>
       </SectionCard>
 
-      <SectionCard title="Subjective">
-        {SUBJECTIVE_FIELDS.map(([key, label]) => (
+      <SectionCard title="3 Things I'd Like to Achieve in the Consult">
+        {GOALS_FIELDS.map(([key, label]) => (
           <Field key={key} label={label}>
-            <Textarea value={note.subjective[key]} onChange={(e) => setNested("subjective", key, e.target.value)} />
+            <Textarea value={note.goals[key]} onChange={(e) => setNested("goals", key, e.target.value)} />
           </Field>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="Subjective">
+        {SUBJECTIVE_FIELDS.map(([key, label, hint]) => (
+          <div key={key} className={key === "hpcBodyChart" ? "sm:col-span-2" : undefined}>
+            <Field label={label} hint={hint}>
+              <Textarea
+                value={note.subjective[key]}
+                onChange={(e) => setNested("subjective", key, e.target.value)}
+                style={key === "hpcBodyChart" ? { minHeight: "10rem" } : undefined}
+              />
+            </Field>
+          </div>
         ))}
       </SectionCard>
 
@@ -278,13 +295,13 @@ export function ConsultWorkspace({
                   onChange={(e) => updateReportSection(i, "heading", e.target.value)}
                   className="mb-2 font-display text-sm font-bold uppercase tracking-wide"
                 />
-                <Textarea value={s.body} onChange={(e) => updateReportSection(i, "body", e.target.value)} className="min-h-32" />
+                <Textarea value={s.body} onChange={(e) => updateReportSection(i, "body", e.target.value)} style={{ minHeight: "8rem" }} />
               </div>
             ))}
           </div>
 
           <Field label="Nookal Clinical Documentation">
-            <Textarea value={report.nookalNotes} onChange={(e) => updateNookalNotes(e.target.value)} className="min-h-48 font-mono text-xs" />
+            <Textarea value={report.nookalNotes} onChange={(e) => updateNookalNotes(e.target.value)} className="font-mono text-xs" style={{ minHeight: "12rem" }} />
           </Field>
         </div>
       )}

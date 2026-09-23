@@ -8,6 +8,7 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - Translate clinical findings into plain language a client with no medical background can actually picture — explain what a finding MEANS for them, not just what it is.
 - Be encouraging and confident without over-promising a timeline — it's fine to say something typically takes a number of weeks to settle, but don't guarantee outcomes.
 - When explaining the treatment plan, frame it as phases you're moving through together, not a list of appointments: an early phase focused on calming things down, a middle phase focused on rebuilding, and a final phase focused on making it stick.
+- Weave in what the client themselves said they wanted from today and long-term where it's given — this is a client-centred consult, so the report should read like it's answering THEIR stated goals, not just reciting exam findings.
 - Close warmly — genuine thanks for choosing to work with Adjust, and an invitation to reach out with questions before the next visit.
 - Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.`;
 
@@ -48,26 +49,28 @@ function buildPrompt(note: ConsultNote): string {
 CLIENT: ${note.patientName || "the client"}
 CLINICIAN: ${note.clinician || "the treating physiotherapist"}
 
+WHAT THE CLIENT WANTS FROM THIS
+Why they've come in now / why Adjust: ${note.goals.whyNow || "—"}
+What they want out of today's session: ${note.goals.todayGoal || "—"}
+Long-term goal for physiotherapy, and why it matters to them: ${note.goals.longTermGoal || "—"}
+What they think is stopping them getting better: ${note.goals.roadblockPerceived || "—"}
+
 SUBJECTIVE
-History of presenting complaint: ${note.subjective.hpc || "—"}
-Aggravating factors: ${note.subjective.aggs || "—"}
-Easing factors: ${note.subjective.eases || "—"}
-Pain nature / night pain: ${note.subjective.pnn || "—"}
-Red flags: ${note.subjective.redFlags || "—"}
-Investigations: ${note.subjective.ix || "—"}
-Past medical history: ${note.subjective.pmhx || "—"}
-Roadblocks to recovery: ${note.subjective.roadblocks || "—"}
-Social history / work: ${note.subjective.shxWork || "—"}
-Exercise history: ${note.subjective.exercise || "—"}
+HPC / body chart (includes PNN, aggravating/easing factors, 24hr pattern, clicking/catching/locking where noted): ${note.subjective.hpcBodyChart || "—"}
+Past history: ${note.subjective.pastHistory || "—"}
+Imaging / red flags: ${note.subjective.imagingRedFlags || "—"}
+PMHx / surgery / medications: ${note.subjective.pmhxSurgeryMeds || "—"}
+Occupation / social: ${note.subjective.occupationSocial || "—"}
 
 OBJECTIVE
 Observation: ${note.objective.obs || "—"}
-Function / gait: ${note.objective.functionGait || "—"}
+Functional testing: ${note.objective.functionalTesting || "—"}
 Range of motion: ${note.objective.rom || "—"}
-Muscle strength testing: ${note.objective.mmt || "—"}
+Isokinetic testing (VALD): ${note.objective.isokineticTesting || "—"}
+Functional findings (VALD): ${note.objective.functionalFindingsVald || "—"}
 Special tests: ${note.objective.specialTests || "—"}
 Neurodynamic tests: ${note.objective.ndts || "—"}
-PAIVMs / PAMs: ${note.objective.paivmsPams || "—"}
+Joint mobility: ${note.objective.jointMobility || "—"}
 Palpation: ${note.objective.palpation || "—"}
 
 CLINICAL REASONING
