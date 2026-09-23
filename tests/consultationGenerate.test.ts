@@ -50,20 +50,30 @@ describe("generateConsultOutputs", () => {
     expect(result).toBeNull();
   });
 
-  it("parses a well-formed response into sections + nookal notes", async () => {
+  it("parses a well-formed response into focus area + sections + nookal notes", async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
     createMock.mockResolvedValue({
       content: [
         {
           type: "text",
-          text: 'Sure, here it is:\n{"reportSections":[{"heading":"Welcome","body":"Hi Jane, great to meet you today."}],"nookalNotes":"S: reports lateral knee pain..."}',
+          text: 'Sure, here it is:\n{"focusArea":"Right Knee · Patellofemoral Pain","reportSections":[{"heading":"What We Found","body":"Hi Jane, here is what we found today."}],"nookalNotes":"S: reports lateral knee pain..."}',
         },
       ],
     });
     const result = await generateConsultOutputs(note);
     expect(result).toEqual({
-      sections: [{ heading: "Welcome", body: "Hi Jane, great to meet you today." }],
+      focusArea: "Right Knee · Patellofemoral Pain",
+      sections: [{ heading: "What We Found", body: "Hi Jane, here is what we found today." }],
       nookalNotes: "S: reports lateral knee pain...",
     });
+  });
+
+  it("defaults focusArea to an empty string if the model omits it", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    createMock.mockResolvedValue({
+      content: [{ type: "text", text: '{"reportSections":[{"heading":"What We Found","body":"..."}],"nookalNotes":"S: ..."}' }],
+    });
+    const result = await generateConsultOutputs(note);
+    expect(result?.focusArea).toBe("");
   });
 });

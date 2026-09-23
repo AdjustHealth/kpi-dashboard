@@ -12,7 +12,7 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - Close warmly — genuine thanks for choosing to work with Adjust, and an invitation to reach out with questions before the next visit.
 - Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.`;
 
-export type GenerateResult = { sections: ReportSection[]; nookalNotes: string } | null;
+export type GenerateResult = { sections: ReportSection[]; nookalNotes: string; focusArea: string } | null;
 
 /**
  * Turns a filled Initial Consultation note into (a) a warm, plain-language
@@ -85,15 +85,17 @@ Phase 2 — Restorative: ${note.treatmentPlan.restorative || "—"}
 Phase 3 — Consolidation: ${note.treatmentPlan.consolidation || "—"}
 Next appointment: ${note.nextAppointment || "—"}
 
-Produce TWO things:
+Produce THREE things:
 
-1. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. Use around 5-6 sections covering: a warm opening/overview, what was found (in plain language), their diagnosis explained simply, the treatment plan as phases, what to expect between now and next visit, and a warm closing with next appointment details if given. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
+1. "focusArea" — a short 3-6 word label for what this consult was actually about, for a badge/chip at the top of the report (e.g. "Right Knee · Patellofemoral Pain", "Lower Back · Disc-Related Stiffness"). Plain language, not a full diagnosis sentence.
+
+2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (headline + what the client told us) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language), their diagnosis explained simply, the treatment plan framed as phases you're moving through together, and what to expect between now and next visit. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
 ${STYLE_GUIDE}
 
-2. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
+3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
 
 Respond with ONLY a JSON object and nothing else, in this exact shape:
-{"reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"..."}`;
+{"focusArea":"...","reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"..."}`;
 }
 
 function parseResult(text: string): GenerateResult {
@@ -106,7 +108,7 @@ function parseResult(text: string): GenerateResult {
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const { reportSections, nookalNotes } = parsed as Record<string, unknown>;
+  const { reportSections, nookalNotes, focusArea } = parsed as Record<string, unknown>;
   if (!Array.isArray(reportSections) || typeof nookalNotes !== "string") return null;
 
   const sections: ReportSection[] = [];
@@ -116,5 +118,5 @@ function parseResult(text: string): GenerateResult {
     }
   }
   if (sections.length === 0) return null;
-  return { sections, nookalNotes };
+  return { sections, nookalNotes, focusArea: typeof focusArea === "string" ? focusArea : "" };
 }

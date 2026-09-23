@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Generation unavailable — check ANTHROPIC_API_KEY is configured, or try again." }, { status: 502 });
     }
 
-    const report: GeneratedReport = { sections: result.sections, nookalNotes: result.nookalNotes, generatedAt: new Date().toISOString() };
+    const report: GeneratedReport = { focusArea: result.focusArea, sections: result.sections, nookalNotes: result.nookalNotes, generatedAt: new Date().toISOString() };
     const formData: ConsultFormData = { note, report };
 
     await sql`update assessments set form_data = ${sql.json(JSON.parse(JSON.stringify(formData)))} where id = ${id}`;
