@@ -87,6 +87,7 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
     assessments = (await sql`
       select id, athlete_name, assess_type, youth_tier, clinician, assessment_date::text as assessment_date, overall_score::float8 as overall_score
       from assessments
+      where assess_type <> 'initial_consult'
       order by created_at desc
     `) as unknown as Row[];
   } catch (e) {
