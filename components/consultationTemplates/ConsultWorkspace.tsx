@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import type { ConsultFormData, ConsultNote, GeneratedReport } from "@/lib/consultationTemplates/types";
 
-type Section = keyof Pick<ConsultNote, "goals" | "subjective" | "objective" | "clinicalReasoning" | "treatmentPlan">;
+type Section = keyof Pick<ConsultNote, "goals" | "subjective" | "objective" | "clinicalReasoning">;
 
 const GOALS_FIELDS: [keyof ConsultNote["goals"], string][] = [
   ["whyNow", "What made you decide to come into physio now? Why Adjust?"],
@@ -42,10 +42,10 @@ const REASONING_FIELDS: [keyof ConsultNote["clinicalReasoning"], string, string?
   ["prognosis", "Prognosis"],
 ];
 
-const TREATMENT_FIELDS: [keyof ConsultNote["treatmentPlan"], string, string][] = [
-  ["symptomReduction", "Phase 1 — Symptom Reduction", "Frequency, duration and focus"],
-  ["restorative", "Phase 2 — Restorative", "Frequency, duration and focus"],
-  ["consolidation", "Phase 3 — Consolidation", "Frequency, duration and focus"],
+const TREATMENT_PHASES: [keyof ConsultNote["treatmentPlan"], string][] = [
+  ["symptomReduction", "Phase 1 — Symptom Reduction"],
+  ["restorative", "Phase 2 — Restorative"],
+  ["consolidation", "Phase 3 — Consolidation"],
 ];
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -81,6 +81,10 @@ export function ConsultWorkspace({
 
   function setNested<S extends Section>(section: S, key: keyof ConsultNote[S], value: string) {
     setNote((n) => ({ ...n, [section]: { ...n[section], [key]: value } }));
+  }
+
+  function setPhase(phase: keyof ConsultNote["treatmentPlan"], field: keyof ConsultNote["treatmentPlan"][typeof phase], value: string) {
+    setNote((n) => ({ ...n, treatmentPlan: { ...n.treatmentPlan, [phase]: { ...n.treatmentPlan[phase], [field]: value } } }));
   }
 
   async function save(): Promise<string | null> {
@@ -231,13 +235,37 @@ export function ConsultWorkspace({
         ))}
       </SectionCard>
 
-      <SectionCard title="Treatment Plan">
-        {TREATMENT_FIELDS.map(([key, label, hint]) => (
-          <Field key={key} label={label} hint={hint}>
-            <Textarea value={note.treatmentPlan[key]} onChange={(e) => setNested("treatmentPlan", key, e.target.value)} />
-          </Field>
-        ))}
-      </SectionCard>
+      <div className="rounded-xl border border-border bg-surface-raised/60 p-6">
+        <h2 className="mb-4 font-display text-sm font-bold uppercase tracking-wide text-muted">Treatment Plan</h2>
+        <div className="flex flex-col gap-6">
+          {TREATMENT_PHASES.map(([key, label]) => {
+            const phase = note.treatmentPlan[key];
+            return (
+              <div key={key} className="rounded-lg border border-border/60 p-4">
+                <h3 className="mb-3 font-display text-xs font-bold uppercase tracking-wide text-foreground">{label}</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Frequency" hint="e.g. 2x per week">
+                    <Input value={phase.frequency} onChange={(e) => setPhase(key, "frequency", e.target.value)} />
+                  </Field>
+                  <Field label="Duration" hint="e.g. 2 weeks">
+                    <Input value={phase.duration} onChange={(e) => setPhase(key, "duration", e.target.value)} />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Focus / Goal" hint="What this phase is trying to achieve">
+                      <Textarea value={phase.focus} onChange={(e) => setPhase(key, "focus", e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Key Interventions" hint="One per line — shown as a bullet list on the report">
+                      <Textarea value={phase.interventions} onChange={(e) => setPhase(key, "interventions", e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <button

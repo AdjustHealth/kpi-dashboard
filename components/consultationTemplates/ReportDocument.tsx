@@ -36,8 +36,12 @@ function pickClientQuote(note: ConsultNote): string {
  * legacy Assessment Tool already relies on, just with a purpose-built,
  * professionally designed template instead of a dumped print of a form.
  */
+function phaseHasContent(phase: ConsultNote["treatmentPlan"][keyof ConsultNote["treatmentPlan"]]): boolean {
+  return Boolean(phase.frequency.trim() || phase.duration.trim() || phase.focus.trim() || phase.interventions.trim());
+}
+
 export function ReportDocument({ note, report }: { note: ConsultNote; report: GeneratedReport }) {
-  const hasPhases = PHASES.some(([key]) => note.treatmentPlan[key]?.trim());
+  const hasPhases = PHASES.some(([key]) => phaseHasContent(note.treatmentPlan[key]));
   const quote = pickClientQuote(note);
   const name = firstName(note.patientName) || "there";
 
@@ -148,41 +152,77 @@ export function ReportDocument({ note, report }: { note: ConsultNote; report: Ge
 
           {/* ---- Treatment journey ---- */}
           {hasPhases && (
-            <div className="report-block px-10 pb-2 pt-10 sm:px-14" style={{ borderTop: "1px solid #ece9e2" }}>
+            <div className="report-block px-10 pb-4 pt-10 sm:px-14" style={{ borderTop: "1px solid #ece9e2" }}>
               <h2 className="font-display text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: "#0f9e6e" }}>
-                Your Treatment Journey
+                Your Treatment Plan
               </h2>
-              <div className="journey-track relative mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-3">
-                <div
-                  aria-hidden
-                  className="hidden sm:block"
-                  style={{ position: "absolute", left: "16.5%", right: "16.5%", top: 19, height: 2, background: "linear-gradient(90deg,#a6e22e,#34d399)", opacity: 0.35 }}
-                />
-                {PHASES.map(([key, label, icon], i) => {
-                  const text = note.treatmentPlan[key];
-                  if (!text?.trim()) return null;
-                  return (
-                    <div key={key} className="relative">
-                      <div
-                        className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-white shadow-sm"
-                        style={{ background: "linear-gradient(135deg,#a6e22e,#34d399)" }}
-                      >
-                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0a0e17" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <path d={icon} />
-                        </svg>
+              <p className="mt-1.5 text-[12.5px]" style={{ color: "#8b93a5" }}>
+                Three phases, each building on the last — here&rsquo;s exactly what each one involves.
+              </p>
+
+              <div className="relative mt-8">
+                <div aria-hidden className="hidden sm:block" style={{ position: "absolute", left: 19, top: 20, bottom: 20, width: 2, background: "linear-gradient(180deg,#a6e22e,#34d399)", opacity: 0.3 }} />
+                <div className="flex flex-col gap-8">
+                  {PHASES.map(([key, label, icon], i) => {
+                    const phase = note.treatmentPlan[key];
+                    if (!phaseHasContent(phase)) return null;
+                    const cadence = [phase.frequency.trim(), phase.duration.trim()].filter(Boolean).join(" · ");
+                    const items = phase.interventions
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+
+                    return (
+                      <div key={key} className="journey-track relative flex gap-5">
+                        <div
+                          className="relative z-10 flex h-10 w-10 flex-none items-center justify-center rounded-full text-white shadow-sm"
+                          style={{ background: "linear-gradient(135deg,#a6e22e,#34d399)" }}
+                        >
+                          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0a0e17" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d={icon} />
+                          </svg>
+                        </div>
+                        <div className="min-w-0 flex-1 pb-1">
+                          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+                            <div>
+                              <div className="font-display text-[10.5px] font-bold uppercase tracking-[0.1em]" style={{ color: "#8b93a5" }}>
+                                Phase {i + 1}
+                              </div>
+                              <div className="font-display text-[16px] font-bold" style={{ color: "#0a0e17" }}>
+                                {label}
+                              </div>
+                            </div>
+                            {cadence && (
+                              <div
+                                className="inline-flex items-center rounded-full px-3 py-1 text-[11.5px] font-semibold"
+                                style={{ background: "rgba(15,158,110,0.1)", color: "#0f9e6e" }}
+                              >
+                                {cadence}
+                              </div>
+                            )}
+                          </div>
+
+                          {phase.focus && (
+                            <p className="mt-2.5 whitespace-pre-line text-[13.5px] leading-relaxed" style={{ color: "#2c3341" }}>
+                              {phase.focus}
+                            </p>
+                          )}
+
+                          {items.length > 0 && (
+                            <ul className="mt-3 flex flex-col gap-1.5">
+                              {items.map((item, idx) => (
+                                <li key={idx} className="flex items-start gap-2.5 text-[12.5px] leading-snug" style={{ color: "#5b6478" }}>
+                                  <span className="mt-[6px] h-1 w-1 flex-none rounded-full" style={{ background: "#34d399" }} />
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       </div>
-                      <div className="mt-3 font-display text-[10.5px] font-bold uppercase tracking-[0.1em]" style={{ color: "#8b93a5" }}>
-                        Phase {i + 1}
-                      </div>
-                      <div className="font-display text-[15px] font-bold" style={{ color: "#0a0e17" }}>
-                        {label}
-                      </div>
-                      <p className="mt-2 whitespace-pre-line text-[12.5px] leading-relaxed" style={{ color: "#5b6478" }}>
-                        {text}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
