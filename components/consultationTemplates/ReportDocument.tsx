@@ -153,11 +153,16 @@ export function ReportDocument({ note, report }: { note: ConsultNote; report: Ge
           {/* ---- Treatment journey ---- */}
           {hasPhases && (
             <div className="report-block px-10 pb-4 pt-10 sm:px-14" style={{ borderTop: "1px solid #ece9e2" }}>
-              <h2 className="font-display text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: "#0f9e6e" }}>
-                Your Treatment Plan
-              </h2>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="font-display text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: "#0f9e6e" }}>
+                  Your Treatment Plan
+                </h2>
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.08em]" style={{ color: "#a8afbc" }}>
+                  Your typical pathway
+                </span>
+              </div>
               <p className="mt-1.5 text-[12.5px]" style={{ color: "#8b93a5" }}>
-                Three phases, each building on the last — here&rsquo;s exactly what each one involves.
+                Three phases, each building on the last. Everyone recovers a little differently, so we&rsquo;ll review and fine-tune this together as we go.
               </p>
 
               <div className="relative mt-8">
