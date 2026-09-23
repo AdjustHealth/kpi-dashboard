@@ -38,12 +38,30 @@ export type ConsultNote = {
     prognosis: string;
   };
   treatmentPlan: {
-    symptomReduction: string;
-    restorative: string;
-    consolidation: string;
+    symptomReduction: TreatmentPhase;
+    restorative: TreatmentPhase;
+    consolidation: TreatmentPhase;
   };
   nextAppointment: string;
 };
+
+/** Split out so the plan can actually be laid out with real structure (a
+ * cadence badge, a stated goal, a list of what's done) instead of one
+ * freeform blob per phase — this is the section clients care most about. */
+export type TreatmentPhase = {
+  /** e.g. "2x per week" */
+  frequency: string;
+  /** e.g. "2 weeks" */
+  duration: string;
+  /** What this phase is actually trying to achieve */
+  focus: string;
+  /** One item per line — rendered as a bullet list */
+  interventions: string;
+};
+
+function emptyPhase(): TreatmentPhase {
+  return { frequency: "", duration: "", focus: "", interventions: "" };
+}
 
 /** Pre-filled with the clinic's own HPC/Body Chart labels so a new note
  * starts looking like the template physios already fill in in Nookal. */
@@ -69,7 +87,7 @@ export function emptyConsultNote(): ConsultNote {
       palpation: "",
     },
     clinicalReasoning: { impression: "", workingClinicalModel: "", diagnosis: "", prognosis: "" },
-    treatmentPlan: { symptomReduction: "", restorative: "", consolidation: "" },
+    treatmentPlan: { symptomReduction: emptyPhase(), restorative: emptyPhase(), consolidation: emptyPhase() },
     nextAppointment: "",
   };
 }

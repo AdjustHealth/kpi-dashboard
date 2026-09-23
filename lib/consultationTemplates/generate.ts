@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ConsultNote, ReportSection } from "./types";
+import type { ConsultNote, ReportSection, TreatmentPhase } from "./types";
 
 const MODEL = "claude-opus-5-5"; // patient-facing writing quality matters more than latency/cost here — this runs once per consult, not in bulk
 
@@ -43,6 +43,12 @@ export async function generateConsultOutputs(note: ConsultNote): Promise<Generat
   }
 }
 
+function formatPhase(phase: TreatmentPhase): string {
+  const cadence = [phase.frequency, phase.duration].filter(Boolean).join(", ");
+  const parts = [cadence, phase.focus, phase.interventions ? `Key interventions: ${phase.interventions.replace(/\n/g, "; ")}` : ""].filter(Boolean);
+  return parts.length > 0 ? parts.join(" — ") : "—";
+}
+
 function buildPrompt(note: ConsultNote): string {
   return `You're helping a physiotherapist at Adjust Health turn their initial consultation notes into two documents, from the structured note below (a Client-Centred Consult).
 
@@ -80,16 +86,16 @@ Diagnosis: ${note.clinicalReasoning.diagnosis || "—"}
 Prognosis: ${note.clinicalReasoning.prognosis || "—"}
 
 TREATMENT PLAN
-Phase 1 — Symptom Reduction: ${note.treatmentPlan.symptomReduction || "—"}
-Phase 2 — Restorative: ${note.treatmentPlan.restorative || "—"}
-Phase 3 — Consolidation: ${note.treatmentPlan.consolidation || "—"}
+Phase 1 — Symptom Reduction: ${formatPhase(note.treatmentPlan.symptomReduction)}
+Phase 2 — Restorative: ${formatPhase(note.treatmentPlan.restorative)}
+Phase 3 — Consolidation: ${formatPhase(note.treatmentPlan.consolidation)}
 Next appointment: ${note.nextAppointment || "—"}
 
 Produce THREE things:
 
 1. "focusArea" — a short 3-6 word label for what this consult was actually about, for a badge/chip at the top of the report (e.g. "Right Knee · Patellofemoral Pain", "Lower Back · Disc-Related Stiffness"). Plain language, not a full diagnosis sentence.
 
-2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (headline + what the client told us) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language), their diagnosis explained simply, the treatment plan framed as phases you're moving through together, and what to expect between now and next visit. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
+2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (headline + what the client told us) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language) and their diagnosis explained simply, then what to expect between now and next visit. Include a short section introducing the treatment plan as phases you're moving through together — but keep it a narrative framing only (why three phases, how they connect), NOT a re-listing of cadence/frequency or the interventions list, since those are laid out separately and in full detail right after your sections. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
 ${STYLE_GUIDE}
 
 3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
