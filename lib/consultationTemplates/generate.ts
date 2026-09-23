@@ -10,7 +10,8 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - When explaining the treatment plan, frame it as phases you're moving through together, not a list of appointments: an early phase focused on calming things down, a middle phase focused on rebuilding, and a final phase focused on making it stick. Frame it as the typical pathway rather than a fixed promise — it's fine to be specific and confident, but make clear (briefly, in passing, not as a caveat/disclaimer) that the plan gets reviewed and adjusted based on how the client actually responds.
 - Weave in what the client themselves said they wanted from today and long-term where it's given — this is a client-centred consult, so the report should read like it's answering THEIR stated goals, not just reciting exam findings.
 - Close warmly — genuine thanks for choosing to work with Adjust, and an invitation to reach out with questions before the next visit.
-- Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.`;
+- Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.
+- Never use em dashes or double hyphens (—, --). Write in plain sentences using periods and commas instead — that stylistic tic is one of the clearest tells that something was written by AI, and this needs to read like a person wrote it.`;
 
 export type GenerateResult = { sections: ReportSection[]; nookalNotes: string; focusArea: string } | null;
 

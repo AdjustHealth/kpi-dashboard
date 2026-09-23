@@ -219,7 +219,7 @@ export function ReportDocument({
                 &ldquo;{quote}&rdquo;
               </p>
               <p className="mt-2 pl-6 text-[12px]" style={{ color: "#8b93a5" }}>
-                — in your own words, at check-in
+                In your own words, at check-in
               </p>
             </div>
           )}
@@ -236,7 +236,7 @@ export function ReportDocument({
                   className="font-display text-[13px] font-bold uppercase tracking-[0.06em]"
                   style={{ color: "#0f9e6e" }}
                 >
-                  {String(i + 1).padStart(2, "0")} — {s.heading}
+                  {String(i + 1).padStart(2, "0")}. {s.heading}
                 </h2>
                 <div
                   className="mt-2.5 whitespace-pre-line text-[15px] leading-[1.7]"
@@ -447,7 +447,7 @@ export function ReportDocument({
               className="text-[14px] leading-relaxed"
               style={{ color: "#2c3341", maxWidth: "52ch" }}
             >
-              Thank you for choosing to work with us at Adjust — it means a lot,
+              Thank you for choosing to work with us at Adjust. It means a lot,
               and we&rsquo;re genuinely looking forward to helping you get
               there.
             </p>
