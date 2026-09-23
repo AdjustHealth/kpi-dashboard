@@ -77,6 +77,7 @@ export function emptyConsultNote(): ConsultNote {
 export type ReportSection = { heading: string; body: string };
 
 export type GeneratedReport = {
+  focusArea: string;
   sections: ReportSection[];
   nookalNotes: string;
   generatedAt: string;

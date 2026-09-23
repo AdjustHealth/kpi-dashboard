@@ -151,6 +151,10 @@ export function ConsultWorkspace({
     setReport((r) => (r ? { ...r, nookalNotes: value } : r));
   }
 
+  function updateFocusArea(value: string) {
+    setReport((r) => (r ? { ...r, focusArea: value } : r));
+  }
+
   async function copyNookalNotes() {
     if (!report) return;
     await navigator.clipboard.writeText(report.nookalNotes);
@@ -286,6 +290,10 @@ export function ConsultWorkspace({
             Edit any section below — these are the exact words the client will see on the PDF (and what gets pasted into Nookal), so tidy up anything the
             AI got slightly off before sending.
           </p>
+
+          <Field label="Focus Area" hint="Short badge shown at the top of the patient report">
+            <Input value={report.focusArea} onChange={(e) => updateFocusArea(e.target.value)} className="sm:max-w-xs" />
+          </Field>
 
           <div className="flex flex-col gap-4">
             {report.sections.map((s, i) => (
