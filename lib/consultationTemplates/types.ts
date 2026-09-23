@@ -41,6 +41,13 @@ export type ConsultNote = {
     symptomReduction: TreatmentPhase;
     restorative: TreatmentPhase;
     consolidation: TreatmentPhase;
+    /** e.g. "10 to 12 weeks" — a single headline figure, separate from each phase's own duration */
+    estimatedTimeframe: string;
+    /** Lets the physio type a timeframe and still keep it off the report — e.g. filled in for internal reference but not ready to commit to with the client yet */
+    includeEstimatedTimeframe: boolean;
+    /** One benchmark per line — rendered as a checklist. e.g. "Pain-free single-leg squat x10" */
+    returnToFunctionCriteria: string;
+    includeReturnToFunctionCriteria: boolean;
   };
   nextAppointment: string;
 };
@@ -65,7 +72,8 @@ function emptyPhase(): TreatmentPhase {
 
 /** Pre-filled with the clinic's own HPC/Body Chart labels so a new note
  * starts looking like the template physios already fill in in Nookal. */
-const HPC_BODY_CHART_TEMPLATE = "HPC:\nPNN:\nAGGS:\nEASES:\n24HR:\nCLICKING/CATCHING/LOCKING:";
+const HPC_BODY_CHART_TEMPLATE =
+  "HPC:\nPNN:\nAGGS:\nEASES:\n24HR:\nCLICKING/CATCHING/LOCKING:";
 
 export function emptyConsultNote(): ConsultNote {
   return {
@@ -73,8 +81,19 @@ export function emptyConsultNote(): ConsultNote {
     clinician: "",
     consultDate: "",
     referralSource: "",
-    goals: { whyNow: "", todayGoal: "", longTermGoal: "", roadblockPerceived: "" },
-    subjective: { hpcBodyChart: HPC_BODY_CHART_TEMPLATE, pastHistory: "", imagingRedFlags: "", pmhxSurgeryMeds: "", occupationSocial: "" },
+    goals: {
+      whyNow: "",
+      todayGoal: "",
+      longTermGoal: "",
+      roadblockPerceived: "",
+    },
+    subjective: {
+      hpcBodyChart: HPC_BODY_CHART_TEMPLATE,
+      pastHistory: "",
+      imagingRedFlags: "",
+      pmhxSurgeryMeds: "",
+      occupationSocial: "",
+    },
     objective: {
       obs: "",
       functionalTesting: "",
@@ -86,8 +105,21 @@ export function emptyConsultNote(): ConsultNote {
       jointMobility: "",
       palpation: "",
     },
-    clinicalReasoning: { impression: "", workingClinicalModel: "", diagnosis: "", prognosis: "" },
-    treatmentPlan: { symptomReduction: emptyPhase(), restorative: emptyPhase(), consolidation: emptyPhase() },
+    clinicalReasoning: {
+      impression: "",
+      workingClinicalModel: "",
+      diagnosis: "",
+      prognosis: "",
+    },
+    treatmentPlan: {
+      symptomReduction: emptyPhase(),
+      restorative: emptyPhase(),
+      consolidation: emptyPhase(),
+      estimatedTimeframe: "",
+      includeEstimatedTimeframe: true,
+      returnToFunctionCriteria: "",
+      includeReturnToFunctionCriteria: true,
+    },
     nextAppointment: "",
   };
 }

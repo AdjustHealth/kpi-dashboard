@@ -2,9 +2,12 @@ import { PrintButton } from "./PrintButton";
 import type {
   ConsultNote,
   GeneratedReport,
+  TreatmentPhase,
 } from "@/lib/consultationTemplates/types";
 
-const PHASES: [keyof ConsultNote["treatmentPlan"], string, string][] = [
+type TreatmentPhaseKey = "symptomReduction" | "restorative" | "consolidation";
+
+const PHASES: [TreatmentPhaseKey, string, string][] = [
   ["symptomReduction", "Symptom Reduction", "M4 12h8M12 8v8"],
   [
     "restorative",
@@ -52,9 +55,7 @@ function pickClientQuote(note: ConsultNote): string {
  * legacy Assessment Tool already relies on, just with a purpose-built,
  * professionally designed template instead of a dumped print of a form.
  */
-function phaseHasContent(
-  phase: ConsultNote["treatmentPlan"][keyof ConsultNote["treatmentPlan"]],
-): boolean {
+function phaseHasContent(phase: TreatmentPhase): boolean {
   return Boolean(
     phase.frequency.trim() ||
     phase.duration.trim() ||
@@ -282,6 +283,30 @@ export function ReportDocument({
                   together as we go.
                 </p>
 
+                {note.treatmentPlan.includeEstimatedTimeframe &&
+                  note.treatmentPlan.estimatedTimeframe.trim() && (
+                    <div
+                      className="mt-5 inline-flex items-baseline gap-2 rounded-full px-4 py-2"
+                      style={{
+                        background: "#fdfcfa",
+                        border: "1px solid rgba(52,211,153,0.3)",
+                      }}
+                    >
+                      <span
+                        className="text-[10.5px] font-semibold uppercase tracking-[0.1em]"
+                        style={{ color: "#8b93a5" }}
+                      >
+                        Estimated Recovery
+                      </span>
+                      <span
+                        className="font-display text-[16px] font-bold"
+                        style={{ color: "#0a0e17" }}
+                      >
+                        {note.treatmentPlan.estimatedTimeframe}
+                      </span>
+                    </div>
+                  )}
+
                 <div className="relative mt-8">
                   <div
                     aria-hidden
@@ -397,6 +422,56 @@ export function ReportDocument({
                     })}
                   </div>
                 </div>
+
+                {note.treatmentPlan.includeReturnToFunctionCriteria &&
+                  note.treatmentPlan.returnToFunctionCriteria.trim() && (
+                    <div
+                      className="mt-8 border-t pt-6"
+                      style={{ borderColor: "rgba(52,211,153,0.2)" }}
+                    >
+                      <h3
+                        className="font-display text-[12px] font-bold uppercase tracking-[0.06em]"
+                        style={{ color: "#0f9e6e" }}
+                      >
+                        Return to Function Criteria
+                      </h3>
+                      <p
+                        className="mt-1.5 text-[12.5px]"
+                        style={{ color: "#5b6478" }}
+                      >
+                        What we&rsquo;ll be looking for before moving you on
+                        from this plan.
+                      </p>
+                      <ul className="mt-4 flex flex-col gap-2.5">
+                        {note.treatmentPlan.returnToFunctionCriteria
+                          .split("\n")
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                          .map((item, idx) => (
+                            <li
+                              key={idx}
+                              className="flex items-start gap-2.5 text-[13px] leading-snug"
+                              style={{ color: "#2c3341" }}
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="15"
+                                height="15"
+                                className="mt-[1px] flex-none"
+                                fill="none"
+                                stroke="#0f9e6e"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20 6 9 17l-5-5" />
+                              </svg>
+                              {item}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
               </div>
             </div>
           )}
