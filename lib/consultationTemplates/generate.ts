@@ -12,54 +12,71 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.
 - Never use em dashes or double hyphens (—, --). Write in plain sentences using periods and commas instead — that stylistic tic is one of the clearest tells that something was written by AI, and this needs to read like a person wrote it.`;
 
-export type GenerateResult = {
-  sections: ReportSection[];
-  nookalNotes: string;
-  focusArea: string;
-} | null;
+export type GenerateOutcome =
+  | {
+      ok: true;
+      sections: ReportSection[];
+      nookalNotes: string;
+      focusArea: string;
+    }
+  | { ok: false; reason: string };
 
 /**
  * Turns a filled Initial Consultation note into (a) a warm, plain-language
  * patient-facing report and (b) concise Nookal-ready clinical documentation
  * — one AI call producing both from the same structured note, so a physio
  * who already wrote the note up as they normally do gets both outputs for
- * free. Returns null (never throws) on any failure — same "degrade
- * gracefully, caller decides what to show" contract as
- * classifyRescheduleNotes(), since this is a genuinely optional step on top
- * of a note that's already saved either way.
+ * free. Never throws — on any failure, returns { ok: false, reason } with a
+ * message specific enough to act on, shown directly in the UI so this is
+ * diagnosable without needing Vercel's logs at all.
  */
 export async function generateConsultOutputs(
   note: ConsultNote,
-): Promise<GenerateResult> {
+): Promise<GenerateOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.error("generateConsultOutputs: ANTHROPIC_API_KEY is not set");
-    return null;
+    return {
+      ok: false,
+      reason: "ANTHROPIC_API_KEY is not set in this deployment.",
+    };
   }
 
   const client = new Anthropic({ apiKey });
 
+  let text: string;
+  let truncated = false;
   try {
     const response = await client.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: "user", content: buildPrompt(note) }],
     });
-    const text =
+    text =
       response.content.find(
         (block): block is Anthropic.TextBlock => block.type === "text",
       )?.text ?? "";
-    const result = parseResult(text);
-    if (!result)
-      console.error(
-        "generateConsultOutputs: model response didn't match the expected shape:",
-        text.slice(0, 500),
-      );
-    return result;
+    truncated = response.stop_reason === "max_tokens";
   } catch (e) {
-    console.error("generateConsultOutputs: API call failed:", e);
-    return null;
+    const message =
+      e instanceof Anthropic.APIError
+        ? `${e.status} ${e.message}`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    return { ok: false, reason: `Anthropic API call failed: ${message}` };
   }
+
+  const result = parseResult(text);
+  if (!result) {
+    const truncationNote = truncated
+      ? " The response was cut off before it finished (hit the token limit) — try again, or shorten the note."
+      : "";
+    return {
+      ok: false,
+      reason: `The model's response wasn't in the expected format.${truncationNote} Raw response started with: ${text.slice(0, 200) || "(empty)"}`,
+    };
+  }
+  return { ok: true, ...result };
 }
 
 function formatPhase(phase: TreatmentPhase): string {
@@ -124,7 +141,13 @@ Respond with ONLY a JSON object and nothing else, in this exact shape:
 {"focusArea":"...","reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"..."}`;
 }
 
-function parseResult(text: string): GenerateResult {
+function parseResult(
+  text: string,
+): {
+  sections: ReportSection[];
+  nookalNotes: string;
+  focusArea: string;
+} | null {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return null;
   let parsed: unknown;

@@ -30,16 +30,11 @@ export async function POST(
     const existing = rows[0].form_data as ConsultFormData;
     const note = mergeConsultNote(existing.note);
 
-    const result = await generateConsultOutputs(note);
-    if (!result) {
-      return NextResponse.json(
-        {
-          error:
-            "Generation unavailable — check ANTHROPIC_API_KEY is configured, or try again.",
-        },
-        { status: 502 },
-      );
+    const outcome = await generateConsultOutputs(note);
+    if (!outcome.ok) {
+      return NextResponse.json({ error: outcome.reason }, { status: 502 });
     }
+    const result = outcome;
 
     const report: GeneratedReport = {
       focusArea: result.focusArea,
