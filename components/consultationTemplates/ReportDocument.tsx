@@ -1,5 +1,6 @@
 import { PrintButton } from "./PrintButton";
 import type {
+  CleanedPhase,
   ConsultNote,
   GeneratedReport,
   TreatmentPhase,
@@ -48,6 +49,33 @@ function phaseHasContent(phase: TreatmentPhase): boolean {
     phase.focus.trim() ||
     phase.interventions.trim(),
   );
+}
+
+/** Prefers the AI's spelling/grammar-cleaned copy of a phase's free text
+ * (see PlanCleanup) — this is the one part of the report that would
+ * otherwise render the physio's raw typed text completely unedited, typos
+ * and all. Falls back to the raw note if cleanup wasn't generated. */
+function phaseDisplayText(
+  phase: TreatmentPhase,
+  cleaned: CleanedPhase | undefined,
+): { focus: string; items: string[] } {
+  if (cleaned && (cleaned.focus.trim() || cleaned.interventions.length > 0)) {
+    return {
+      focus: cleaned.focus || phase.focus,
+      items:
+        cleaned.interventions.length > 0
+          ? cleaned.interventions
+          : rawLines(phase.interventions),
+    };
+  }
+  return { focus: phase.focus, items: rawLines(phase.interventions) };
+}
+
+function rawLines(value: string): string[] {
+  return value
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export function ReportDocument({
@@ -295,10 +323,10 @@ export function ReportDocument({
                       ]
                         .filter(Boolean)
                         .join(" · ");
-                      const items = phase.interventions
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean);
+                      const { focus, items } = phaseDisplayText(
+                        phase,
+                        report.planCleanup?.[key],
+                      );
 
                       return (
                         <div
@@ -354,12 +382,12 @@ export function ReportDocument({
                               )}
                             </div>
 
-                            {phase.focus && (
+                            {focus && (
                               <p
                                 className="mt-2.5 whitespace-pre-line text-[13.5px] leading-relaxed"
                                 style={{ color: "#2c3341" }}
                               >
-                                {phase.focus}
+                                {focus}
                               </p>
                             )}
 
@@ -407,32 +435,33 @@ export function ReportDocument({
                         from this plan.
                       </p>
                       <ul className="mt-4 flex flex-col gap-2.5">
-                        {note.treatmentPlan.returnToFunctionCriteria
-                          .split("\n")
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                          .map((item, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-start gap-2.5 text-[13px] leading-snug"
-                              style={{ color: "#2c3341" }}
+                        {(report.planCleanup?.returnToFunctionCriteria.length
+                          ? report.planCleanup.returnToFunctionCriteria
+                          : rawLines(
+                              note.treatmentPlan.returnToFunctionCriteria,
+                            )
+                        ).map((item, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start gap-2.5 text-[13px] leading-snug"
+                            style={{ color: "#2c3341" }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="15"
+                              height="15"
+                              className="mt-[1px] flex-none"
+                              fill="none"
+                              stroke="#0f9e6e"
+                              strokeWidth={2.2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="15"
-                                height="15"
-                                className="mt-[1px] flex-none"
-                                fill="none"
-                                stroke="#0f9e6e"
-                                strokeWidth={2.2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                              {item}
-                            </li>
-                          ))}
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                            {item}
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   )}

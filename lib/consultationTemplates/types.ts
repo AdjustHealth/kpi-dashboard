@@ -165,10 +165,26 @@ export function mergeConsultNote(
 
 export type ReportSection = { heading: string; body: string };
 
+/** Spelling/grammar/capitalization-only copy-edit of a phase's free-text
+ * fields — the treatment plan is rendered on the report straight from the
+ * physio's own typed note (no AI pass), so this is what catches things
+ * like "tehcnique" or a lowercase sentence start before a client sees it. */
+export type CleanedPhase = { focus: string; interventions: string[] };
+
+export type PlanCleanup = {
+  symptomReduction: CleanedPhase;
+  restorative: CleanedPhase;
+  consolidation: CleanedPhase;
+  returnToFunctionCriteria: string[];
+};
+
 export type GeneratedReport = {
   focusArea: string;
   sections: ReportSection[];
   nookalNotes: string;
+  /** null if the model didn't return it — report still renders fine,
+   * just falls back to the physio's raw typed text for the plan fields. */
+  planCleanup: PlanCleanup | null;
   generatedAt: string;
 };
 
