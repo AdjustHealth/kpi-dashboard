@@ -146,7 +146,7 @@ export function ReportDocument({
 
           <div className="relative">
             <div
-              className="font-display text-lg font-black uppercase tracking-wide"
+              className="font-display text-lg font-black uppercase italic tracking-wide"
               style={{
                 background: "linear-gradient(90deg,#c7f26a,#5ee6ab)",
                 WebkitBackgroundClip: "text",
@@ -165,7 +165,7 @@ export function ReportDocument({
           </div>
 
           <h1
-            className="relative mt-9 font-display font-black leading-[1.03] text-white"
+            className="relative mt-9 font-display font-black italic leading-[1.03] text-white"
             style={{ fontSize: "clamp(32px,4.6vw,48px)", textWrap: "balance" }}
           >
             {name}, here&rsquo;s your recovery plan.
