@@ -9,20 +9,18 @@ import type {
 
 const MODEL = "claude-opus-5-5"; // patient-facing writing quality matters more than latency/cost here — this runs once per consult, not in bulk
 
-const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own clients — warm, personal, genuinely excited to help, never clinical or cold. Some patterns to follow:
+const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own clients — warm, personal, genuinely excited to help, never clinical or cold. This is a document a busy person scans, not an essay they sit down and read start to finish, so every section is a short intro line plus punchy bullet points, never a paragraph. Some patterns to follow:
 - Address the client directly as "you" / "your" throughout, never "the patient" or third person.
-- Translate clinical findings into plain language a client with no medical background can actually picture — explain what a finding MEANS for them, not just what it is.
+- Translate clinical findings into plain language a client with no medical background can actually picture — explain what a finding MEANS for them, not just what it is. Each point should be short enough to take in at a glance, not a sentence with three clauses.
 - Be encouraging and confident without over-promising a timeline — it's fine to say something typically takes a number of weeks to settle, but don't guarantee outcomes.
-- When explaining the treatment plan, frame it as phases you're moving through together, not a list of appointments: an early phase focused on calming things down, a middle phase focused on rebuilding, and a final phase focused on making it stick. Frame it as the typical pathway rather than a fixed promise — it's fine to be specific and confident, but make clear (briefly, in passing, not as a caveat/disclaimer) that the plan gets reviewed and adjusted based on how the client actually responds.
 - Close warmly — genuine thanks for choosing to work with Adjust, and an invitation to reach out with questions before the next visit.
-- Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.
+- Don't just copy-paste the raw exam findings verbatim — plain-language bullets written FOR the client, not a re-typed clinical note.
 - Never use em dashes or double hyphens (—, --). Write in plain sentences using periods and commas instead — that stylistic tic is one of the clearest tells that something was written by AI, and this needs to read like a person wrote it.`;
 
 export type GenerateOutcome =
   | {
       ok: true;
       sections: ReportSection[];
-      keyFindings: string[];
       nookalNotes: string;
       focusArea: string;
       planCleanup: PlanCleanup | null;
@@ -136,21 +134,23 @@ Phase 3 — Consolidation: ${formatPhase(note.treatmentPlan.consolidation)}
 Return to function criteria (do NOT re-list these, they're shown separately in full): ${note.treatmentPlan.returnToFunctionCriteria.trim() || "not specified"}
 Next appointment: ${note.nextAppointment || "—"}
 
-Produce FIVE things:
+Produce FOUR things:
 
 1. "focusArea" — a short 3-6 word label for what this consult was actually about, for a badge/chip at the top of the report (e.g. "Right Knee · Patellofemoral Pain", "Lower Back · Disc-Related Stiffness"). Plain language, not a full diagnosis sentence.
 
-2. "keyFindings" — 3 to 5 short, scannable phrases (NOT full sentences, no trailing period, 3-8 words each) pulled from the objective findings, e.g. "Weakness through the outer hip", "Full, pain-free range of motion", "No signs of structural damage". These get laid out as a quick-scan list on the report, separate from the prose below, so a client can take in the headline findings in a few seconds before reading the fuller explanation.
-
-3. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (personalised headline) and the key findings list are both handled separately from these, so do NOT write a "welcome/overview" section and do NOT re-list the findings — start straight in. Write exactly 2 sections: (1) what was found AND what it means for them, woven together as one explanation (don't separate "findings" from "diagnosis" into two beats, that's redundant with the key findings list above) — name the actual diagnosis in plain language as part of this; (2) what to expect between now and their next visit. Do NOT write a separate section introducing the treatment plan — the Treatment Plan card that follows already has its own heading and framing, so a third section here would just repeat it. Each "body" is 1-2 short paragraphs of plain text (no markdown, no bullet characters) — keep it tight, this is a report a client will actually read in full, not skim past.
+2. "reportSections" — a client-facing report as an array of {"heading","intro","points"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit — scannable, not a novel. The report's opening (personalised headline) is handled separately from these, so do NOT write a "welcome/overview" section — start straight in. Write exactly 3 sections, in this order:
+   (a) heading "What We Found" — intro is ONE short sentence framing the picture overall; points is 3-5 short scannable findings (3-8 words each, no trailing period), e.g. "Weakness through the outer hip", "Full, pain-free range of motion", "No signs of structural damage".
+   (b) heading "Your Diagnosis, Explained" — intro is ONE short sentence naming the diagnosis in plain language; points is 2-4 short phrases explaining what it actually means for them day to day (still short, not full sentences).
+   (c) heading "What to Expect" — intro is ONE short sentence; points is 2-4 short, concrete things to expect before the next visit (e.g. "A little soreness for a day or two is normal", "Could take a couple of weeks to properly settle").
+   Do NOT write a separate section introducing the treatment plan — the Treatment Plan card that follows already has its own heading and framing, so a fourth section here would just repeat it. "intro" can be an empty string if genuinely nothing needs saying beyond the points, but usually one line of framing reads better than none.
 ${STYLE_GUIDE}
 
-4. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
+3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
 
-5. "planCleanup" — the treatment plan's Focus and Key Interventions text for each phase, and the Return to Function Criteria list, LIGHTLY copy-edited: fix spelling typos, capitalize the start of each sentence/bullet, fix obvious grammar slips. Do NOT paraphrase, reword, shorten, reorder, or change the clinical meaning — this is proofreading, not rewriting. Keep legitimate gym/clinical shorthand and abbreviations exactly as written (e.g. "BB", "LSI", "ROM", "toes to bar", "VALD") — only fix genuine typos like "tehcnique" -> "technique". Split each phase's interventions into an array, one string per line from the input (same order, same count of meaningful lines). If a field was empty or "not specified" in the input, return "" for a text field or [] for a list. Shape: {"symptomReduction":{"focus":"...","interventions":["...","..."]},"restorative":{...},"consolidation":{...},"returnToFunctionCriteria":["...","..."]}
+4. "planCleanup" — the treatment plan's Focus and Key Interventions text for each phase, and the Return to Function Criteria list, LIGHTLY copy-edited: fix spelling typos, capitalize the start of each sentence/bullet, fix obvious grammar slips. Do NOT paraphrase, reword, shorten, reorder, or change the clinical meaning — this is proofreading, not rewriting. Keep legitimate gym/clinical shorthand and abbreviations exactly as written (e.g. "BB", "LSI", "ROM", "toes to bar", "VALD") — only fix genuine typos like "tehcnique" -> "technique". Split each phase's interventions into an array, one string per line from the input (same order, same count of meaningful lines). If a field was empty or "not specified" in the input, return "" for a text field or [] for a list. Shape: {"symptomReduction":{"focus":"...","interventions":["...","..."]},"restorative":{...},"consolidation":{...},"returnToFunctionCriteria":["...","..."]}
 
 Respond with ONLY a JSON object and nothing else, in this exact shape:
-{"focusArea":"...","keyFindings":["...","..."],"reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"...","planCleanup":{"symptomReduction":{"focus":"...","interventions":["..."]},"restorative":{"focus":"...","interventions":["..."]},"consolidation":{"focus":"...","interventions":["..."]},"returnToFunctionCriteria":["..."]}}`;
+{"focusArea":"...","reportSections":[{"heading":"...","intro":"...","points":["...","..."]}],"nookalNotes":"...","planCleanup":{"symptomReduction":{"focus":"...","interventions":["..."]},"restorative":{"focus":"...","interventions":["..."]},"consolidation":{"focus":"...","interventions":["..."]},"returnToFunctionCriteria":["..."]}}`;
 }
 
 function parseCleanedPhase(raw: unknown): CleanedPhase {
@@ -184,7 +184,6 @@ function parsePlanCleanup(raw: unknown): PlanCleanup | null {
 
 function parseResult(text: string): {
   sections: ReportSection[];
-  keyFindings: string[];
   nookalNotes: string;
   focusArea: string;
   planCleanup: PlanCleanup | null;
@@ -198,7 +197,7 @@ function parseResult(text: string): {
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const { reportSections, keyFindings, nookalNotes, focusArea, planCleanup } =
+  const { reportSections, nookalNotes, focusArea, planCleanup } =
     parsed as Record<string, unknown>;
   if (!Array.isArray(reportSections) || typeof nookalNotes !== "string")
     return null;
@@ -208,21 +207,21 @@ function parseResult(text: string): {
     if (
       s &&
       typeof s === "object" &&
-      typeof (s as Record<string, unknown>).heading === "string" &&
-      typeof (s as Record<string, unknown>).body === "string"
+      typeof (s as Record<string, unknown>).heading === "string"
     ) {
-      sections.push({
-        heading: (s as Record<string, unknown>).heading as string,
-        body: (s as Record<string, unknown>).body as string,
-      });
+      const obj = s as Record<string, unknown>;
+      const points = Array.isArray(obj.points)
+        ? obj.points.filter((p): p is string => typeof p === "string")
+        : [];
+      const intro = typeof obj.intro === "string" ? obj.intro : "";
+      if (intro.trim() || points.length > 0) {
+        sections.push({ heading: obj.heading as string, intro, points });
+      }
     }
   }
   if (sections.length === 0) return null;
   return {
     sections,
-    keyFindings: Array.isArray(keyFindings)
-      ? keyFindings.filter((f): f is string => typeof f === "string")
-      : [],
     planCleanup: parsePlanCleanup(planCleanup),
     nookalNotes,
     focusArea: typeof focusArea === "string" ? focusArea : "",
