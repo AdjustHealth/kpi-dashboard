@@ -40,6 +40,7 @@ export async function POST(
       focusArea: result.focusArea,
       sections: result.sections,
       nookalNotes: result.nookalNotes,
+      planCleanup: result.planCleanup,
       generatedAt: new Date().toISOString(),
     };
     const formData: ConsultFormData = { note, report };
