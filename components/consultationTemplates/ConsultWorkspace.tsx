@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -76,6 +76,49 @@ function SectionCard({
         {title}
       </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+const GENERATING_MESSAGES = [
+  "Reading through your notes…",
+  "Writing the patient report…",
+  "Copy-editing the treatment plan…",
+  "Preparing the Nookal notes…",
+  "Almost there…",
+];
+
+/** A single AI call producing four detailed report sections, plan cleanup
+ * and Nookal notes genuinely takes 15-40+ seconds — this keeps that wait
+ * from feeling stuck rather than claiming a real progress percentage we
+ * don't actually have. */
+function GeneratingIndicator() {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((i) => Math.min(i + 1, GENERATING_MESSAGES.length - 1));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3">
+      <style>{`
+        @keyframes generating-sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
+        }
+      `}</style>
+      <div className="h-1.5 w-32 flex-none overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full w-1/3 rounded-full bg-accent"
+          style={{ animation: "generating-sweep 1.3s ease-in-out infinite" }}
+        />
+      </div>
+      <span className="text-xs text-muted">
+        {GENERATING_MESSAGES[messageIndex]}
+      </span>
     </div>
   );
 }
@@ -488,6 +531,7 @@ export function ConsultWorkspace({
               ? "Regenerate Report"
               : "Generate Report"}
         </button>
+        {genState === "generating" && <GeneratingIndicator />}
         {genState === "error" && (
           <span className="text-xs text-danger">{error}</span>
         )}
