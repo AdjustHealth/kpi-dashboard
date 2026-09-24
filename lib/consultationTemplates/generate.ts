@@ -32,7 +32,10 @@ export async function generateConsultOutputs(
   note: ConsultNote,
 ): Promise<GenerateResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.error("generateConsultOutputs: ANTHROPIC_API_KEY is not set");
+    return null;
+  }
 
   const client = new Anthropic({ apiKey });
 
@@ -46,8 +49,15 @@ export async function generateConsultOutputs(
       response.content.find(
         (block): block is Anthropic.TextBlock => block.type === "text",
       )?.text ?? "";
-    return parseResult(text);
-  } catch {
+    const result = parseResult(text);
+    if (!result)
+      console.error(
+        "generateConsultOutputs: model response didn't match the expected shape:",
+        text.slice(0, 500),
+      );
+    return result;
+  } catch (e) {
+    console.error("generateConsultOutputs: API call failed:", e);
     return null;
   }
 }
