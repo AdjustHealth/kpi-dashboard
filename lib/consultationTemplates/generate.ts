@@ -22,6 +22,7 @@ export type GenerateOutcome =
   | {
       ok: true;
       sections: ReportSection[];
+      keyFindings: string[];
       nookalNotes: string;
       focusArea: string;
       planCleanup: PlanCleanup | null;
@@ -135,19 +136,21 @@ Phase 3 — Consolidation: ${formatPhase(note.treatmentPlan.consolidation)}
 Return to function criteria (do NOT re-list these, they're shown separately in full): ${note.treatmentPlan.returnToFunctionCriteria.trim() || "not specified"}
 Next appointment: ${note.nextAppointment || "—"}
 
-Produce FOUR things:
+Produce FIVE things:
 
 1. "focusArea" — a short 3-6 word label for what this consult was actually about, for a badge/chip at the top of the report (e.g. "Right Knee · Patellofemoral Pain", "Lower Back · Disc-Related Stiffness"). Plain language, not a full diagnosis sentence.
 
-2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (personalised headline) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language) and their diagnosis explained simply, then what to expect between now and next visit. Include a short section introducing the treatment plan as phases you're moving through together — but keep it a narrative framing only (why three phases, how they connect), NOT a re-listing of cadence/frequency or the interventions list, since those are laid out separately and in full detail right after your sections. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
+2. "keyFindings" — 3 to 5 short, scannable phrases (NOT full sentences, no trailing period, 3-8 words each) pulled from the objective findings, e.g. "Weakness through the outer hip", "Full, pain-free range of motion", "No signs of structural damage". These get laid out as a quick-scan list on the report, separate from the prose below, so a client can take in the headline findings in a few seconds before reading the fuller explanation.
+
+3. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (personalised headline) and the key findings list are both handled separately from these, so do NOT write a "welcome/overview" section and do NOT re-list the findings — start straight in. Write exactly 2 sections: (1) what was found AND what it means for them, woven together as one explanation (don't separate "findings" from "diagnosis" into two beats, that's redundant with the key findings list above) — name the actual diagnosis in plain language as part of this; (2) what to expect between now and their next visit. Do NOT write a separate section introducing the treatment plan — the Treatment Plan card that follows already has its own heading and framing, so a third section here would just repeat it. Each "body" is 1-2 short paragraphs of plain text (no markdown, no bullet characters) — keep it tight, this is a report a client will actually read in full, not skim past.
 ${STYLE_GUIDE}
 
-3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
+4. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.
 
-4. "planCleanup" — the treatment plan's Focus and Key Interventions text for each phase, and the Return to Function Criteria list, LIGHTLY copy-edited: fix spelling typos, capitalize the start of each sentence/bullet, fix obvious grammar slips. Do NOT paraphrase, reword, shorten, reorder, or change the clinical meaning — this is proofreading, not rewriting. Keep legitimate gym/clinical shorthand and abbreviations exactly as written (e.g. "BB", "LSI", "ROM", "toes to bar", "VALD") — only fix genuine typos like "tehcnique" -> "technique". Split each phase's interventions into an array, one string per line from the input (same order, same count of meaningful lines). If a field was empty or "not specified" in the input, return "" for a text field or [] for a list. Shape: {"symptomReduction":{"focus":"...","interventions":["...","..."]},"restorative":{...},"consolidation":{...},"returnToFunctionCriteria":["...","..."]}
+5. "planCleanup" — the treatment plan's Focus and Key Interventions text for each phase, and the Return to Function Criteria list, LIGHTLY copy-edited: fix spelling typos, capitalize the start of each sentence/bullet, fix obvious grammar slips. Do NOT paraphrase, reword, shorten, reorder, or change the clinical meaning — this is proofreading, not rewriting. Keep legitimate gym/clinical shorthand and abbreviations exactly as written (e.g. "BB", "LSI", "ROM", "toes to bar", "VALD") — only fix genuine typos like "tehcnique" -> "technique". Split each phase's interventions into an array, one string per line from the input (same order, same count of meaningful lines). If a field was empty or "not specified" in the input, return "" for a text field or [] for a list. Shape: {"symptomReduction":{"focus":"...","interventions":["...","..."]},"restorative":{...},"consolidation":{...},"returnToFunctionCriteria":["...","..."]}
 
 Respond with ONLY a JSON object and nothing else, in this exact shape:
-{"focusArea":"...","reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"...","planCleanup":{"symptomReduction":{"focus":"...","interventions":["..."]},"restorative":{"focus":"...","interventions":["..."]},"consolidation":{"focus":"...","interventions":["..."]},"returnToFunctionCriteria":["..."]}}`;
+{"focusArea":"...","keyFindings":["...","..."],"reportSections":[{"heading":"...","body":"..."}],"nookalNotes":"...","planCleanup":{"symptomReduction":{"focus":"...","interventions":["..."]},"restorative":{"focus":"...","interventions":["..."]},"consolidation":{"focus":"...","interventions":["..."]},"returnToFunctionCriteria":["..."]}}`;
 }
 
 function parseCleanedPhase(raw: unknown): CleanedPhase {
@@ -181,6 +184,7 @@ function parsePlanCleanup(raw: unknown): PlanCleanup | null {
 
 function parseResult(text: string): {
   sections: ReportSection[];
+  keyFindings: string[];
   nookalNotes: string;
   focusArea: string;
   planCleanup: PlanCleanup | null;
@@ -194,7 +198,7 @@ function parseResult(text: string): {
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const { reportSections, nookalNotes, focusArea, planCleanup } =
+  const { reportSections, keyFindings, nookalNotes, focusArea, planCleanup } =
     parsed as Record<string, unknown>;
   if (!Array.isArray(reportSections) || typeof nookalNotes !== "string")
     return null;
@@ -216,6 +220,9 @@ function parseResult(text: string): {
   if (sections.length === 0) return null;
   return {
     sections,
+    keyFindings: Array.isArray(keyFindings)
+      ? keyFindings.filter((f): f is string => typeof f === "string")
+      : [],
     planCleanup: parsePlanCleanup(planCleanup),
     nookalNotes,
     focusArea: typeof focusArea === "string" ? focusArea : "",

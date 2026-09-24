@@ -89,6 +89,7 @@ export function ReportDocument({
     phaseHasContent(note.treatmentPlan[key]),
   );
   const name = firstName(note.patientName) || "there";
+  const findings = report.keyFindings.map((f) => f.trim()).filter(Boolean);
 
   return (
     <div style={{ background: "#eef1ee", minHeight: "100vh" }}>
@@ -144,41 +145,31 @@ export function ReportDocument({
             }}
           />
 
-          <div className="relative flex items-start justify-between gap-6">
-            <div>
-              <div
-                className="font-display text-lg font-black uppercase tracking-wide"
-                style={{
-                  background: "linear-gradient(90deg,#c7f26a,#5ee6ab)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
-                }}
-              >
-                Adjust Health
-              </div>
-              <div
-                className="mt-0.5 text-[10.5px] font-medium uppercase tracking-[0.18em]"
-                style={{ color: "rgba(244,246,248,0.5)" }}
-              >
-                Get Better · Get Moving · Get Strong
-              </div>
+          <div className="relative">
+            <div
+              className="font-display text-lg font-black uppercase tracking-wide"
+              style={{
+                background: "linear-gradient(90deg,#c7f26a,#5ee6ab)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              Adjust Health
             </div>
             <div
-              className="text-right text-[10.5px] font-semibold uppercase tracking-[0.2em]"
-              style={{ color: "#8fe8b8" }}
+              className="mt-0.5 text-[10.5px] font-medium uppercase tracking-[0.18em]"
+              style={{ color: "rgba(244,246,248,0.5)" }}
             >
-              Your Recovery
-              <br />
-              Roadmap
+              Get Better · Get Moving · Get Strong
             </div>
           </div>
 
           <h1
-            className="relative mt-9 font-display font-black leading-[1.05] text-white"
-            style={{ fontSize: "clamp(30px,4vw,42px)", textWrap: "balance" }}
+            className="relative mt-9 font-display font-black leading-[1.03] text-white"
+            style={{ fontSize: "clamp(32px,4.6vw,48px)", textWrap: "balance" }}
           >
-            {name}, here&rsquo;s your path forward.
+            {name}, let&rsquo;s get you back to it.
           </h1>
 
           <div
@@ -217,6 +208,47 @@ export function ReportDocument({
         </div>
 
         <div style={{ background: "#fdfcfa" }}>
+          {/* ---- Key findings ---- */}
+          {findings.length > 0 && (
+            <div className="report-block px-10 pt-10 sm:px-14 sm:pt-12">
+              <h2
+                className="font-display text-[13px] font-bold uppercase tracking-[0.06em]"
+                style={{ color: "#0f9e6e" }}
+              >
+                At a Glance
+              </h2>
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {findings.map((finding, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-xl px-4 py-3"
+                    style={{ background: "#f7f6f2" }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="15"
+                      height="15"
+                      className="flex-none"
+                      fill="none"
+                      stroke="#0f9e6e"
+                      strokeWidth={2.4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    <span
+                      className="text-[13.5px] font-medium"
+                      style={{ color: "#0a0e17" }}
+                    >
+                      {finding}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ---- Narrative sections ---- */}
           <div className="flex flex-col px-10 pt-10 sm:px-14 sm:pt-12">
             {report.sections.map((s, i) => (
