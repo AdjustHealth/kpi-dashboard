@@ -99,6 +99,7 @@ describe("generateConsultOutputs", () => {
     expect(result).toEqual({
       ok: true,
       focusArea: "Right Knee · Patellofemoral Pain",
+      keyFindings: [],
       sections: [
         {
           heading: "What We Found",
@@ -108,6 +109,35 @@ describe("generateConsultOutputs", () => {
       nookalNotes: "S: reports lateral knee pain...",
       planCleanup: null,
     });
+  });
+
+  it("parses keyFindings when the model includes it", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    createMock.mockResolvedValue({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            focusArea: "Right Knee",
+            keyFindings: [
+              "Weakness through the outer hip",
+              "Full, pain-free range of motion",
+              "No signs of structural damage",
+            ],
+            reportSections: [{ heading: "What We Found", body: "..." }],
+            nookalNotes: "S: ...",
+          }),
+        },
+      ],
+      stop_reason: "end_turn",
+    });
+    const result = await generateConsultOutputs(note);
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.keyFindings).toEqual([
+      "Weakness through the outer hip",
+      "Full, pain-free range of motion",
+      "No signs of structural damage",
+    ]);
   });
 
   it("parses planCleanup when the model includes it", async () => {

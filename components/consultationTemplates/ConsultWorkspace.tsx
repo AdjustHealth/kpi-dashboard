@@ -146,7 +146,15 @@ export function ConsultWorkspace({
     setError(null);
     try {
       if (id) {
-        const body: ConsultFormData = { note, report };
+        const cleanedReport = report
+          ? {
+              ...report,
+              keyFindings: report.keyFindings
+                .map((f) => f.trim())
+                .filter(Boolean),
+            }
+          : report;
+        const body: ConsultFormData = { note, report: cleanedReport };
         const res = await fetch(`/api/consultation-templates/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -220,6 +228,15 @@ export function ConsultWorkspace({
 
   function updateFocusArea(value: string) {
     setReport((r) => (r ? { ...r, focusArea: value } : r));
+  }
+
+  // Kept as a raw split (blank lines included) rather than trimmed/filtered
+  // on every keystroke — filtering live would eat a just-typed blank line
+  // the moment someone presses Enter to start the next bullet. Blank
+  // entries are filtered at render/save time instead (see ReportDocument
+  // and the PATCH body below).
+  function updateKeyFindings(value: string) {
+    setReport((r) => (r ? { ...r, keyFindings: value.split("\n") } : r));
   }
 
   async function copyNookalNotes() {
@@ -514,6 +531,17 @@ export function ConsultWorkspace({
               value={report.focusArea}
               onChange={(e) => updateFocusArea(e.target.value)}
               className="sm:max-w-xs"
+            />
+          </Field>
+
+          <Field
+            label="Key Findings"
+            hint="One per line — shown as a quick-scan list before the write-up"
+          >
+            <Textarea
+              value={report.keyFindings.join("\n")}
+              onChange={(e) => updateKeyFindings(e.target.value)}
+              style={{ minHeight: "6rem" }}
             />
           </Field>
 

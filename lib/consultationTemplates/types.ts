@@ -180,6 +180,10 @@ export type PlanCleanup = {
 
 export type GeneratedReport = {
   focusArea: string;
+  /** 3-5 short scannable phrases, shown as a quick-scan list ahead of the
+   * fuller prose sections — breaks up what would otherwise be an unbroken
+   * run of paragraphs. */
+  keyFindings: string[];
   sections: ReportSection[];
   nookalNotes: string;
   /** null if the model didn't return it — report still renders fine,
