@@ -90,7 +90,6 @@ Palpation: ${note.objective.palpation || "—"}
 
 CLINICAL REASONING
 Clinical impression: ${note.clinicalReasoning.impression || "—"}
-Working clinical model (causal chain): ${note.clinicalReasoning.workingClinicalModel || "—"}
 Diagnosis: ${note.clinicalReasoning.diagnosis || "—"}
 Prognosis: ${note.clinicalReasoning.prognosis || "—"}
 

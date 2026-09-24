@@ -29,7 +29,6 @@ export type ConsultNote = {
   };
   clinicalReasoning: {
     impression: string;
-    workingClinicalModel: string;
     diagnosis: string;
     prognosis: string;
   };
@@ -97,7 +96,6 @@ export function emptyConsultNote(): ConsultNote {
     },
     clinicalReasoning: {
       impression: "",
-      workingClinicalModel: "",
       diagnosis: "",
       prognosis: "",
     },
