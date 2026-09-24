@@ -13,21 +13,8 @@ import type {
 
 type Section = keyof Pick<
   ConsultNote,
-  "goals" | "subjective" | "objective" | "clinicalReasoning"
+  "subjective" | "objective" | "clinicalReasoning"
 >;
-
-const GOALS_FIELDS: [keyof ConsultNote["goals"], string][] = [
-  ["whyNow", "What made you decide to come into physio now? Why Adjust?"],
-  ["todayGoal", "What do you want to get out of today?"],
-  [
-    "longTermGoal",
-    "And long term — what do you want to get out of physiotherapy? Why is that important to you?",
-  ],
-  [
-    "roadblockPerceived",
-    "What do you think is stopping you from getting better?",
-  ],
-];
 
 const SUBJECTIVE_FIELDS: [keyof ConsultNote["subjective"], string, string?][] =
   [
@@ -303,17 +290,6 @@ export function ConsultWorkspace({
             placeholder="e.g. Friday 23rd October at 1pm"
           />
         </Field>
-      </SectionCard>
-
-      <SectionCard title="3 Things I'd Like to Achieve in the Consult">
-        {GOALS_FIELDS.map(([key, label]) => (
-          <Field key={key} label={label}>
-            <Textarea
-              value={note.goals[key]}
-              onChange={(e) => setNested("goals", key, e.target.value)}
-            />
-          </Field>
-        ))}
       </SectionCard>
 
       <SectionCard title="Subjective">

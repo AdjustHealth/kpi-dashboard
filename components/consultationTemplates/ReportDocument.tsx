@@ -32,20 +32,6 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "";
 }
 
-/** The one thing pulled straight from the client's own words rather than the
- * AI narrative — a direct callback to what they told us they wanted, so the
- * report visibly answers a client-centred consult instead of just reciting
- * exam findings. Prefers what they wanted from today, since that's the most
- * concrete and specific of the four goal prompts. */
-function pickClientQuote(note: ConsultNote): string {
-  return (
-    note.goals.todayGoal.trim() ||
-    note.goals.longTermGoal.trim() ||
-    note.goals.whyNow.trim() ||
-    note.goals.roadblockPerceived.trim()
-  );
-}
-
 /**
  * The actual patient-facing document — a light, print-optimised page
  * deliberately independent of the app's dark theme (this gets saved/printed
@@ -74,7 +60,6 @@ export function ReportDocument({
   const hasPhases = PHASES.some(([key]) =>
     phaseHasContent(note.treatmentPlan[key]),
   );
-  const quote = pickClientQuote(note);
   const name = firstName(note.patientName) || "there";
 
   return (
@@ -204,29 +189,8 @@ export function ReportDocument({
         </div>
 
         <div style={{ background: "#fdfcfa" }}>
-          {/* ---- Client's own words ---- */}
-          {quote && (
-            <div className="report-block px-10 pb-2 pt-10 sm:px-14 sm:pt-12">
-              <div
-                className="text-[10.5px] font-semibold uppercase tracking-[0.18em]"
-                style={{ color: "#5f9e56" }}
-              >
-                What You Told Us
-              </div>
-              <p
-                className="relative mt-3 pl-6 font-display text-[21px] font-semibold leading-snug"
-                style={{ color: "#0a0e17", borderLeft: "3px solid #a6e22e" }}
-              >
-                &ldquo;{quote}&rdquo;
-              </p>
-              <p className="mt-2 pl-6 text-[12px]" style={{ color: "#8b93a5" }}>
-                In your own words, at check-in
-              </p>
-            </div>
-          )}
-
           {/* ---- Narrative sections ---- */}
-          <div className="flex flex-col px-10 sm:px-14">
+          <div className="flex flex-col px-10 pt-10 sm:px-14 sm:pt-12">
             {report.sections.map((s, i) => (
               <div
                 key={i}

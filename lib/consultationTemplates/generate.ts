@@ -8,7 +8,6 @@ const STYLE_GUIDE = `Write like Adjust Health's physios talk to their own client
 - Translate clinical findings into plain language a client with no medical background can actually picture — explain what a finding MEANS for them, not just what it is.
 - Be encouraging and confident without over-promising a timeline — it's fine to say something typically takes a number of weeks to settle, but don't guarantee outcomes.
 - When explaining the treatment plan, frame it as phases you're moving through together, not a list of appointments: an early phase focused on calming things down, a middle phase focused on rebuilding, and a final phase focused on making it stick. Frame it as the typical pathway rather than a fixed promise — it's fine to be specific and confident, but make clear (briefly, in passing, not as a caveat/disclaimer) that the plan gets reviewed and adjusted based on how the client actually responds.
-- Weave in what the client themselves said they wanted from today and long-term where it's given — this is a client-centred consult, so the report should read like it's answering THEIR stated goals, not just reciting exam findings.
 - Close warmly — genuine thanks for choosing to work with Adjust, and an invitation to reach out with questions before the next visit.
 - Avoid dense jargon dumps, bullet-list clinical language, or copy-pasting the raw exam findings verbatim — this is a narrative written FOR the client, not a copy of the clinical note.
 - Never use em dashes or double hyphens (—, --). Write in plain sentences using periods and commas instead — that stylistic tic is one of the clearest tells that something was written by AI, and this needs to read like a person wrote it.`;
@@ -71,12 +70,6 @@ function buildPrompt(note: ConsultNote): string {
 CLIENT: ${note.patientName || "the client"}
 CLINICIAN: ${note.clinician || "the treating physiotherapist"}
 
-WHAT THE CLIENT WANTS FROM THIS
-Why they've come in now / why Adjust: ${note.goals.whyNow || "—"}
-What they want out of today's session: ${note.goals.todayGoal || "—"}
-Long-term goal for physiotherapy, and why it matters to them: ${note.goals.longTermGoal || "—"}
-What they think is stopping them getting better: ${note.goals.roadblockPerceived || "—"}
-
 SUBJECTIVE
 HPC / body chart (includes PNN, aggravating/easing factors, 24hr pattern, clicking/catching/locking where noted): ${note.subjective.hpcBodyChart || "—"}
 Past history: ${note.subjective.pastHistory || "—"}
@@ -113,7 +106,7 @@ Produce THREE things:
 
 1. "focusArea" — a short 3-6 word label for what this consult was actually about, for a badge/chip at the top of the report (e.g. "Right Knee · Patellofemoral Pain", "Lower Back · Disc-Related Stiffness"). Plain language, not a full diagnosis sentence.
 
-2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (headline + what the client told us) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language) and their diagnosis explained simply, then what to expect between now and next visit. Include a short section introducing the treatment plan as phases you're moving through together — but keep it a narrative framing only (why three phases, how they connect), NOT a re-listing of cadence/frequency or the interventions list, since those are laid out separately and in full detail right after your sections. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
+2. "reportSections" — a client-facing report as an array of {"heading","body"} objects, designed to be laid out as a polished, modern PDF the client receives after their visit. The report's opening (personalised headline) is handled separately from these sections, so do NOT write a "welcome/overview" section — start straight in. Use around 4-5 sections covering: what was found (in plain language) and their diagnosis explained simply, then what to expect between now and next visit. Include a short section introducing the treatment plan as phases you're moving through together — but keep it a narrative framing only (why three phases, how they connect), NOT a re-listing of cadence/frequency or the interventions list, since those are laid out separately and in full detail right after your sections. Each "body" is 1-3 short paragraphs of plain text (no markdown, no bullet characters).
 ${STYLE_GUIDE}
 
 3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.

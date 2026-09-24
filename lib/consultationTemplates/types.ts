@@ -1,18 +1,14 @@
 /** The Initial Consultation / Client-Centred Consult note — fields mirror the
- * clinic's own real note template (Goals -> Subjective -> Objective ->
- * Clinical Reasoning -> Treatment) so physios fill it out the same way they
- * already take notes, nothing new to learn. */
+ * clinic's own real note template (Subjective -> Objective -> Clinical
+ * Reasoning -> Treatment) so physios fill it out the same way they already
+ * take notes, nothing new to learn. The "3 things" agenda-setting questions
+ * are spoken scripting for the start of the consult, not something captured
+ * as a form field. */
 export type ConsultNote = {
   patientName: string;
   clinician: string;
   consultDate: string;
   referralSource: string;
-  goals: {
-    whyNow: string;
-    todayGoal: string;
-    longTermGoal: string;
-    roadblockPerceived: string;
-  };
   subjective: {
     hpcBodyChart: string;
     pastHistory: string;
@@ -81,12 +77,6 @@ export function emptyConsultNote(): ConsultNote {
     clinician: "",
     consultDate: "",
     referralSource: "",
-    goals: {
-      whyNow: "",
-      todayGoal: "",
-      longTermGoal: "",
-      roadblockPerceived: "",
-    },
     subjective: {
       hpcBodyChart: HPC_BODY_CHART_TEMPLATE,
       pastHistory: "",
