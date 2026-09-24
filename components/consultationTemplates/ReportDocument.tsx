@@ -169,7 +169,7 @@ export function ReportDocument({
             className="relative mt-9 font-display font-black leading-[1.03] text-white"
             style={{ fontSize: "clamp(32px,4.6vw,48px)", textWrap: "balance" }}
           >
-            {name}, let&rsquo;s get you back to it.
+            {name}, here&rsquo;s your plan.
           </h1>
 
           <div
