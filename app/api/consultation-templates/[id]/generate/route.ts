@@ -2,36 +2,59 @@ import { NextRequest, NextResponse } from "next/server";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
 import { requireSection } from "@/lib/requireLogin";
 import { generateConsultOutputs } from "@/lib/consultationTemplates/generate";
-import type { ConsultFormData, ConsultNote, GeneratedReport } from "@/lib/consultationTemplates/types";
+import {
+  mergeConsultNote,
+  type ConsultFormData,
+  type GeneratedReport,
+} from "@/lib/consultationTemplates/types";
 
 /** Runs the AI generation step against the note currently saved for this
  * consult (the client always saves note edits before calling this, so the
  * DB copy is the source of truth) and persists the result — a physio can
  * come back to a saved consult and (re)generate without re-filling anything. */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const unauthorized = await requireSection("assessment_tool");
   if (unauthorized) return unauthorized;
   const { id } = await params;
 
   try {
     const sql = assessmentToolSql();
-    const rows = await sql`select form_data from assessments where id = ${id} and assess_type = 'initial_consult'`;
-    if (rows.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const rows =
+      await sql`select form_data from assessments where id = ${id} and assess_type = 'initial_consult'`;
+    if (rows.length === 0)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const existing = rows[0].form_data as ConsultFormData;
-    const note = existing.note as ConsultNote;
+    const note = mergeConsultNote(existing.note);
 
     const result = await generateConsultOutputs(note);
     if (!result) {
-      return NextResponse.json({ error: "Generation unavailable — check ANTHROPIC_API_KEY is configured, or try again." }, { status: 502 });
+      return NextResponse.json(
+        {
+          error:
+            "Generation unavailable — check ANTHROPIC_API_KEY is configured, or try again.",
+        },
+        { status: 502 },
+      );
     }
 
-    const report: GeneratedReport = { focusArea: result.focusArea, sections: result.sections, nookalNotes: result.nookalNotes, generatedAt: new Date().toISOString() };
+    const report: GeneratedReport = {
+      focusArea: result.focusArea,
+      sections: result.sections,
+      nookalNotes: result.nookalNotes,
+      generatedAt: new Date().toISOString(),
+    };
     const formData: ConsultFormData = { note, report };
 
     await sql`update assessments set form_data = ${sql.json(JSON.parse(JSON.stringify(formData)))} where id = ${id}`;
     return NextResponse.json({ report });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      { status: 500 },
+    );
   }
 }

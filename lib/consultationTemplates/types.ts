@@ -112,6 +112,57 @@ export function emptyConsultNote(): ConsultNote {
   };
 }
 
+/** Old saved notes can be missing fields the shape has grown since they were
+ * created (the treatment plan's timeframe/return-to-function fields, most
+ * recently) — every place that loads a saved note runs it through this
+ * first, so the rest of the app never has to guard against a field simply
+ * not being there. */
+export function mergeConsultNote(
+  saved: Partial<ConsultNote> | null | undefined,
+): ConsultNote {
+  const base = emptyConsultNote();
+  if (!saved) return base;
+  return {
+    patientName: saved.patientName ?? base.patientName,
+    clinician: saved.clinician ?? base.clinician,
+    consultDate: saved.consultDate ?? base.consultDate,
+    referralSource: saved.referralSource ?? base.referralSource,
+    subjective: { ...base.subjective, ...saved.subjective },
+    objective: { ...base.objective, ...saved.objective },
+    clinicalReasoning: {
+      ...base.clinicalReasoning,
+      ...saved.clinicalReasoning,
+    },
+    treatmentPlan: {
+      symptomReduction: {
+        ...base.treatmentPlan.symptomReduction,
+        ...saved.treatmentPlan?.symptomReduction,
+      },
+      restorative: {
+        ...base.treatmentPlan.restorative,
+        ...saved.treatmentPlan?.restorative,
+      },
+      consolidation: {
+        ...base.treatmentPlan.consolidation,
+        ...saved.treatmentPlan?.consolidation,
+      },
+      estimatedTimeframe:
+        saved.treatmentPlan?.estimatedTimeframe ??
+        base.treatmentPlan.estimatedTimeframe,
+      includeEstimatedTimeframe:
+        saved.treatmentPlan?.includeEstimatedTimeframe ??
+        base.treatmentPlan.includeEstimatedTimeframe,
+      returnToFunctionCriteria:
+        saved.treatmentPlan?.returnToFunctionCriteria ??
+        base.treatmentPlan.returnToFunctionCriteria,
+      includeReturnToFunctionCriteria:
+        saved.treatmentPlan?.includeReturnToFunctionCriteria ??
+        base.treatmentPlan.includeReturnToFunctionCriteria,
+    },
+    nextAppointment: saved.nextAppointment ?? base.nextAppointment,
+  };
+}
+
 export type ReportSection = { heading: string; body: string };
 
 export type GeneratedReport = {
