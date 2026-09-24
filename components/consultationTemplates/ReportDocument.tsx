@@ -169,7 +169,7 @@ export function ReportDocument({
             className="relative mt-9 font-display font-black leading-[1.03] text-white"
             style={{ fontSize: "clamp(32px,4.6vw,48px)", textWrap: "balance" }}
           >
-            {name}, here&rsquo;s your plan.
+            {name}, here&rsquo;s your recovery plan.
           </h1>
 
           <div
