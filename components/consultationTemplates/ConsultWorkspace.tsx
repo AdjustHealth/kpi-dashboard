@@ -149,9 +149,10 @@ export function ConsultWorkspace({
         const cleanedReport = report
           ? {
               ...report,
-              keyFindings: report.keyFindings
-                .map((f) => f.trim())
-                .filter(Boolean),
+              sections: report.sections.map((s) => ({
+                ...s,
+                points: s.points.map((p) => p.trim()).filter(Boolean),
+              })),
             }
           : report;
         const body: ConsultFormData = { note, report: cleanedReport };
@@ -208,9 +209,9 @@ export function ConsultWorkspace({
     }
   }
 
-  function updateReportSection(
+  function updateReportSectionField(
     index: number,
-    field: "heading" | "body",
+    field: "heading" | "intro",
     value: string,
   ) {
     setReport((r) => {
@@ -222,21 +223,27 @@ export function ConsultWorkspace({
     });
   }
 
+  // Points kept as a raw split (blank lines included) rather than
+  // trimmed/filtered on every keystroke — filtering live would eat a
+  // just-typed blank line the moment someone presses Enter to start the
+  // next bullet. Blank entries are filtered at save time instead (see the
+  // PATCH body above).
+  function updateReportSectionPoints(index: number, value: string) {
+    setReport((r) => {
+      if (!r) return r;
+      const sections = r.sections.map((s, i) =>
+        i === index ? { ...s, points: value.split("\n") } : s,
+      );
+      return { ...r, sections };
+    });
+  }
+
   function updateNookalNotes(value: string) {
     setReport((r) => (r ? { ...r, nookalNotes: value } : r));
   }
 
   function updateFocusArea(value: string) {
     setReport((r) => (r ? { ...r, focusArea: value } : r));
-  }
-
-  // Kept as a raw split (blank lines included) rather than trimmed/filtered
-  // on every keystroke — filtering live would eat a just-typed blank line
-  // the moment someone presses Enter to start the next bullet. Blank
-  // entries are filtered at render/save time instead (see ReportDocument
-  // and the PATCH body below).
-  function updateKeyFindings(value: string) {
-    setReport((r) => (r ? { ...r, keyFindings: value.split("\n") } : r));
   }
 
   async function copyNookalNotes() {
@@ -534,17 +541,6 @@ export function ConsultWorkspace({
             />
           </Field>
 
-          <Field
-            label="Key Findings"
-            hint="One per line — shown as a quick-scan list before the write-up"
-          >
-            <Textarea
-              value={report.keyFindings.join("\n")}
-              onChange={(e) => updateKeyFindings(e.target.value)}
-              style={{ minHeight: "6rem" }}
-            />
-          </Field>
-
           <div className="flex flex-col gap-4">
             {report.sections.map((s, i) => (
               <div
@@ -554,17 +550,32 @@ export function ConsultWorkspace({
                 <Input
                   value={s.heading}
                   onChange={(e) =>
-                    updateReportSection(i, "heading", e.target.value)
+                    updateReportSectionField(i, "heading", e.target.value)
                   }
-                  className="mb-2 font-display text-sm font-bold uppercase tracking-wide"
+                  className="mb-3 font-display text-sm font-bold uppercase tracking-wide"
                 />
-                <Textarea
-                  value={s.body}
-                  onChange={(e) =>
-                    updateReportSection(i, "body", e.target.value)
-                  }
-                  style={{ minHeight: "8rem" }}
-                />
+                <div className="flex flex-col gap-3">
+                  <Field label="Intro line" hint="One short sentence, optional">
+                    <Input
+                      value={s.intro}
+                      onChange={(e) =>
+                        updateReportSectionField(i, "intro", e.target.value)
+                      }
+                    />
+                  </Field>
+                  <Field
+                    label="Points"
+                    hint="One per line — shown as the scannable bullet list"
+                  >
+                    <Textarea
+                      value={s.points.join("\n")}
+                      onChange={(e) =>
+                        updateReportSectionPoints(i, e.target.value)
+                      }
+                      style={{ minHeight: "6rem" }}
+                    />
+                  </Field>
+                </div>
               </div>
             ))}
           </div>

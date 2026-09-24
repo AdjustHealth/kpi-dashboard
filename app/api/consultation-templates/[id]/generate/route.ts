@@ -38,7 +38,6 @@ export async function POST(
 
     const report: GeneratedReport = {
       focusArea: result.focusArea,
-      keyFindings: result.keyFindings,
       sections: result.sections,
       nookalNotes: result.nookalNotes,
       planCleanup: result.planCleanup,

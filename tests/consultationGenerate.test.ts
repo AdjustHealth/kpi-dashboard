@@ -84,13 +84,28 @@ describe("generateConsultOutputs", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("rejects a section with a heading but no intro or points", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    createMock.mockResolvedValue({
+      content: [
+        {
+          type: "text",
+          text: '{"reportSections":[{"heading":"What We Found"}],"nookalNotes":"S: ..."}',
+        },
+      ],
+      stop_reason: "end_turn",
+    });
+    const result = await generateConsultOutputs(note);
+    expect(result.ok).toBe(false);
+  });
+
   it("parses a well-formed response into focus area + sections + nookal notes", async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
     createMock.mockResolvedValue({
       content: [
         {
           type: "text",
-          text: 'Sure, here it is:\n{"focusArea":"Right Knee · Patellofemoral Pain","reportSections":[{"heading":"What We Found","body":"Hi Jane, here is what we found today."}],"nookalNotes":"S: reports lateral knee pain..."}',
+          text: 'Sure, here it is:\n{"focusArea":"Right Knee · Patellofemoral Pain","reportSections":[{"heading":"What We Found","intro":"Here is the short version.","points":["Weakness through the outer hip","Full, pain-free range of motion"]}],"nookalNotes":"S: reports lateral knee pain..."}',
         },
       ],
       stop_reason: "end_turn",
@@ -99,11 +114,14 @@ describe("generateConsultOutputs", () => {
     expect(result).toEqual({
       ok: true,
       focusArea: "Right Knee · Patellofemoral Pain",
-      keyFindings: [],
       sections: [
         {
           heading: "What We Found",
-          body: "Hi Jane, here is what we found today.",
+          intro: "Here is the short version.",
+          points: [
+            "Weakness through the outer hip",
+            "Full, pain-free range of motion",
+          ],
         },
       ],
       nookalNotes: "S: reports lateral knee pain...",
@@ -111,32 +129,25 @@ describe("generateConsultOutputs", () => {
     });
   });
 
-  it("parses keyFindings when the model includes it", async () => {
+  it("accepts a section with points but no intro", async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
     createMock.mockResolvedValue({
       content: [
         {
           type: "text",
-          text: JSON.stringify({
-            focusArea: "Right Knee",
-            keyFindings: [
-              "Weakness through the outer hip",
-              "Full, pain-free range of motion",
-              "No signs of structural damage",
-            ],
-            reportSections: [{ heading: "What We Found", body: "..." }],
-            nookalNotes: "S: ...",
-          }),
+          text: '{"reportSections":[{"heading":"What We Found","points":["No signs of structural damage"]}],"nookalNotes":"S: ..."}',
         },
       ],
       stop_reason: "end_turn",
     });
     const result = await generateConsultOutputs(note);
     expect(result.ok).toBe(true);
-    expect(result.ok && result.keyFindings).toEqual([
-      "Weakness through the outer hip",
-      "Full, pain-free range of motion",
-      "No signs of structural damage",
+    expect(result.ok && result.sections).toEqual([
+      {
+        heading: "What We Found",
+        intro: "",
+        points: ["No signs of structural damage"],
+      },
     ]);
   });
 
@@ -148,7 +159,7 @@ describe("generateConsultOutputs", () => {
           type: "text",
           text: JSON.stringify({
             focusArea: "Right Shoulder",
-            reportSections: [{ heading: "What We Found", body: "..." }],
+            reportSections: [{ heading: "What We Found", points: ["..."] }],
             nookalNotes: "S: ...",
             planCleanup: {
               symptomReduction: {
@@ -196,7 +207,7 @@ describe("generateConsultOutputs", () => {
       content: [
         {
           type: "text",
-          text: '{"reportSections":[{"heading":"What We Found","body":"..."}],"nookalNotes":"S: ...","planCleanup":"not an object"}',
+          text: '{"reportSections":[{"heading":"What We Found","points":["..."]}],"nookalNotes":"S: ...","planCleanup":"not an object"}',
         },
       ],
       stop_reason: "end_turn",
@@ -212,7 +223,7 @@ describe("generateConsultOutputs", () => {
       content: [
         {
           type: "text",
-          text: '{"reportSections":[{"heading":"What We Found","body":"..."}],"nookalNotes":"S: ..."}',
+          text: '{"reportSections":[{"heading":"What We Found","points":["..."]}],"nookalNotes":"S: ..."}',
         },
       ],
       stop_reason: "end_turn",

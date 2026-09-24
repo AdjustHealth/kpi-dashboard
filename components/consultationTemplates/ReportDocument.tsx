@@ -89,7 +89,6 @@ export function ReportDocument({
     phaseHasContent(note.treatmentPlan[key]),
   );
   const name = firstName(note.patientName) || "there";
-  const findings = report.keyFindings.map((f) => f.trim()).filter(Boolean);
 
   return (
     <div style={{ background: "#eef1ee", minHeight: "100vh" }}>
@@ -208,70 +207,87 @@ export function ReportDocument({
         </div>
 
         <div style={{ background: "#fdfcfa" }}>
-          {/* ---- Key findings ---- */}
-          {findings.length > 0 && (
-            <div className="report-block px-10 pt-10 sm:px-14 sm:pt-12">
-              <h2
-                className="font-display text-[13px] font-bold uppercase tracking-[0.06em]"
-                style={{ color: "#0f9e6e" }}
-              >
-                At a Glance
-              </h2>
-              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {findings.map((finding, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-3"
-                    style={{ background: "#f7f6f2" }}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="15"
-                      height="15"
-                      className="flex-none"
-                      fill="none"
-                      stroke="#0f9e6e"
-                      strokeWidth={2.4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                    <span
-                      className="text-[13.5px] font-medium"
-                      style={{ color: "#0a0e17" }}
-                    >
-                      {finding}
-                    </span>
-                  </div>
-                ))}
+          {/* ---- Narrative sections ---- */}
+          {report.sections.length > 0 && (
+            <div className="px-10 pt-10 sm:px-14 sm:pt-12">
+              <div className="relative">
+                <div
+                  aria-hidden
+                  className="hidden sm:block"
+                  style={{
+                    position: "absolute",
+                    left: 21,
+                    top: 22,
+                    bottom: 22,
+                    width: 2,
+                    background: "linear-gradient(180deg,#a6e22e,#34d399)",
+                    opacity: 0.3,
+                  }}
+                />
+                <div className="flex flex-col gap-9">
+                  {report.sections.map((s, i) => (
+                    <div key={i} className="report-block relative flex gap-5">
+                      <div
+                        className="relative z-10 flex h-11 w-11 flex-none items-center justify-center rounded-full text-white shadow-sm"
+                        style={{
+                          background: "linear-gradient(135deg,#a6e22e,#34d399)",
+                        }}
+                      >
+                        <span
+                          className="font-display text-base font-black"
+                          style={{ color: "#0a0e17" }}
+                        >
+                          {i + 1}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 pb-1 pt-1">
+                        <h2
+                          className="font-display text-[19px] font-bold"
+                          style={{ color: "#0a0e17" }}
+                        >
+                          {s.heading}
+                        </h2>
+                        {s.intro && (
+                          <p
+                            className="mt-1.5 text-[14px] leading-relaxed"
+                            style={{ color: "#5b6478", maxWidth: "56ch" }}
+                          >
+                            {s.intro}
+                          </p>
+                        )}
+                        {s.points.length > 0 && (
+                          <ul className="mt-3 flex flex-col gap-2">
+                            {s.points.map((point, idx) => (
+                              <li
+                                key={idx}
+                                className="flex items-start gap-2.5 text-[14px] leading-snug"
+                                style={{ color: "#2c3341" }}
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  width="15"
+                                  height="15"
+                                  className="mt-[2px] flex-none"
+                                  fill="none"
+                                  stroke="#0f9e6e"
+                                  strokeWidth={2.4}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M20 6 9 17l-5-5" />
+                                </svg>
+                                <span className="font-medium">{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
-
-          {/* ---- Narrative sections ---- */}
-          <div className="flex flex-col px-10 pt-10 sm:px-14 sm:pt-12">
-            {report.sections.map((s, i) => (
-              <div
-                key={i}
-                className="report-block py-7"
-                style={{ borderTop: "1px solid #ece9e2" }}
-              >
-                <h2
-                  className="font-display text-[13px] font-bold uppercase tracking-[0.06em]"
-                  style={{ color: "#0f9e6e" }}
-                >
-                  {String(i + 1).padStart(2, "0")}. {s.heading}
-                </h2>
-                <div
-                  className="mt-2.5 whitespace-pre-line text-[15px] leading-[1.7]"
-                  style={{ color: "#2c3341", maxWidth: "62ch" }}
-                >
-                  {s.body}
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* ---- Treatment journey ---- */}
           {hasPhases && (

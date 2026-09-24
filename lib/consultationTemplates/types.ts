@@ -163,7 +163,14 @@ export function mergeConsultNote(
   };
 }
 
-export type ReportSection = { heading: string; body: string };
+/** A short intro line plus scannable bullet points, not a paragraph — every
+ * section reads like the Treatment Plan's phases do (a line or two, then
+ * points), not like prose. */
+export type ReportSection = {
+  heading: string;
+  intro: string;
+  points: string[];
+};
 
 /** Spelling/grammar/capitalization-only copy-edit of a phase's free-text
  * fields — the treatment plan is rendered on the report straight from the
@@ -180,10 +187,6 @@ export type PlanCleanup = {
 
 export type GeneratedReport = {
   focusArea: string;
-  /** 3-5 short scannable phrases, shown as a quick-scan list ahead of the
-   * fuller prose sections — breaks up what would otherwise be an unbroken
-   * run of paragraphs. */
-  keyFindings: string[];
   sections: ReportSection[];
   nookalNotes: string;
   /** null if the model didn't return it — report still renders fine,
