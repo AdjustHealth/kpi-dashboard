@@ -46,11 +46,10 @@ const REASONING_FIELDS: [
   string,
   string?,
 ][] = [
-  ["impression", "Clinical Impression"],
   [
-    "workingClinicalModel",
-    "Working Clinical Model",
-    "The causal-chain one-liner — how the findings connect",
+    "impression",
+    "Clinical Impression",
+    "Your overall synthesis — how the findings connect and what's actually going on",
   ],
   ["diagnosis", "Diagnosis"],
   ["prognosis", "Prognosis"],
