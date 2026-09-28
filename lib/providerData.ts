@@ -73,6 +73,34 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   // per-week record this is sourced from.
   const previousMeetingNotes = rowsByWeek.get(shiftWeek(week, -1))?.meeting_notes ?? {};
 
+  // Whichever provider has a "memberships" specialty metric (currently just
+  // Sam) no longer types this in by hand — it's the exact same live count
+  // shown on the Revenue page's "Paid Gym Members" tile, kept in sync here
+  // so the two numbers can't drift apart. Recorded into provider_weekly too
+  // (not just shown), so the trend chart/bonus history for this week has a
+  // real value without anyone having to enter one.
+  const hasMembershipsField = provider?.specialty_metrics?.some((m) => m.key === "memberships" && m.source !== "calc") ?? false;
+  const currentEntry = history[history.length - 1];
+  if (hasMembershipsField && provider && currentEntry?.week_ending === week) {
+    // Imported lazily — this module also backs tests/providerData.test.ts
+    // (for the pure retentionPct helper), and a static top-level import
+    // would drag in server-only's import-time throw under plain Node/vitest.
+    const { getPaidGymMemberCount } = await import("@/lib/programTracker/getPaidGymMemberCount");
+    const liveCount = await getPaidGymMemberCount();
+    if (liveCount !== null && currentEntry.metrics.memberships !== liveCount) {
+      currentEntry.metrics = { ...currentEntry.metrics, memberships: liveCount };
+      const { error: ensureError } = await supabase.rpc("ensure_weekly_kpis_row", { p_week_ending: week });
+      if (!ensureError) {
+        await supabase.rpc("merge_provider_weekly_section", {
+          p_provider_id: providerId,
+          p_week_ending: week,
+          p_section: "metrics",
+          p_patch: { memberships: liveCount },
+        });
+      }
+    }
+  }
+
   return {
     provider,
     history,
