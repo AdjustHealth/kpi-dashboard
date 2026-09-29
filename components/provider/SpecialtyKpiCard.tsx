@@ -20,6 +20,7 @@ export function SpecialtyKpiCard({
   targets,
   initialValues,
   history,
+  autoSyncedKeys = [],
 }: {
   providerId: string;
   week: string;
@@ -28,6 +29,8 @@ export function SpecialtyKpiCard({
   initialValues: Record<string, unknown>;
   /** Weekly history, for a trend chart per metric — omit to just show the current-week inputs. */
   history?: WeekMetrics[];
+  /** Metric keys populated automatically from a live external source (e.g. Program Tracker membership counts) — shown read-only instead of as an editable field, since typing something in would just get overwritten on the next page load. */
+  autoSyncedKeys?: string[];
 }) {
   const [values, setValues] = useState<Record<string, unknown>>(initialValues ?? {});
 
@@ -40,7 +43,8 @@ export function SpecialtyKpiCard({
     if (!res.ok) throw new Error("save failed");
   });
 
-  const manualMetrics = specialtyMetrics.filter((m) => m.source !== "calc");
+  const manualMetrics = specialtyMetrics.filter((m) => m.source !== "calc" && !autoSyncedKeys.includes(m.key));
+  const autoMetrics = specialtyMetrics.filter((m) => m.source !== "calc" && autoSyncedKeys.includes(m.key));
   const calcMetrics = specialtyMetrics.filter((m) => m.source === "calc");
   const calcValues = computeSpecialtyCalcMetrics(specialtyMetrics, values);
   // The provider's designated bonus metric (e.g. Marcio's Headache Total,
@@ -79,6 +83,20 @@ export function SpecialtyKpiCard({
             value={values[metric.key] as number | null | undefined}
             onChange={(v) => update(metric.key, v)}
           />
+        ))}
+        {autoMetrics.map((metric) => (
+          <div key={metric.key} className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted">{metric.label}</span>
+            <div className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground">
+              {formatValue((values[metric.key] as number | null | undefined) ?? null, metric.type === "boolean" ? "number" : metric.type)}
+            </div>
+            <span className="text-[11px] text-muted">
+              Auto-synced from Program Tracker
+              {typeof targets[metric.key] === "number"
+                ? ` · Target: ${formatValue(targets[metric.key] as number, metric.type === "boolean" ? "number" : metric.type)}`
+                : ""}
+            </span>
+          </div>
         ))}
         {calcMetrics.map((metric) => (
           <div key={metric.key} className="flex flex-col gap-1.5">

@@ -13,8 +13,7 @@ import { targetColor } from "@/lib/targetColor";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
 import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 import { requireSection } from "@/lib/auth/access";
-import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
-import { Member, PROGRAM_TRACKER_PAID_TYPES, normType } from "@/lib/programTracker/types";
+import { getPaidGymMemberCount } from "@/lib/programTracker/getPaidGymMemberCount";
 
 export default async function RevenuePage({
   searchParams,
@@ -27,7 +26,11 @@ export default async function RevenuePage({
   // Revenue trends read as noise over just 4 weeks — a trailing quarter (13
   // weeks) gives enough points to actually see seasonality/direction, while
   // still staying a fixed window rather than growing wider every week.
-  const [history, targets] = await Promise.all([getClinicHistory(week, clinicHistoryWeeks(week, 13)), getClinicTargets()]);
+  const [history, targets, gymPaidMemberCount] = await Promise.all([
+    getClinicHistory(week, clinicHistoryWeeks(week, 13)),
+    getClinicTargets(),
+    getPaidGymMemberCount(),
+  ]);
 
   const weeklyTarget = typeof targets.weekly_revenue_target === "number" ? targets.weekly_revenue_target : null;
   const breakeven = typeof targets.weekly_breakeven_target === "number" ? targets.weekly_breakeven_target : null;
@@ -85,24 +88,6 @@ export default async function RevenuePage({
 
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
   const glofoxLatest = typeof latest.m_glofox === "number" ? latest.m_glofox : 0;
-
-  // Live paid membership count alongside the revenue those members
-  // generate — reads straight from the Program Tracker (same admin client
-  // the Adjust Gym pages use), not a stored weekly_kpis figure, so it's
-  // always current rather than only as fresh as the last upload. Same
-  // "Total paid" definition as the Adjust Gym Dashboard's own tile —
-  // active members whose type actually bills (excludes Online/Sponsored).
-  let gymPaidMemberCount: number | null = null;
-  try {
-    const trackerSupabase = createProgramTrackerAdminClient();
-    const { data: membersData, error: membersError } = await trackerSupabase.from("members").select("status, type");
-    if (!membersError) {
-      const members = (membersData ?? []) as Pick<Member, "status" | "type">[];
-      gymPaidMemberCount = members.filter((m) => m.status === "Active" && PROGRAM_TRACKER_PAID_TYPES.includes(normType(m.type))).length;
-    }
-  } catch {
-    // Falls back to not showing the tile below — the revenue figures above don't depend on this.
-  }
 
   // Only include payer categories with at least one real week of revenue —
   // an all-zero series just adds legend noise for categories this clinic

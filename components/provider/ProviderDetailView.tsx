@@ -146,6 +146,7 @@ export function ProviderDetailView({
             targets={provider.targets}
             initialValues={currentMetrics}
             history={history}
+            autoSyncedKeys={["memberships"]}
           />
           {clinicHistory && <ClinicAnalysisCard history={clinicHistory} roleTargets={roleTargets} />}
         </div>

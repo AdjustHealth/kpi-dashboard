@@ -76,13 +76,21 @@ export function CancellationsTable({
   const [sortKey, setSortKey] = useState<SortKey>("appointment_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  // The Unretained list (showResolveAction) merges rows sourced from
+  // cancellation_events and no_future_booking_events (see
+  // lib/clinicData.ts getNotRebookedClients) — a row's id only exists in
+  // its own source table, so single-row updates must say which one.
+  function rowSource(row: CancellationEventRow): "cancellation" | "no_future_booking" {
+    return row.status === "No Future Booking" ? "no_future_booking" : "cancellation";
+  }
+
   async function toggleFlag(row: CancellationEventRow) {
     const next = !row.flagged_for_discussion;
     setLocalRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, flagged_for_discussion: next } : r)));
     const res = await fetch("/api/cancellation-events", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id, flagged_for_discussion: next }),
+      body: JSON.stringify({ id: row.id, flagged_for_discussion: next, source: rowSource(row) }),
     });
     if (!res.ok) {
       // Revert on failure.
@@ -136,7 +144,7 @@ export function CancellationsTable({
     await fetch("/api/cancellation-events", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id, discussion_note: row.discussion_note ?? "" }),
+      body: JSON.stringify({ id: row.id, discussion_note: row.discussion_note ?? "", source: rowSource(row) }),
     });
   }
 

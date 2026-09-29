@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const { id, flagged_for_discussion, discussion_note, not_rebooked_resolved, client, provider } = body as {
+  const { id, flagged_for_discussion, discussion_note, not_rebooked_resolved, client, provider, source } = body as {
     id?: string;
     flagged_for_discussion?: boolean;
     discussion_note?: string | null;
@@ -11,8 +11,18 @@ export async function PATCH(request: NextRequest) {
     /** Resolving a whole client instead of one row — see below. */
     client?: string;
     provider?: string;
+    /**
+     * Which table `id` belongs to. The Unretained list (getNotRebookedClients)
+     * merges cancellation_events and no_future_booking_events rows into one
+     * UI, and an id only ever exists in its own source table — updating the
+     * wrong one silently matches zero rows. Defaults to "cancellation" so
+     * existing callers (the general Cancellations tab, which is always
+     * cancellation_events) keep working unchanged.
+     */
+    source?: "cancellation" | "no_future_booking";
   };
 
+  const table = source === "no_future_booking" ? "no_future_booking_events" : "cancellation_events";
   const supabase = await createClient();
 
   // "Dealt with" on the Unretained list resolves every one of this
@@ -68,7 +78,7 @@ export async function PATCH(request: NextRequest) {
   if (discussion_note !== undefined) patch.discussion_note = discussion_note;
   if (not_rebooked_resolved !== undefined) patch.not_rebooked_resolved = not_rebooked_resolved;
 
-  const { error } = await supabase.from("cancellation_events").update(patch).eq("id", id);
+  const { error } = await supabase.from(table).update(patch).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });

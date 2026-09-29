@@ -291,6 +291,8 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
     last_booking_date: string | null;
     booking_type: string | null;
     case_name: string | null;
+    discussion_note: string | null;
+    flagged_for_discussion: boolean;
   }[];
   const noFutureBooking: CancellationEventRow[] = noFutureBookingRows.map((r) => ({
     id: r.id,
@@ -302,6 +304,8 @@ export async function getNotRebookedClients(providerName: string): Promise<Cance
     note: r.booking_type ? `Completed a ${r.booking_type} — nothing booked since` : "Nothing booked since their last visit",
     next_booking: null,
     modified_user: null,
+    discussion_note: r.discussion_note,
+    flagged_for_discussion: r.flagged_for_discussion,
   }));
 
   // Merge both sources, one row per client — a client who's both cancelled
