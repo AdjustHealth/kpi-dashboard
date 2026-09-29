@@ -18,7 +18,7 @@ export function MyCancellationsSection({ week }: { week: string }) {
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "error"; message: string }
-    | { status: "ready"; cancellations: CancellationEventRow[]; followUps: FollowUpRow[] }
+    | { status: "ready"; cancellations: CancellationEventRow[]; followUps: FollowUpRow[]; unretained: CancellationEventRow[] }
   >({ status: "loading" });
 
   useEffect(() => {
@@ -31,7 +31,12 @@ export function MyCancellationsSection({ week }: { week: string }) {
           setState({ status: "error", message: body.error ?? "Something went wrong" });
           return;
         }
-        setState({ status: "ready", cancellations: body.cancellations ?? [], followUps: body.followUps ?? [] });
+        setState({
+          status: "ready",
+          cancellations: body.cancellations ?? [],
+          followUps: body.followUps ?? [],
+          unretained: body.unretained ?? [],
+        });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error", message: "Could not reach the server" });
@@ -65,6 +70,13 @@ export function MyCancellationsSection({ week }: { week: string }) {
         )}
       </Card>
       <MyFollowUpsCard rows={state.followUps} />
+      <Card title={`Unretained — No Future Booking${state.unretained.length > 0 ? ` (${state.unretained.length})` : ""}`}>
+        {state.unretained.length === 0 ? (
+          <p className="text-sm text-muted">No clients currently sitting without a future booking.</p>
+        ) : (
+          <CancellationsTable rows={state.unretained} hideProvider showResolveAction />
+        )}
+      </Card>
     </>
   );
 }
