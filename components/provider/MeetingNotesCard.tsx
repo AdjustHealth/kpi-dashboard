@@ -161,16 +161,18 @@ export function MeetingNotesCard({
   return (
     <Card title="Meeting Notes" action={<SaveIndicator status={status} />}>
       <div className="flex flex-col gap-4">
+        {!adminMode && (
+          <Field
+            label="General Agenda Items"
+            hint="Applies to every provider's meeting this week — fill it in once here and it shows up on everyone else's page too."
+            tag={<SaveIndicator status={generalStatus} />}
+          >
+            <Textarea rows={5} value={generalAgenda} onChange={(e) => updateGeneralAgenda(e.target.value)} />
+          </Field>
+        )}
         <Field
-          label="General Agenda Items"
-          hint="Applies to every provider's meeting this week — fill it in once here and it shows up on everyone else's page too."
-          tag={<SaveIndicator status={generalStatus} />}
-        >
-          <Textarea rows={5} value={generalAgenda} onChange={(e) => updateGeneralAgenda(e.target.value)} />
-        </Field>
-        <Field
-          label="Individual Agenda Items"
-          hint="Just for this person — start a line with “- ” to dot-point it, it carries onto the next line automatically."
+          label={adminMode ? "New Agenda Items" : "Individual Agenda Items"}
+          hint={adminMode ? "Start a line with “- ” to dot-point it — it carries onto the next line automatically." : "Just for this person — start a line with “- ” to dot-point it, it carries onto the next line automatically."}
         >
           <Textarea
             rows={9}
