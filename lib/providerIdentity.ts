@@ -1,9 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { recentWeeks } from "@/lib/week";
+import { recentWeeks, shiftWeek } from "@/lib/week";
 import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
+import { ProviderMeetingNotes } from "@/lib/providerSchema";
 
 /**
  * There's no stored mapping from a kpi-dashboard login to a providers row
@@ -58,6 +59,35 @@ export async function getMyProviderHistory(providerId: string, week: string, his
     })),
     error: null,
   };
+}
+
+/**
+ * A practitioner's own Action Steps/Action Plan (meeting_notes) for the
+ * current and previous week, for read-only display on My Dashboard — so a
+ * director's meeting notes reach the provider automatically instead of
+ * being copied and sent separately. Returns both weeks rather than one
+ * already-resolved list so the caller can apply the exact same "this
+ * week's own entry if set, else last week's still-open items" carry-over
+ * rule ActionStepsCard uses on the director's page (see lib/actionItems.ts)
+ * — the provider then sees precisely what the director sees/sets, with no
+ * separate logic to drift out of sync. Uses the admin client for the same
+ * reason myProvider()/getMyProviderHistory() above do.
+ */
+export async function getMyMeetingNotes(
+  providerId: string,
+  week: string
+): Promise<{ thisWeek: ProviderMeetingNotes; lastWeek: ProviderMeetingNotes; error: string | null }> {
+  const supabase = createAdminClient();
+  const previousWeek = shiftWeek(week, -1);
+  const { data, error } = await supabase
+    .from("provider_weekly")
+    .select("week_ending, meeting_notes")
+    .eq("provider_id", providerId)
+    .in("week_ending", [week, previousWeek]);
+  if (error) return { thisWeek: {}, lastWeek: {}, error: error.message };
+  const rows = (data ?? []) as { week_ending: string; meeting_notes: ProviderMeetingNotes | null }[];
+  const byWeek = new Map(rows.map((r) => [r.week_ending, r.meeting_notes ?? {}]));
+  return { thisWeek: byWeek.get(week) ?? {}, lastWeek: byWeek.get(previousWeek) ?? {}, error: null };
 }
 
 export interface FollowUpRow {

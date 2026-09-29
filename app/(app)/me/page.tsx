@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { createClient } from "@/lib/supabase/server";
-import { myProvider, getMyProviderHistory } from "@/lib/providerIdentity";
+import { myProvider, getMyProviderHistory, getMyMeetingNotes } from "@/lib/providerIdentity";
 import { getRoleTargets } from "@/lib/clinicData";
 import { coachNameForUser } from "@/lib/programTracker/coach";
 import { createProgramTrackerAdminClient } from "@/lib/programTracker/supabaseAdmin";
@@ -9,6 +9,7 @@ import { Member } from "@/lib/programTracker/types";
 import { MyStatsCharts } from "@/components/me/MyStatsCharts";
 import { MyGoalsCard } from "@/components/me/MyGoalsCard";
 import { MyCancellationsSection } from "@/components/me/MyCancellationsSection";
+import { MyActionStepsCard } from "@/components/me/MyActionStepsCard";
 import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
 import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { Card } from "@/components/ui/Card";
@@ -59,13 +60,16 @@ export default async function MyDashboardPage({ searchParams }: { searchParams: 
   let pvaTarget: number | null = null;
   let fbaTarget: number | null = null;
   let newPatientNames: string[] = [];
+  let meetingNotes: Awaited<ReturnType<typeof getMyMeetingNotes>> | null = null;
   if (provider) {
-    const [historyResult, roleTargets] = await Promise.all([
+    const [historyResult, roleTargets, meetingNotesResult] = await Promise.all([
       getMyProviderHistory(provider.id, week, trackingHistoryWeeks(week)),
       getRoleTargets(),
+      getMyMeetingNotes(provider.id, week),
     ]);
     history = historyResult.history;
     statsError = historyResult.error;
+    meetingNotes = meetingNotesResult;
     const effectiveTargets = { ...(roleTargets[provider.role] ?? {}), ...(provider.targets ?? {}) };
     occupancyTarget = typeof effectiveTargets.occupancy_pct === "number" ? effectiveTargets.occupancy_pct : null;
     pvaTarget = typeof effectiveTargets.ucva === "number" ? effectiveTargets.ucva : null;
@@ -103,6 +107,13 @@ export default async function MyDashboardPage({ searchParams }: { searchParams: 
             <>
               <MyStatsCharts history={history} occupancyTarget={occupancyTarget} pvaTarget={pvaTarget} fbaTarget={fbaTarget} />
               <NewPatientsCard names={newPatientNames} />
+              {meetingNotes && !meetingNotes.error && (
+                <MyActionStepsCard
+                  thisWeek={meetingNotes.thisWeek}
+                  lastWeek={meetingNotes.lastWeek}
+                  categorized={provider.role === "senior_physio"}
+                />
+              )}
               <MyGoalsCard goals={provider.goals ?? []} />
             </>
           ))}
