@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { recentWeeks } from "@/lib/week";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
@@ -250,7 +251,20 @@ export async function getNewPatientRetention(week: string, lookbackWeeks = 4): P
  * whole-plan cancellations (Bodhi Behan, Sophie Halbert, etc.) every week.
  */
 export async function getNotRebookedClients(providerName: string): Promise<CancellationEventRow[]> {
-  const supabase = await createClient();
+  return getNotRebookedClientsFor(await createClient(), providerName);
+}
+
+/**
+ * Same Unretained definition as getNotRebookedClients above, against an
+ * already-created Supabase client — lets My Dashboard's self-service page
+ * (lib/providerIdentity.ts) show a provider their own Unretained list
+ * through its admin client, since cancellation_events/no_future_booking_events
+ * read access is scoped to Meetings provider-role access, which a
+ * practitioner with no Meetings grant can't otherwise read even their own
+ * rows through the ordinary RLS-scoped client (same reasoning as
+ * getMyWeekCancellations/getMyWeekFollowUps there).
+ */
+export async function getNotRebookedClientsFor(supabase: SupabaseClient, providerName: string): Promise<CancellationEventRow[]> {
   const [cancellationsResult, noFutureBookingResult] = await Promise.all([
     supabase
       .from("cancellation_events")

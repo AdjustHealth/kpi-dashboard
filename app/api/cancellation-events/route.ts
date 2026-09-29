@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAccessContext } from "@/lib/auth/access";
+import { myProvider } from "@/lib/providerIdentity";
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
@@ -23,7 +26,32 @@ export async function PATCH(request: NextRequest) {
   };
 
   const table = source === "no_future_booking" ? "no_future_booking_events" : "cancellation_events";
-  const supabase = await createClient();
+
+  // A director or anyone with Meetings section access edits any row through
+  // the ordinary RLS-scoped client, same as always. Everyone else — e.g. a
+  // practitioner acting on their own Unretained section on My Dashboard, who
+  // typically has no Meetings grant at all (see lib/supabase/admin.ts) and
+  // couldn't read these tables through that client to begin with — gets the
+  // admin client instead, but only ever to touch rows that are actually
+  // theirs, verified below (same ownership-check pattern as
+  // /api/my-week-events).
+  const { isDirector, allowedSections } = await getAccessContext();
+  const hasMeetingsAccess = isDirector || allowedSections.includes("meetings");
+
+  let ownProviderName: string | null = null;
+  if (!hasMeetingsAccess) {
+    const authedSupabase = await createClient();
+    const {
+      data: { user },
+    } = await authedSupabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    const { provider: myOwnProvider, error: providerError } = await myProvider(user.email);
+    if (providerError) return NextResponse.json({ error: providerError }, { status: 500 });
+    if (!myOwnProvider) return NextResponse.json({ error: "Could not match your login to a provider" }, { status: 403 });
+    ownProviderName = myOwnProvider.name;
+  }
+
+  const supabase = hasMeetingsAccess ? await createClient() : createAdminClient();
 
   // "Dealt with" on the Unretained list resolves every one of this
   // client's currently-unresolved not-rebooked rows for this provider, not
@@ -35,6 +63,9 @@ export async function PATCH(request: NextRequest) {
   // cancellation created by a later Nookal upload still gets its own fresh
   // row and shows up again untouched, same as before.
   if (not_rebooked_resolved === true && client && provider) {
+    if (ownProviderName && provider !== ownProviderName) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     const { error } = await supabase
       .from("cancellation_events")
       .update({ not_rebooked_resolved: true })
@@ -71,6 +102,14 @@ export async function PATCH(request: NextRequest) {
       },
       { status: 400 }
     );
+  }
+
+  if (ownProviderName) {
+    const { data: existing, error: fetchError } = await supabase.from(table).select("provider").eq("id", id).maybeSingle();
+    if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    if (!existing || existing.provider !== ownProviderName) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
   }
 
   const patch: Record<string, unknown> = {};

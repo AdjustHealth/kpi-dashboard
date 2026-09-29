@@ -5,6 +5,7 @@ import { Provider, ProviderWeekly } from "@/lib/types";
 import { WeekMetrics } from "@/components/provider/PerformanceTable";
 import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
 import { ProviderMeetingNotes } from "@/lib/providerSchema";
+import { getNotRebookedClientsFor } from "@/lib/clinicData";
 
 /**
  * There's no stored mapping from a kpi-dashboard login to a providers row
@@ -143,4 +144,15 @@ export async function getMyWeekFollowUps(providerName: string, week: string): Pr
     .order("last_booking_date", { ascending: false });
   if (error) return { rows: [], error: error.message };
   return { rows: (data ?? []) as FollowUpRow[], error: null };
+}
+
+/**
+ * A practitioner's own Unretained list — same cross-week "however long ago
+ * they cancelled, until someone marks it dealt with" definition as the
+ * director's own meeting page (see lib/clinicData.ts getNotRebookedClients),
+ * just through the admin client so it works for a practitioner with no
+ * Meetings grant too.
+ */
+export async function getMyUnretainedClients(providerName: string): Promise<CancellationEventRow[]> {
+  return getNotRebookedClientsFor(createAdminClient(), providerName);
 }

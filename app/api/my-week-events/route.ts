@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { myProvider, getMyWeekCancellations, getMyWeekFollowUps } from "@/lib/providerIdentity";
+import { myProvider, getMyWeekCancellations, getMyWeekFollowUps, getMyUnretainedClients } from "@/lib/providerIdentity";
 import { defaultWeekEnding } from "@/lib/week";
 
 /**
@@ -21,18 +21,19 @@ export async function GET(request: NextRequest) {
 
   const { provider, error: providerError } = await myProvider(user.email);
   if (providerError) return NextResponse.json({ error: providerError }, { status: 500 });
-  if (!provider) return NextResponse.json({ cancellations: [], followUps: [] });
+  if (!provider) return NextResponse.json({ cancellations: [], followUps: [], unretained: [] });
 
   const weekParam = request.nextUrl.searchParams.get("week");
   const week = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? weekParam : defaultWeekEnding();
-  const [cancellationsResult, followUpsResult] = await Promise.all([
+  const [cancellationsResult, followUpsResult, unretained] = await Promise.all([
     getMyWeekCancellations(provider.name, week),
     getMyWeekFollowUps(provider.name, week),
+    getMyUnretainedClients(provider.name),
   ]);
   if (cancellationsResult.error) return NextResponse.json({ error: cancellationsResult.error }, { status: 500 });
   if (followUpsResult.error) return NextResponse.json({ error: followUpsResult.error }, { status: 500 });
 
-  return NextResponse.json({ cancellations: cancellationsResult.rows, followUps: followUpsResult.rows });
+  return NextResponse.json({ cancellations: cancellationsResult.rows, followUps: followUpsResult.rows, unretained });
 }
 
 /**
