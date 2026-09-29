@@ -17,8 +17,10 @@ export default async function ProviderDetailPage({
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
 
-  const [{ provider, history, currentMeetingNotes, previousMeetingNotes, sixWeekReviewNames, sixWeekReviewWeek }, roleTargets] =
-    await Promise.all([getProviderDetailData(id, week, trackingHistoryWeeks(week)), getRoleTargets()]);
+  const [
+    { provider, history, currentMeetingNotes, previousMeetingNotes, sixWeekReviewNames, sixWeekReviewWeek, generalAgendaText },
+    roleTargets,
+  ] = await Promise.all([getProviderDetailData(id, week, trackingHistoryWeeks(week)), getRoleTargets()]);
   if (!provider) notFound();
   const [notRebookedClients, dropOutRateHistory] = await Promise.all([
     getNotRebookedClients(provider.name),
@@ -39,6 +41,7 @@ export default async function ProviderDetailPage({
         notRebookedClients={notRebookedClients}
         dropOutRateHistory={dropOutRateHistory}
         roleTargets={roleTargets}
+        generalAgendaText={generalAgendaText}
         variant="standard"
       />
     </>

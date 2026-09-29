@@ -30,6 +30,7 @@ export function MeetingNotesCard({
   discKeys = DEFAULT_DISC_KEYS,
   adminMode = false,
   previousMultiDisc,
+  initialGeneralAgendaText = "",
 }: {
   providerId: string;
   week: string;
@@ -42,6 +43,8 @@ export function MeetingNotesCard({
   adminMode?: boolean;
   /** Last week's Multi-Disciplinary Team Utilisation names — kept on the list every week (not just carried once) so referral names aren't forgotten; see the mount effect below. */
   previousMultiDisc?: MultiDiscUtilisation;
+  /** This week's shared General agenda text — same value on every provider's page, see the general_agenda_items table. */
+  initialGeneralAgendaText?: string;
 }) {
   // Names carry indefinitely (not just a one-off suggestion like Action
   // Steps) — a name typed under Hydro this week should still be there next
@@ -78,6 +81,23 @@ export function MeetingNotesCard({
     });
     if (!res.ok) throw new Error("save failed");
   });
+
+  // Shared across every provider's meeting for the week — saved separately
+  // from the rest of this card's (per-provider) fields above, into its own
+  // general_agenda_items row rather than this provider's meeting_notes.
+  const [generalAgenda, setGeneralAgenda] = useState(initialGeneralAgendaText);
+  const { status: generalStatus, set: setGeneralPatch } = useBatchedAutosave(async (patch) => {
+    const res = await fetch("/api/general-agenda", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ week_ending: week, text: patch.text }),
+    });
+    if (!res.ok) throw new Error("save failed");
+  });
+  function updateGeneralAgenda(value: string) {
+    setGeneralAgenda(value);
+    setGeneralPatch("text", value);
+  }
 
   useEffect(() => {
     if (carriedDiscKeys.length > 0) set("multi_disc_utilisation", mergedMultiDisc);
@@ -141,7 +161,17 @@ export function MeetingNotesCard({
   return (
     <Card title="Meeting Notes" action={<SaveIndicator status={status} />}>
       <div className="flex flex-col gap-4">
-        <Field label="New Agenda Items" hint="Start a line with “- ” to dot-point it — it carries onto the next line automatically.">
+        <Field
+          label="General Agenda Items"
+          hint="Applies to every provider's meeting this week — fill it in once here and it shows up on everyone else's page too."
+          tag={<SaveIndicator status={generalStatus} />}
+        >
+          <Textarea rows={5} value={generalAgenda} onChange={(e) => updateGeneralAgenda(e.target.value)} />
+        </Field>
+        <Field
+          label="Individual Agenda Items"
+          hint="Just for this person — start a line with “- ” to dot-point it, it carries onto the next line automatically."
+        >
           <Textarea
             rows={9}
             value={notes.agenda_items ?? ""}

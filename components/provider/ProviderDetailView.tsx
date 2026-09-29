@@ -38,6 +38,7 @@ export function ProviderDetailView({
   seniorSince,
   roleTargets,
   adminCancellations,
+  generalAgendaText,
   variant,
 }: {
   provider: Provider;
@@ -60,6 +61,8 @@ export function ProviderDetailView({
   roleTargets?: Record<string, Record<string, unknown>>;
   /** This admin's own cancellation/DNA rows for the week — variant "admin" only. */
   adminCancellations?: CancellationEventRow[];
+  /** This week's shared "General" agenda text — same for every provider's meeting, see MeetingNotesCard. */
+  generalAgendaText?: string;
   variant: "standard" | "senior" | "admin";
 }) {
   const metricFields = metricFieldsForRole(provider.role);
@@ -100,6 +103,7 @@ export function ProviderDetailView({
           initialNotes={currentMeetingNotes}
           discKeys={multiDiscKeysForRole(provider.role)}
           previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
+          initialGeneralAgendaText={generalAgendaText ?? ""}
         />
 
         <div className="flex flex-col gap-4">
@@ -222,6 +226,7 @@ export function ProviderDetailView({
         discKeys={multiDiscKeysForRole(provider.role)}
         adminMode={variant === "admin"}
         previousMultiDisc={previousMeetingNotes?.multi_disc_utilisation}
+        initialGeneralAgendaText={generalAgendaText ?? ""}
       />
 
       <ActionStepsCard

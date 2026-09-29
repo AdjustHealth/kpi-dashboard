@@ -29,7 +29,7 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   const weeks = recentWeeks(week, historyWeeks);
   const sixWeeksAgo = shiftWeek(week, -SIX_WEEK_REVIEW_OFFSET);
 
-  const [providerResult, historyResult, sixWeekAgoResult] = await Promise.all([
+  const [providerResult, historyResult, sixWeekAgoResult, generalAgendaResult] = await Promise.all([
     supabase.from("providers").select("*").eq("id", providerId).maybeSingle(),
     supabase
       .from("provider_weekly")
@@ -45,6 +45,11 @@ export async function getProviderDetailData(providerId: string, week: string, hi
       .eq("provider_id", providerId)
       .eq("week_ending", sixWeeksAgo)
       .maybeSingle(),
+    // Shared across every provider's meeting for the week — see
+    // components/provider/MeetingNotesCard.tsx's General Agenda Items.
+    // Falls back to "" (below) if the table isn't there yet or the query
+    // errors, rather than taking the whole page down with it.
+    supabase.from("general_agenda_items").select("text").eq("week_ending", week).maybeSingle(),
   ]);
 
   const provider = providerResult.data as Provider | null;
@@ -101,6 +106,8 @@ export async function getProviderDetailData(providerId: string, week: string, hi
     }
   }
 
+  const generalAgendaText = typeof generalAgendaResult.data?.text === "string" ? generalAgendaResult.data.text : "";
+
   return {
     provider,
     history,
@@ -108,6 +115,7 @@ export async function getProviderDetailData(providerId: string, week: string, hi
     previousMeetingNotes,
     sixWeekReviewNames,
     sixWeekReviewWeek: sixWeeksAgo,
+    generalAgendaText,
   };
 }
 
