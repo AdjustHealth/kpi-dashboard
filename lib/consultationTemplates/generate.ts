@@ -103,6 +103,13 @@ function buildPrompt(note: ConsultNote): string {
 CLIENT: ${note.patientName || "the client"}
 CLINICIAN: ${note.clinician || "the treating physiotherapist"}
 
+CLIENT-CENTRED OPENING (context for you, not clinical findings)
+Why Adjust: ${note.subjective.whyAdjust || "—"}
+Why now: ${note.subjective.whyNow || "—"}
+Why this matters to them: ${note.subjective.whyImportant || "—"}
+Short term goal: ${note.subjective.shortTermGoal || "—"}
+Long term goal: ${note.subjective.longTermGoal || "—"}
+
 SUBJECTIVE
 HPC / body chart (includes PNN, aggravating/easing factors, 24hr pattern, clicking/catching/locking where noted): ${note.subjective.hpcBodyChart || "—"}
 Past history: ${note.subjective.pastHistory || "—"}
@@ -144,6 +151,7 @@ Produce FOUR things:
    (c) heading "Our Plan Together" — intro is a warm one or two sentences framing the three-phase approach as a journey you're on together (calming things down, then rebuilding, then making it stick). Points is 2-3 sentences on the THINKING behind the plan, not the logistics (frequency/cadence/interventions are shown in full detail on the Treatment Plan card right after this, so do not repeat those specifics here).
    (d) heading "What to Expect" — intro is one sentence; points is 2-4 concrete, complete-sentence things to expect before the next visit (e.g. "It's totally normal to feel a little sore for a day or two after today's session, since we moved around some structures that haven't been working properly for a while.").
    "intro" can be an empty string only if genuinely nothing needs saying beyond the points, but a section reads much better with one.
+   Weave the client's own long term goal (and short term goal, if given) into "Our Plan Together" so the plan reads as being in service of what THEY actually said they want, not a generic pathway — this matters most for the long term goal. The "Why Adjust"/"Why now"/"why this matters to them" answers above are for your own context only — never quote or reference them directly anywhere in the report.
 ${STYLE_GUIDE}
 
 3. "nookalNotes" — concise, professional clinical documentation ready to paste directly into Nookal, structured as: Subjective, Objective, Clinical Impression, Diagnosis & Prognosis, Treatment Plan — using normal clinical shorthand and terminology (this one IS for clinical staff, not the client). Plain text with line breaks between headings, no markdown formatting.

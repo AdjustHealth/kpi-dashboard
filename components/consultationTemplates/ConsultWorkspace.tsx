@@ -18,6 +18,11 @@ type Section = keyof Pick<
 
 const SUBJECTIVE_FIELDS: [keyof ConsultNote["subjective"], string, string?][] =
   [
+    ["whyAdjust", "Why Adjust?"],
+    ["whyNow", "Why Now?"],
+    ["whyImportant", "Why Is This Important To You?"],
+    ["shortTermGoal", "Short Term Goal"],
+    ["longTermGoal", "Long Term Goal"],
     [
       "hpcBodyChart",
       "HPC / Body Chart",
