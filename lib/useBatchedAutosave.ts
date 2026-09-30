@@ -42,10 +42,25 @@ export function useBatchedAutosave(
     [flush, delay]
   );
 
+  // Kept current via a ref rather than in the cleanup effect's own
+  // dependency array — `save` (and so `flush`) is typically a fresh inline
+  // closure every render in the calling component, and depending on it
+  // directly would re-run this effect (tearing down and re-running the
+  // cleanup) on every render instead of only at actual unmount.
+  const flushRef = useRef(flush);
+  useEffect(() => {
+    flushRef.current = flush;
+  }, [flush]);
+
   useEffect(
     () => () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+      // A field edited right before navigating away (e.g. clicking to
+      // another provider mid-meeting) would otherwise sit unsaved for the
+      // rest of the debounce window and then just get abandoned — save it
+      // immediately instead of waiting it out.
+      if (Object.keys(pending.current).length > 0) flushRef.current();
     },
     []
   );
