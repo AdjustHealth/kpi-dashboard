@@ -198,9 +198,9 @@ export function CancellationsTable({
               (row.status === "Cancelled" && !row.next_booking && !rescheduled) || row.status === "No Future Booking";
             const rowStyle: CSSProperties = {
               ...(rescheduled
-                ? { backgroundColor: "color-mix(in srgb, var(--color-success) 10%, transparent)" }
+                ? { backgroundColor: "color-mix(in srgb, var(--color-success) 22%, transparent)" }
                 : notRebooked
-                  ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 8%, transparent)" }
+                  ? { backgroundColor: "color-mix(in srgb, var(--color-danger) 20%, transparent)" }
                   : {}),
               ...(row.flagged_for_discussion ? { boxShadow: "inset 3px 0 0 var(--color-warning)" } : {}),
               ...(showDealtWithToggle && row.dealt_with ? { opacity: 0.5 } : {}),
