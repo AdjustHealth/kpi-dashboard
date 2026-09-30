@@ -26,11 +26,20 @@ export function useRealtimeMeetingNotes(
   const instanceId = useId();
   const activeKeys = useRef<Set<string>>(new Set());
   const onRemoteChangeRef = useRef(onRemoteChange);
+  // Realtime delivery isn't guaranteed to preserve write order — a slower
+  // network hop can deliver an older save's broadcast after a newer one has
+  // already landed and been applied. Without this guard, that stale event
+  // would silently revert a field to older text until the next full page
+  // load (this is what "types something, it vanishes, comes back on
+  // refresh" actually was) — only ever move forward in time using
+  // provider_weekly's own updated_at.
+  const lastAppliedAt = useRef<string | null>(null);
   useEffect(() => {
     onRemoteChangeRef.current = onRemoteChange;
   });
 
   useEffect(() => {
+    lastAppliedAt.current = null;
     const supabase = createClient();
     const channel = supabase
       .channel(`provider_weekly_meeting_notes:${providerId}:${week}:${instanceId}`)
@@ -43,8 +52,12 @@ export function useRealtimeMeetingNotes(
           filter: `provider_id=eq.${providerId}`,
         },
         (payload) => {
-          const row = payload.new as { week_ending?: string; meeting_notes?: ProviderMeetingNotes } | null;
+          const row = payload.new as { week_ending?: string; meeting_notes?: ProviderMeetingNotes; updated_at?: string } | null;
           if (!row?.meeting_notes || row.week_ending !== week) return;
+          if (row.updated_at) {
+            if (lastAppliedAt.current && row.updated_at <= lastAppliedAt.current) return;
+            lastAppliedAt.current = row.updated_at;
+          }
           const remote: Record<string, unknown> = { ...row.meeting_notes };
           for (const key of activeKeys.current) delete remote[key];
           onRemoteChangeRef.current(remote);
