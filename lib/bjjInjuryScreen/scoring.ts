@@ -4,7 +4,9 @@ import {
   CHIN_UPS_BENCHMARK,
   CMJ_HEIGHT_CM_BENCHMARK,
   DROP_JUMP_RSI_BENCHMARK,
+  GRIP_STRENGTH_KG_BENCHMARK,
   IMTP_RATIO_BENCHMARK,
+  KNEE_TO_WALL_CM_BENCHMARK,
   PULL_UPS_BENCHMARK,
   SexBenchmark,
   SHOULDER_Y_CM_BENCHMARK,
@@ -51,6 +53,8 @@ export type BjjScreenScore = {
   standingShoulderY: MetricResult | null;
   maxPullUps: MetricResult | null;
   maxChinUps: MetricResult | null;
+  ankleDfKneeToWallCm: MetricResult | null;
+  gripStrengthKg: MetricResult | null;
   /** Raw value only — no published benchmark exists for this test, see benchmarks.ts. */
   wattBike3MinAvgWatts: number | null;
   mobilityScore: number | null;
@@ -80,16 +84,39 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const standingShoulderY = scoreMetric(data.strength.standingShoulderY, sex, SHOULDER_Y_CM_BENCHMARK);
   const maxPullUps = scoreMetric(data.strength.maxPullUps, sex, PULL_UPS_BENCHMARK);
   const maxChinUps = scoreMetric(data.strength.maxChinUps, sex, CHIN_UPS_BENCHMARK);
+  const ankleDfKneeToWallCm = scoreMetric(data.mobility.ankleDfKneeToWallCm, sex, KNEE_TO_WALL_CM_BENCHMARK);
+  const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
   const wattBike3MinAvgWatts = parseNum(data.conditioning.wattBike3MinAvgWatts);
 
-  const ratings = Object.values(data.mobility).filter((r): r is Exclude<Rating, ""> => r !== "");
+  // Only the four Poor/Demonstrated/Good ratings go into the qualitative
+  // mobility score — ankleDfKneeToWallCm is a real measurement, scored (and
+  // folded into the overall average) as its own numeric metric above instead.
+  const ratingKeys: Exclude<keyof BjjScreenFormData["mobility"], "ankleDfKneeToWallCm">[] = [
+    "shoulderErIr",
+    "hipErIr",
+    "lumbarFlexExt",
+    "txRotation",
+  ];
+  const ratings = ratingKeys.map((k) => data.mobility[k]).filter((r): r is Exclude<Rating, ""> => r !== "");
   const mobilityScore = ratings.length > 0 ? Math.round((ratings.reduce((sum, r) => sum + RATING_SCORE[r], 0) / ratings.length) * 10) / 10 : null;
 
-  const scoredNumeric = [imtp, cmjHeight, dropJumpRsi, standingShoulderY, maxPullUps, maxChinUps]
+  const scoredNumeric = [imtp, cmjHeight, dropJumpRsi, standingShoulderY, maxPullUps, maxChinUps, ankleDfKneeToWallCm, gripStrengthKg]
     .map((m) => m?.score)
     .filter((s): s is number => s !== null && s !== undefined);
   const overallParts = mobilityScore !== null ? [...scoredNumeric, mobilityScore] : scoredNumeric;
   const overall = overallParts.length > 0 ? Math.round((overallParts.reduce((a, b) => a + b, 0) / overallParts.length) * 10) / 10 : null;
 
-  return { imtp, cmjHeight, dropJumpRsi, standingShoulderY, maxPullUps, maxChinUps, wattBike3MinAvgWatts, mobilityScore, overall };
+  return {
+    imtp,
+    cmjHeight,
+    dropJumpRsi,
+    standingShoulderY,
+    maxPullUps,
+    maxChinUps,
+    ankleDfKneeToWallCm,
+    gripStrengthKg,
+    wattBike3MinAvgWatts,
+    mobilityScore,
+    overall,
+  };
 }

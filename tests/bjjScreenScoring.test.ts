@@ -54,7 +54,7 @@ describe("scoreBjjScreen", () => {
   });
 
   it("averages mobility ratings into a single 0-10 score (poor=2, demonstrated=6, good=10)", () => {
-    const data = screen({ mobility: { shoulderErIr: "good", hipErIr: "poor", lumbarFlexExt: "", txRotation: "" } });
+    const data = screen({ mobility: { shoulderErIr: "good", hipErIr: "poor", lumbarFlexExt: "", txRotation: "", ankleDfKneeToWallCm: "" } });
     const result = scoreBjjScreen(data);
     expect(result.mobilityScore).toBe(6); // (10 + 2) / 2
   });
@@ -70,10 +70,27 @@ describe("scoreBjjScreen", () => {
     const data = screen({
       sex: "male",
       power: { cmjHeight: "39.6", dropJumpRsi: "" },
-      mobility: { shoulderErIr: "good", hipErIr: "good", lumbarFlexExt: "good", txRotation: "good" },
+      mobility: { shoulderErIr: "good", hipErIr: "good", lumbarFlexExt: "good", txRotation: "good", ankleDfKneeToWallCm: "" },
     });
     const result = scoreBjjScreen(data);
     expect(result.overall).toBe(10);
+  });
+
+  it("scores grip strength against the elite judo benchmark", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, gripStrengthKg: "47" } });
+    const result = scoreBjjScreen(data);
+    expect(result.gripStrengthKg?.percentOfElite).toBe(100);
+    expect(result.gripStrengthKg?.score).toBe(10);
+  });
+
+  it("scores the knee-to-wall ankle dorsiflexion test as its own numeric metric, not part of the qualitative mobility score", () => {
+    const data = screen({
+      sex: "male",
+      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", ankleDfKneeToWallCm: "15" },
+    });
+    const result = scoreBjjScreen(data);
+    expect(result.ankleDfKneeToWallCm?.percentOfElite).toBe(100);
+    expect(result.mobilityScore).toBeNull(); // no Poor/Demonstrated/Good ratings were set
   });
 
   it("returns a null overall score when nothing has been entered yet", () => {
