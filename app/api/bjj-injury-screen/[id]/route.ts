@@ -26,16 +26,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireSection("assessment_tool");
-  if (unauthorized) return unauthorized;
-  const { id } = await params;
-
-  try {
-    const sql = assessmentToolSql();
-    await sql`delete from assessments where id = ${id} and assess_type = 'bjj_injury_screen'`;
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
-  }
-}
+// DELETE is handled by the shared /api/assessments/[id] route (used by
+// DeleteAssessmentButton on the Assessments page) — it deletes by id with
+// no assess_type restriction, so it already covers this type too.
