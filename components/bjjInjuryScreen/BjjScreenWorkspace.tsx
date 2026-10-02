@@ -3,12 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Field, Input, Select } from "@/components/ui/Field";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
-import type { BjjScreenFormData, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
+import type { BjjScreenFormData, InjuryResult, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
 import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
 
 type ValueSection = "mobility" | "strength" | "power" | "conditioning";
+
+const INJURY_REGIONS: [keyof Omit<BjjScreenFormData["injuryScreen"], "comments">, string][] = [
+  ["neck", "Neck"],
+  ["back", "Back"],
+  ["shoulders", "Shoulders"],
+  ["upperLimb", "Upper Limb"],
+  ["hips", "Hips"],
+  ["knees", "Knees"],
+  ["ankles", "Ankles"],
+];
 
 const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
   ["shoulderErIr", "Shoulder ER/IR"],
@@ -98,6 +108,10 @@ export function BjjScreenWorkspace({
     setData((d) => ({ ...d, mobility: { ...d.mobility, [key]: value } }));
   }
 
+  function setInjury(key: keyof BjjScreenFormData["injuryScreen"], value: string) {
+    setData((d) => ({ ...d, injuryScreen: { ...d.injuryScreen, [key]: value } }));
+  }
+
   function setValue(section: ValueSection, key: string, value: string) {
     setData((d) => ({ ...d, [section]: { ...d[section], [key]: value } }));
   }
@@ -169,6 +183,25 @@ export function BjjScreenWorkspace({
         </Field>
         <Field label="Bodyweight" hint="kg — needed to normalise IMTP against elite data">
           <Input value={data.bodyweightKg} onChange={(e) => setTop("bodyweightKg", e.target.value)} placeholder="e.g. 82" />
+        </Field>
+      </SectionCard>
+
+      <SectionCard title="Injury Screen" hint="Pass or Fail per region — same quick regional screen used on the Youth/Performance report, not scored into the 0-10 domains below.">
+        {INJURY_REGIONS.map(([key, label]) => (
+          <Field key={key} label={label}>
+            <Select value={data.injuryScreen[key]} onChange={(e) => setInjury(key, e.target.value as InjuryResult)}>
+              <option value="">Not tested</option>
+              <option value="pass">Pass</option>
+              <option value="fail">Fail</option>
+            </Select>
+          </Field>
+        ))}
+        <Field label="Screening Comments" tag={<span className="text-muted">(optional)</span>}>
+          <Textarea
+            value={data.injuryScreen.comments}
+            onChange={(e) => setInjury("comments", e.target.value)}
+            placeholder="Note any failed regions, current complaints or precautions..."
+          />
         </Field>
       </SectionCard>
 

@@ -1,6 +1,16 @@
 import { PrintButton } from "@/components/consultationTemplates/PrintButton";
-import type { BjjScreenFormData } from "@/lib/bjjInjuryScreen/types";
+import type { BjjScreenFormData, InjuryResult } from "@/lib/bjjInjuryScreen/types";
 import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
+
+const INJURY_REGIONS: [keyof Omit<BjjScreenFormData["injuryScreen"], "comments">, string][] = [
+  ["neck", "Neck"],
+  ["back", "Back"],
+  ["shoulders", "Shoulders"],
+  ["upperLimb", "Upper Limb"],
+  ["hips", "Hips"],
+  ["knees", "Knees"],
+  ["ankles", "Ankles"],
+];
 
 /**
  * The BJJ Performance Assessment's print report — built to match Adjust's
@@ -110,6 +120,27 @@ function RatingRow({ label, rating }: { label: string; rating: "poor" | "demonst
         <span style={{ fontSize: 8, color: MUTED }}>Demonstrated</span>
         <span style={{ fontSize: 8, color: MUTED }}>Good</span>
       </div>
+    </div>
+  );
+}
+
+/** Same pass/fail regional chip tool.html's Athlete Profile page uses for its Injury Screening row. */
+function InjuryChip({ label, result }: { label: string; result: InjuryResult }) {
+  const pass = result === "pass";
+  const fail = result === "fail";
+  const color = pass ? GREEN : fail ? RED : "#3a4f63";
+  return (
+    <div
+      style={{
+        background: pass ? `${GREEN}1f` : fail ? `${RED}1f` : PANEL,
+        border: `1px solid ${pass ? GREEN : fail ? RED : BORDER}`,
+        padding: "16px 10px",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ width: 11, height: 11, borderRadius: "50%", background: color, margin: "0 auto 8px" }} />
+      <div style={{ fontFamily: COND, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: pass || fail ? color : MUTED }}>{label}</div>
+      <div style={{ fontSize: 9, color, marginTop: 3 }}>{pass ? "Pass" : fail ? "Fail" : "—"}</div>
     </div>
   );
 }
@@ -367,6 +398,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const score = scoreBjjScreen(data);
   const name = firstName(athleteName);
 
+  const hasInjuryScreen = INJURY_REGIONS.some(([key]) => data.injuryScreen[key] !== "") || data.injuryScreen.comments !== "";
   const hasMobility =
     [data.mobility.shoulderErIr, data.mobility.hipErIr, data.mobility.lumbarFlexExt, data.mobility.txRotation, data.mobility.cervicalRotation].some(
       (r) => r !== ""
@@ -436,8 +468,10 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   let pageNum = 1; // page 1 is the cover, rendered separately below
   const mobilityPage = hasMobility ? ++pageNum : null;
   const strengthPage = hasStrength ? ++pageNum : null;
-  const powerPage = hasPower ? ++pageNum : null;
-  const conditioningPage = hasConditioning ? ++pageNum : null;
+  // Power and Conditioning share one page — each keeps its own domain score
+  // and radar axis, same as tool.html's Energy Systems page combines Speed
+  // and Aerobic Capacity onto one page while scoring them separately.
+  const powerConditioningPage = hasPower || hasConditioning ? ++pageNum : null;
   const summaryPage = ++pageNum;
 
   return (
@@ -529,57 +563,51 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
         </PageShell>
       )}
 
-      {/* ---- Power ---- */}
-      {powerPage && (
-        <PageShell title="Power" subtitle="Vs. elite &amp; general-population reference data" pageNum={powerPage}>
-          <DomainHero
-            label="Power"
-            score={score.categoryScores.power}
-            note={
-              score.categoryScores.power !== null
-                ? score.categoryScores.power >= 7.5
-                  ? "Elite-level rate of force development — translates directly to explosive scrambles and takedowns."
-                  : score.categoryScores.power >= 5
-                    ? "Good power output with room to develop — plyometric and ballistic work will move this."
-                    : "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly."
-                : "Set Sex above to compare these tests against reference data."
-            }
-          />
-          <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+      {/* ---- Power & Conditioning ---- */}
+      {powerConditioningPage && (
+        <PageShell title="Power &amp; Conditioning" subtitle="Vs. elite &amp; general-population reference data" pageNum={powerConditioningPage}>
+          {hasPower && (
+            <>
+              <DomainHero
+                label="Power"
+                score={score.categoryScores.power}
+                note={
+                  score.categoryScores.power !== null
+                    ? score.categoryScores.power >= 7.5
+                      ? "Elite-level rate of force development — translates directly to explosive scrambles and takedowns."
+                      : score.categoryScores.power >= 5
+                        ? "Good power output with room to develop — plyometric and ballistic work will move this."
+                        : "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly."
+                    : "Set Sex above to compare these tests against reference data."
+                }
+              />
+              <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+            </>
+          )}
+          {hasConditioning && (
+            <>
+              <DomainHero
+                label="Conditioning"
+                score={score.categoryScores.conditioning}
+                note={
+                  score.categoryScores.conditioning !== null
+                    ? score.categoryScores.conditioning >= 7.5
+                      ? "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match."
+                      : score.categoryScores.conditioning >= 5
+                        ? "Workable engine — interval work will lift this further."
+                        : "Conditioning is a development priority — technique tends to break down first when this is the limiter."
+                    : "Set Sex above to compare this test against reference data."
+                }
+              />
+              <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+            </>
+          )}
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
             <ProtocolBox>
-              CMJ: hands on hips, drop straight into a quarter squat and jump for maximum height — no countermovement pause or arm swing, measured on a force plate or jump mat. RSI Mod (drop jump): step off a box, rebound off the floor as high and as fast as possible; RSI Mod = jump height ÷ ground contact time.
+              CMJ: hands on hips, drop straight into a quarter squat and jump for maximum height — no countermovement pause or arm swing, measured on a force plate or jump mat. RSI Mod (drop jump): step off a box, rebound off the floor as high and as fast as possible; RSI Mod = jump height ÷ ground contact time. 3-Min Watt Bike: seated, all-out effort sustained for 3 minutes on an air/watt bike — average power output across the full 3 minutes is recorded.
             </ProtocolBox>
-            <InterpretationBox title="Power Interpretation">
-              CMJ height reflects raw lower-body power; RSI Mod reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report.
-            </InterpretationBox>
-          </div>
-        </PageShell>
-      )}
-
-      {/* ---- Conditioning ---- */}
-      {conditioningPage && (
-        <PageShell title="Conditioning" subtitle="Vs. general-population reference data" pageNum={conditioningPage}>
-          <DomainHero
-            label="Conditioning"
-            score={score.categoryScores.conditioning}
-            note={
-              score.categoryScores.conditioning !== null
-                ? score.categoryScores.conditioning >= 7.5
-                  ? "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match."
-                  : score.categoryScores.conditioning >= 5
-                    ? "Workable engine — interval work will lift this further."
-                    : "Conditioning is a development priority — technique tends to break down first when this is the limiter."
-                : "Set Sex above to compare this test against reference data."
-            }
-          />
-          <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-            <ProtocolBox>
-              3-Min Watt Bike: seated, all-out effort sustained for 3 minutes on an air/watt bike — average power output across the full 3 minutes is recorded.
-            </ProtocolBox>
-            <InterpretationBox title="Conditioning Interpretation">
-              Scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
+            <InterpretationBox title="Power &amp; Conditioning Interpretation">
+              CMJ height reflects raw lower-body power; RSI Mod reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report. Conditioning is scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
             </InterpretationBox>
           </div>
         </PageShell>
@@ -603,6 +631,20 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               : "Complete assessment"}
           </div>
         </div>
+
+        {hasInjuryScreen && (
+          <div>
+            <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>Injury Screen</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+              {INJURY_REGIONS.map(([key, label]) => (
+                <InjuryChip key={key} label={label} result={data.injuryScreen[key]} />
+              ))}
+            </div>
+            {data.injuryScreen.comments && (
+              <div style={{ background: "#1c2733", padding: "8px 12px", marginTop: 8, fontSize: 10.5, color: TEXT, lineHeight: 1.6 }}>{data.injuryScreen.comments}</div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 24 }}>
           <div>

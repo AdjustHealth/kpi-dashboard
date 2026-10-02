@@ -16,6 +16,16 @@ const DEMO_DATA = mergeBjjScreen({
   assessmentDate: "2026-09-28",
   sex: "male",
   bodyweightKg: "82",
+  injuryScreen: {
+    neck: "pass",
+    back: "pass",
+    shoulders: "pass",
+    upperLimb: "pass",
+    hips: "pass",
+    knees: "fail",
+    ankles: "pass",
+    comments: "Right knee — history of patellar tendinopathy. Cleared for full testing with load monitoring.",
+  },
   mobility: {
     shoulderErIr: "good",
     hipErIr: "demonstrated",
