@@ -4,13 +4,13 @@ import {
   Benchmark,
   CMJ_HEIGHT_CM_BENCHMARK,
   DROP_JUMP_RSI_BENCHMARK,
-  GRIP_STRENGTH_KG_BENCHMARK,
+  GRIP_STRENGTH_N_BENCHMARK,
   IMTP_RATIO_BENCHMARK,
   KNEE_TO_WALL_CM_BENCHMARK,
   PULL_UPS_BENCHMARK,
   PUSH_UPS_BENCHMARK,
   SexBenchmark,
-  WATT_BIKE_3MIN_BENCHMARK,
+  WATT_BIKE_WATTS_PER_KG_BENCHMARK,
 } from "./benchmarks";
 
 function parseNum(raw: string | undefined): number | null {
@@ -45,20 +45,35 @@ function scoreMetric(raw: string | undefined, sex: Sex, benchmark: SexBenchmark)
   return { value, percentOfElite: Math.round(ratio * 1000) / 10, score: scoreFromRatio(ratio), benchmark: b };
 }
 
+/** Same bodyweight-ratio pattern as IMTP: raw ÷ bodyweight compared against an already-normalised (per-kg) benchmark, so the test is fair across weight classes instead of favouring heavier athletes. */
+function scoreRatioMetric(raw: string | undefined, bodyweight: number | null, sex: Sex, benchmark: SexBenchmark): MetricResult | null {
+  const rawValue = parseNum(raw);
+  if (rawValue === null || !bodyweight || bodyweight <= 0) return null;
+  const ratio = rawValue / bodyweight;
+  const b = benchmarkFor(sex, benchmark);
+  if (!b) return { value: ratio, percentOfElite: null, score: null, benchmark: null };
+  return { value: ratio, percentOfElite: Math.round((ratio / b.value) * 1000) / 10, score: scoreFromRatio(ratio / b.value), benchmark: b };
+}
+
 const RATING_SCORE: Record<Exclude<Rating, "">, number> = { poor: 2, demonstrated: 6, good: 10 };
 
 export type BjjScreenScore = {
+  /** Peak force relative to bodyweight, read directly off the ForceDecks — not computed from a separate raw-kg entry. */
   imtp: MetricResult | null;
   cmjHeight: MetricResult | null;
   dropJumpRsi: MetricResult | null;
-  standingShoulderY: MetricResult | null;
+  standingShoulderYLeft: MetricResult | null;
+  standingShoulderYRight: MetricResult | null;
+  /** Limb Symmetry Index for the ASH-Y test. Null unless both arms were measured. */
+  standingShoulderYLsi: number | null;
   maxPullUps: MetricResult | null;
   maxPushUps: MetricResult | null;
   ankleDfLeft: MetricResult | null;
   ankleDfRight: MetricResult | null;
   /** Limb Symmetry Index — min/max side × 100, same convention as the Youth/Performance report. Null unless both sides were measured. */
   ankleDfLsi: number | null;
-  gripStrengthKg: MetricResult | null;
+  gripStrengthN: MetricResult | null;
+  /** W ÷ bodyweight — the only test here that still needs the Bodyweight field, since Wattbike doesn't output a relative figure the way ForceDecks does. */
   wattBike3MinAvgWatts: MetricResult | null;
   mobilityScore: number | null;
   /** 0-10 per domain, averaged from that domain's scored tests — what the report's domain bars/radar profile are built from. */
@@ -70,31 +85,28 @@ export type BjjScreenScore = {
 export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const sex = data.sex;
 
-  // IMTP is normalised against bodyweight first (peak force in kg ÷
-  // bodyweight in kg), so compare the resulting ratio against the
-  // already-normalised elite benchmark, rather than scoring a raw kg value.
+  // IMTP is read directly off the ForceDecks as peak force ÷ bodyweight
+  // already — no raw-kg/bodyweight division needed here, unlike the Watt
+  // Bike test below (Wattbike has no equivalent relative-output reading).
   const bodyweight = parseNum(data.bodyweightKg);
-  const imtpRaw = parseNum(data.strength.imtp);
-  let imtp: MetricResult | null = null;
-  if (imtpRaw !== null && bodyweight && bodyweight > 0) {
-    const ratio = imtpRaw / bodyweight;
-    const b = benchmarkFor(sex, IMTP_RATIO_BENCHMARK);
-    imtp = b
-      ? { value: ratio, percentOfElite: Math.round((ratio / b.value) * 1000) / 10, score: scoreFromRatio(ratio / b.value), benchmark: b }
-      : { value: ratio, percentOfElite: null, score: null, benchmark: null };
-  }
+  const imtp = scoreMetric(data.strength.imtp, sex, IMTP_RATIO_BENCHMARK);
+  const wattBike3MinAvgWatts = scoreRatioMetric(data.conditioning.wattBike3MinAvgWatts, bodyweight, sex, WATT_BIKE_WATTS_PER_KG_BENCHMARK);
 
   const cmjHeight = scoreMetric(data.power.cmjHeight, sex, CMJ_HEIGHT_CM_BENCHMARK);
   const dropJumpRsi = scoreMetric(data.power.dropJumpRsi, sex, DROP_JUMP_RSI_BENCHMARK);
-  const standingShoulderY = scoreMetric(data.strength.standingShoulderY, sex, ASH_Y_NEWTONS_BENCHMARK);
+  const standingShoulderYLeft = scoreMetric(data.strength.standingShoulderYLeft, sex, ASH_Y_NEWTONS_BENCHMARK);
+  const standingShoulderYRight = scoreMetric(data.strength.standingShoulderYRight, sex, ASH_Y_NEWTONS_BENCHMARK);
+  const standingShoulderYLsi =
+    standingShoulderYLeft && standingShoulderYRight
+      ? Math.round((Math.min(standingShoulderYLeft.value, standingShoulderYRight.value) / Math.max(standingShoulderYLeft.value, standingShoulderYRight.value)) * 100)
+      : null;
   const maxPullUps = scoreMetric(data.strength.maxPullUps, sex, PULL_UPS_BENCHMARK);
   const maxPushUps = scoreMetric(data.strength.maxPushUps, sex, PUSH_UPS_BENCHMARK);
   const ankleDfLeft = scoreMetric(data.mobility.ankleDfKneeToWallCmLeft, sex, KNEE_TO_WALL_CM_BENCHMARK);
   const ankleDfRight = scoreMetric(data.mobility.ankleDfKneeToWallCmRight, sex, KNEE_TO_WALL_CM_BENCHMARK);
   const ankleDfLsi =
     ankleDfLeft && ankleDfRight ? Math.round((Math.min(ankleDfLeft.value, ankleDfRight.value) / Math.max(ankleDfLeft.value, ankleDfRight.value)) * 100) : null;
-  const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
-  const wattBike3MinAvgWatts = scoreMetric(data.conditioning.wattBike3MinAvgWatts, sex, WATT_BIKE_3MIN_BENCHMARK);
+  const gripStrengthN = scoreMetric(data.strength.gripStrengthN, sex, GRIP_STRENGTH_N_BENCHMARK);
 
   // Only the Poor/Demonstrated/Good ratings go into the qualitative
   // mobility score — ankle DF is a real measurement, scored (and folded
@@ -117,7 +129,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   // Domain scores — what the report's radar/domain bars are built from.
   const categoryScores = {
     mobility: average([mobilityScore, ankleDfLeft?.score, ankleDfRight?.score]),
-    strength: average([imtp?.score, standingShoulderY?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthKg?.score]),
+    strength: average([imtp?.score, standingShoulderYLeft?.score, standingShoulderYRight?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthN?.score]),
     power: average([cmjHeight?.score, dropJumpRsi?.score]),
     conditioning: average([wattBike3MinAvgWatts?.score]),
   };
@@ -132,13 +144,15 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
     imtp,
     cmjHeight,
     dropJumpRsi,
-    standingShoulderY,
+    standingShoulderYLeft,
+    standingShoulderYRight,
+    standingShoulderYLsi,
     maxPullUps,
     maxPushUps,
     ankleDfLeft,
     ankleDfRight,
     ankleDfLsi,
-    gripStrengthKg,
+    gripStrengthN,
     wattBike3MinAvgWatts,
     mobilityScore,
     categoryScores,
