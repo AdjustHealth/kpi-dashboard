@@ -56,7 +56,19 @@ function capitalize(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : "—";
 }
 
-type TestRowData = { label: string; displayValue: string; result: MetricResult | null; rating?: string };
+type TestRowData = { label: string; displayValue: string; result: MetricResult | null; rating?: string; unit?: string };
+
+const RATING_BAND_SCORE: Record<string, number> = { poor: 2, demonstrated: 6, good: 10 };
+
+/** Elite/Avg/Focus reference values derived from the same 7.5/5 score bands everything else uses, so a reader can see not just this athlete's band but the actual numbers either side of it. */
+function bandThresholds(result: MetricResult, unit: string): { focus: string; avg: string; strong: string } | null {
+  if (!result.benchmark) return null;
+  const b = result.benchmark.value;
+  const fmt = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
+  const lo = b * 0.5;
+  const hi = b * 0.75;
+  return { focus: `<${fmt(lo)}${unit}`, avg: `${fmt(lo)}–${fmt(hi)}${unit}`, strong: `≥${fmt(hi)}${unit}` };
+}
 
 /** Short "vs ___" line under a test's label — plain reference data, not commentary. */
 function refLine(row: TestRowData): string {
@@ -153,9 +165,10 @@ function DomainHero({ label, score, note }: { label: string; score: number | nul
 }
 
 function TestRow({ row }: { row: TestRowData }) {
-  const score = row.result?.score ?? null;
+  const score = row.rating ? (RATING_BAND_SCORE[row.rating] ?? null) : (row.result?.score ?? null);
   const color = bandColor(score);
   const pct = row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined ? Math.min(100, row.result.percentOfElite) : null;
+  const thresholds = row.result ? bandThresholds(row.result, row.unit ?? "") : null;
   return (
     <div style={{ padding: "13px 0", borderBottom: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -188,14 +201,36 @@ function TestRow({ row }: { row: TestRowData }) {
           <div style={{ height: "100%", borderRadius: 3, width: `${pct}%`, background: color }} />
         </div>
       )}
+      {thresholds && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${RED}1a`, border: `1px solid ${RED}40`, fontSize: 9.5, color: RED, fontWeight: 600 }}>
+            Focus {thresholds.focus}
+          </span>
+          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${AMBER}1a`, border: `1px solid ${AMBER}40`, fontSize: 9.5, color: AMBER, fontWeight: 600 }}>
+            Avg {thresholds.avg}
+          </span>
+          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${GREEN}1a`, border: `1px solid ${GREEN}40`, fontSize: 9.5, color: GREEN, fontWeight: 600 }}>
+            Strong {thresholds.strong}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
 function InterpretationBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "16px 22px", marginTop: "auto" }}>
+    <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "16px 22px" }}>
       <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.7 }}>{children}</div>
+    </div>
+  );
+}
+
+function ProtocolBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, padding: "16px 22px" }}>
+      <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>How These Are Tested</div>
       <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.7 }}>{children}</div>
     </div>
   );
@@ -258,10 +293,15 @@ function RadarProfile({ domains }: { domains: { label: string; score: number | n
   });
   const labels = domains.map((d, i) => {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const lx = (cx + (maxR + 16) * Math.cos(a)).toFixed(1);
+    const cos = Math.cos(a);
+    const lx = (cx + (maxR + 16) * cos).toFixed(1);
     const ly = (cy + (maxR + 16) * Math.sin(a) + 4).toFixed(1);
+    // Anchor away from the nearest viewBox edge instead of always centering,
+    // so a long label on the leftmost/rightmost axis extends back toward
+    // the chart instead of off the edge of the SVG.
+    const anchor = cos < -0.15 ? "start" : cos > 0.15 ? "end" : "middle";
     return (
-      <text key={i} x={lx} y={ly} textAnchor="middle" fill={TEXT} fontSize={10} fontFamily={COND} fontWeight={600}>
+      <text key={i} x={lx} y={ly} textAnchor={anchor} fill={TEXT} fontSize={10} fontFamily={COND} fontWeight={600}>
         {d.label}
       </text>
     );
@@ -279,7 +319,7 @@ function RadarProfile({ domains }: { domains: { label: string; score: number | n
     return <circle key={i} cx={(cx + r * Math.cos(a)).toFixed(1)} cy={(cy + r * Math.sin(a)).toFixed(1)} r={4} fill={LIME} stroke="#0d1117" strokeWidth={1.5} />;
   });
   return (
-    <svg width={252} height={252} viewBox="0 0 236 240">
+    <svg width={252} height={252} viewBox="-6 0 248 240">
       {rings}
       {axes}
       <polygon points={polyPts} fill="rgba(198,241,53,0.12)" stroke={LIME} strokeWidth={2} />
@@ -309,24 +349,24 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     { label: "Lumbar Flexion/Extension", displayValue: capitalize(data.mobility.lumbarFlexExt), result: null, rating: data.mobility.lumbarFlexExt },
     { label: "Thoracic (Tx) Rotation", displayValue: capitalize(data.mobility.txRotation), result: null, rating: data.mobility.txRotation },
     { label: "Cervical Rotation", displayValue: capitalize(data.mobility.cervicalRotation), result: null, rating: data.mobility.cervicalRotation },
-    { label: "Ankle DF — Knee to Wall", displayValue: data.mobility.ankleDfKneeToWallCm ? `${data.mobility.ankleDfKneeToWallCm}cm` : "—", result: score.ankleDfKneeToWallCm },
+    { label: "Ankle DF — Knee to Wall", displayValue: data.mobility.ankleDfKneeToWallCm ? `${data.mobility.ankleDfKneeToWallCm}cm` : "—", result: score.ankleDfKneeToWallCm, unit: "cm" },
   ].filter((r) => r.displayValue !== "—" || r.result);
 
   const strengthRows: TestRowData[] = [
-    { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp },
-    { label: "Standing Shoulder Y (ASH-Y)", displayValue: data.strength.standingShoulderY ? `${data.strength.standingShoulderY}N` : "—", result: score.standingShoulderY },
-    { label: "Max Pull Ups", displayValue: data.strength.maxPullUps ? `${data.strength.maxPullUps} reps` : "—", result: score.maxPullUps },
-    { label: "Max Push Ups", displayValue: data.strength.maxPushUps ? `${data.strength.maxPushUps} reps` : "—", result: score.maxPushUps },
-    { label: "Grip Strength", displayValue: data.strength.gripStrengthKg ? `${data.strength.gripStrengthKg}kg` : "—", result: score.gripStrengthKg },
+    { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp, unit: "×" },
+    { label: "Standing Shoulder Y (ASH-Y)", displayValue: data.strength.standingShoulderY ? `${data.strength.standingShoulderY}N` : "—", result: score.standingShoulderY, unit: "N" },
+    { label: "Max Pull Ups", displayValue: data.strength.maxPullUps ? `${data.strength.maxPullUps} reps` : "—", result: score.maxPullUps, unit: " reps" },
+    { label: "Max Push Ups", displayValue: data.strength.maxPushUps ? `${data.strength.maxPushUps} reps` : "—", result: score.maxPushUps, unit: " reps" },
+    { label: "Grip Strength", displayValue: data.strength.gripStrengthKg ? `${data.strength.gripStrengthKg}kg` : "—", result: score.gripStrengthKg, unit: "kg" },
   ].filter((r) => r.displayValue !== "—");
 
   const powerRows: TestRowData[] = [
-    { label: "CMJ — Jump Height", displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—", result: score.cmjHeight },
-    { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? Number(data.power.dropJumpRsi).toFixed(2) : "—", result: score.dropJumpRsi },
+    { label: "CMJ — Jump Height", displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—", result: score.cmjHeight, unit: "cm" },
+    { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? Number(data.power.dropJumpRsi).toFixed(2) : "—", result: score.dropJumpRsi, unit: "" },
   ].filter((r) => r.displayValue !== "—");
 
   const conditioningRows: TestRowData[] = [
-    { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts },
+    { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts, unit: "w" },
   ].filter((r) => r.displayValue !== "—");
 
   const domains = [
@@ -408,9 +448,14 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             }
           />
           <div>{mobilityRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <InterpretationBox title="Mobility Interpretation">
-            Shoulder, hip, thoracic and cervical rotation are rated on clinical judgement against age/sport-appropriate expectations. Ankle dorsiflexion is measured directly (knee-to-wall) and scored against a general population reference. Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling.
-          </InterpretationBox>
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+            <ProtocolBox>
+              Shoulder/hip/thoracic/cervical rotation: the clinician moves each joint through range and rates it Poor, Demonstrated or Good against age and sport-appropriate expectations. Ankle DF (knee-to-wall): foot flat, knee driven over the toes without the heel lifting — distance from the wall to the big toe at end-range is recorded in cm.
+            </ProtocolBox>
+            <InterpretationBox title="Mobility Interpretation">
+              Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling.
+            </InterpretationBox>
+          </div>
         </PageShell>
       )}
 
@@ -431,9 +476,14 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             }
           />
           <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <InterpretationBox title="Strength Interpretation">
-            IMTP is normalised against bodyweight (peak force ÷ bodyweight) since raw force alone doesn&rsquo;t compare fairly across weight classes. ASH-Y, pull-ups, push-ups and grip strength are compared against the best available elite or general-population standard for each test — combat-sport-specific data is used where it exists (IMTP, grip).
-          </InterpretationBox>
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+            <ProtocolBox>
+              IMTP: maximal two-handed pull against an immovable bar on a force plate, held 3–5 seconds, peak force ÷ bodyweight. ASH-Y: dynamometer pull in the Y position of the Athletic Shoulder Test, dominant arm. Pull-ups/push-ups: max unbroken reps to standard. Grip: max isometric squeeze on a hand dynamometer, dominant hand.
+            </ProtocolBox>
+            <InterpretationBox title="Strength Interpretation">
+              IMTP is normalised against bodyweight (peak force ÷ bodyweight) since raw force alone doesn&rsquo;t compare fairly across weight classes. Combat-sport-specific data is used where it exists (IMTP, grip); the rest are compared against the best available general-population standard.
+            </InterpretationBox>
+          </div>
         </PageShell>
       )}
 
@@ -454,9 +504,14 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             }
           />
           <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <InterpretationBox title="Power Interpretation">
-            CMJ height reflects raw lower-body power; RSI Mod (contact time vs. jump height on the drop jump) reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report.
-          </InterpretationBox>
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+            <ProtocolBox>
+              CMJ: hands on hips, drop straight into a quarter squat and jump for maximum height — no countermovement pause or arm swing, measured on a force plate or jump mat. RSI Mod (drop jump): step off a box, rebound off the floor as high and as fast as possible; RSI Mod = jump height ÷ ground contact time.
+            </ProtocolBox>
+            <InterpretationBox title="Power Interpretation">
+              CMJ height reflects raw lower-body power; RSI Mod reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report.
+            </InterpretationBox>
+          </div>
         </PageShell>
       )}
 
@@ -477,9 +532,14 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             }
           />
           <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <InterpretationBox title="Conditioning Interpretation">
-            Scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
-          </InterpretationBox>
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+            <ProtocolBox>
+              3-Min Watt Bike: seated, all-out effort sustained for 3 minutes on an air/watt bike — average power output across the full 3 minutes is recorded.
+            </ProtocolBox>
+            <InterpretationBox title="Conditioning Interpretation">
+              Scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
+            </InterpretationBox>
+          </div>
         </PageShell>
       )}
 
