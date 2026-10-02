@@ -51,6 +51,26 @@ function bandLabel(score: number | null): string {
   return "Focus";
 }
 
+/**
+ * A domain can average out Strong (≥7.5) while still containing one test
+ * down in the Focus band — e.g. one "Poor" mobility rating buried among
+ * four "Good"s. Blindly printing the generic "strong" headline in that
+ * case reads as "no restriction" right above a row that says otherwise,
+ * so the strong-band copy only applies when nothing in the domain is
+ * actually flagged; otherwise the outlier gets named directly.
+ */
+function domainNote(score: number | null, focusLabels: string[], copy: { strong: string; avg: string; focus: string; unset: string }): string {
+  if (score === null) return copy.unset;
+  if (score >= 7.5) {
+    if (focusLabels.length > 0) {
+      return `Strong overall, but ${focusLabels.join(" and ")} ${focusLabels.length > 1 ? "stand" : "stands"} out as a clear outlier worth addressing on its own.`;
+    }
+    return copy.strong;
+  }
+  if (score >= 5) return copy.avg;
+  return copy.focus;
+}
+
 function formatDate(value: string): string {
   if (!value) return "";
   const d = new Date(`${value}T00:00:00`);
@@ -359,8 +379,8 @@ function RadarProfile({ domains }: { domains: { label: string; score: number | n
   const labels = domains.map((d, i) => {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2;
     const cos = Math.cos(a);
-    const lx = (cx + (maxR + 16) * cos).toFixed(1);
-    const ly = (cy + (maxR + 16) * Math.sin(a) + 4).toFixed(1);
+    const lx = (cx + (maxR + 22) * cos).toFixed(1);
+    const ly = (cy + (maxR + 22) * Math.sin(a) + 4).toFixed(1);
     // Anchor away from the nearest viewBox edge instead of always centering,
     // so a long label on the leftmost/rightmost axis extends back toward
     // the chart instead of off the edge of the SVG.
@@ -440,6 +460,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts, unit: "w" },
   ].filter((r) => r.displayValue !== "—");
 
+  const focusLabelsOf = (rows: TestRowData[]) => rows.filter((r) => r.result?.score !== null && r.result?.score !== undefined && r.result.score < 5).map((r) => r.label);
+  const mobilityFocusLabels = [...mobilityRatingRows.filter((r) => r.rating === "poor").map((r) => r.label), ...focusLabelsOf(ankleDfRow ? [ankleDfRow] : [])];
+  const strengthFocusLabels = focusLabelsOf(strengthRows);
+  const powerFocusLabels = focusLabelsOf(powerRows);
+  const conditioningFocusLabels = focusLabelsOf(conditioningRows);
+
   const domains = [
     hasMobility && { label: "Mobility", score: score.categoryScores.mobility },
     hasStrength && { label: "Strength", score: score.categoryScores.strength },
@@ -510,15 +536,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           <DomainHero
             label="Mobility"
             score={score.categoryScores.mobility}
-            note={
-              score.categoryScores.mobility !== null
-                ? score.categoryScores.mobility >= 7.5
-                  ? "Full, functional range across what was tested — no restriction limiting output here."
-                  : score.categoryScores.mobility >= 5
-                    ? "Workable range with some restriction — worth revisiting alongside strength work."
-                    : "Restricted range is the clearest limiter here — prioritise this before loading strength/power on top of it."
-                : "Set Sex above to compare the measured tests against reference data."
-            }
+            note={domainNote(score.categoryScores.mobility, mobilityFocusLabels, {
+              strong: "Full, functional range across what was tested — no restriction limiting output here.",
+              avg: "Workable range with some restriction — worth revisiting alongside strength work.",
+              focus: "Restricted range is the clearest limiter here — prioritise this before loading strength/power on top of it.",
+              unset: "Set Sex above to compare the measured tests against reference data.",
+            })}
           />
           <div>
             {mobilityRatingRows.map((r) => <RatingRow key={r.label} label={r.label} rating={r.rating} />)}
@@ -541,15 +564,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           <DomainHero
             label="Strength"
             score={score.categoryScores.strength}
-            note={
-              score.categoryScores.strength !== null
-                ? score.categoryScores.strength >= 7.5
-                  ? "Strong across the board — force production is not the limiting factor right now."
-                  : score.categoryScores.strength >= 5
-                    ? "Solid base — targeted loading will close the gap to elite reference data."
-                    : "Clear development priority — build a base here before adding volume elsewhere."
-                : "Set Sex above to compare these tests against reference data."
-            }
+            note={domainNote(score.categoryScores.strength, strengthFocusLabels, {
+              strong: "Strong across the board — force production is not the limiting factor right now.",
+              avg: "Solid base — targeted loading will close the gap to elite reference data.",
+              focus: "Clear development priority — build a base here before adding volume elsewhere.",
+              unset: "Set Sex above to compare these tests against reference data.",
+            })}
           />
           <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -571,15 +591,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               <DomainHero
                 label="Power"
                 score={score.categoryScores.power}
-                note={
-                  score.categoryScores.power !== null
-                    ? score.categoryScores.power >= 7.5
-                      ? "Elite-level rate of force development — translates directly to explosive scrambles and takedowns."
-                      : score.categoryScores.power >= 5
-                        ? "Good power output with room to develop — plyometric and ballistic work will move this."
-                        : "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly."
-                    : "Set Sex above to compare these tests against reference data."
-                }
+                note={domainNote(score.categoryScores.power, powerFocusLabels, {
+                  strong: "Elite-level rate of force development — translates directly to explosive scrambles and takedowns.",
+                  avg: "Good power output with room to develop — plyometric and ballistic work will move this.",
+                  focus: "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly.",
+                  unset: "Set Sex above to compare these tests against reference data.",
+                })}
               />
               <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
             </>
@@ -589,15 +606,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               <DomainHero
                 label="Conditioning"
                 score={score.categoryScores.conditioning}
-                note={
-                  score.categoryScores.conditioning !== null
-                    ? score.categoryScores.conditioning >= 7.5
-                      ? "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match."
-                      : score.categoryScores.conditioning >= 5
-                        ? "Workable engine — interval work will lift this further."
-                        : "Conditioning is a development priority — technique tends to break down first when this is the limiter."
-                    : "Set Sex above to compare this test against reference data."
-                }
+                note={domainNote(score.categoryScores.conditioning, conditioningFocusLabels, {
+                  strong: "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match.",
+                  avg: "Workable engine — interval work will lift this further.",
+                  focus: "Conditioning is a development priority — technique tends to break down first when this is the limiter.",
+                  unset: "Set Sex above to compare this test against reference data.",
+                })}
               />
               <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
             </>
