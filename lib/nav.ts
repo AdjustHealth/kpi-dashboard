@@ -69,17 +69,6 @@ const CONSULTATION_TEMPLATES_GROUP: NavGroup = {
   items: [{ label: "Initial Consultation", href: "/consultation-templates", description: "Client-centred consult notes, patient reports and Nookal docs" }],
 };
 
-/** Its own small area, same reasoning as Consultation Templates above — a 5
- * minute mobility/strength/power screen for BJJ athletes, sharing the
- * assessment_tool grant and the assessments table (a different assess_type,
- * filtered out of the Assessments list) but not part of the scored-
- * assessment types in tool.html. */
-const BJJ_INJURY_SCREEN_GROUP: NavGroup = {
-  label: "BJJ Injury Screen",
-  colorKey: "assessment_tool",
-  items: [{ label: "Injury Screen", href: "/bjj-injury-screen", description: "5 minute mobility, strength & power screen" }],
-};
-
 const DATA_ENTRY_GROUP: NavGroup = {
   label: "Data Entry",
   colorKey: "data_entry",
@@ -193,7 +182,7 @@ export function buildNav(access: AccessContext): NavGroup[] {
 
   if (hasSection(access, "team")) groups.push(TEAM_GROUP);
   if (hasSection(access, "adjust_gym")) groups.push(ADJUST_GYM_GROUP);
-  if (hasSection(access, "assessment_tool")) groups.push(ASSESSMENT_TOOL_GROUP, CONSULTATION_TEMPLATES_GROUP, BJJ_INJURY_SCREEN_GROUP);
+  if (hasSection(access, "assessment_tool")) groups.push(ASSESSMENT_TOOL_GROUP, CONSULTATION_TEMPLATES_GROUP);
   if (access.isDirector) groups.push(CONFIGURATION_GROUP);
 
   return groups;

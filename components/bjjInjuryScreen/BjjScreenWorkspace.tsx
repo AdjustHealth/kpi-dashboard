@@ -105,8 +105,8 @@ export function BjjScreenWorkspace({
   return (
     <div className="flex flex-col gap-6 p-8 pb-24">
       <div className="flex items-center justify-between">
-        <Link href="/bjj-injury-screen" className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-accent">
-          <span aria-hidden>←</span> All BJJ Injury Screens
+        <Link href="/assessments" className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-accent">
+          <span aria-hidden>←</span> All Assessments
         </Link>
         <div className="flex items-center gap-3 text-xs">
           {saveState === "saving" && <span className="text-muted">Saving…</span>}

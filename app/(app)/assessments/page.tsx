@@ -19,6 +19,7 @@ const TYPE_LABEL: Record<string, string> = {
   performance: "Performance",
   youth: "Youth Performance",
   movestrong: "MoveStrong",
+  bjj_injury_screen: "BJJ Injury Screen",
 };
 
 const FILTERS = [
@@ -27,6 +28,7 @@ const FILTERS = [
   { key: "youth1", label: "Youth 1" },
   { key: "youth2", label: "Youth 2" },
   { key: "movestrong", label: "MoveStrong" },
+  { key: "bjj", label: "BJJ Injury Screen" },
 ];
 
 const ASSESSMENT_TYPES = [
@@ -51,6 +53,7 @@ function filterMatches(a: Row, filterKey: string) {
   if (filterKey === "movestrong") return a.assess_type === "movestrong";
   if (filterKey === "youth1") return a.assess_type === "youth" && a.youth_tier === "y1";
   if (filterKey === "youth2") return a.assess_type === "youth" && a.youth_tier === "y2";
+  if (filterKey === "bjj") return a.assess_type === "bjj_injury_screen";
   return true;
 }
 
@@ -87,7 +90,7 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
     assessments = (await sql`
       select id, athlete_name, assess_type, youth_tier, clinician, assessment_date::text as assessment_date, overall_score::float8 as overall_score
       from assessments
-      where assess_type not in ('initial_consult', 'bjj_injury_screen')
+      where assess_type <> 'initial_consult'
       order by created_at desc
     `) as unknown as Row[];
   } catch (e) {
@@ -124,6 +127,23 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
                 </div>
               </Link>
             ))}
+            <Link
+              href="/bjj-injury-screen/new"
+              className="group flex flex-col gap-3 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Injury Screen</span>
+                  <span className="text-xs text-muted">5 min</span>
+                </div>
+                <span className="text-xs font-semibold text-accent">Start →</span>
+              </div>
+            </Link>
           </div>
         </div>
 
@@ -167,7 +187,7 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
                     {filtered.map((a) => (
                       <tr key={a.id} className="border-b border-border last:border-0 hover:bg-surface-raised/60">
                         <td className="px-4 py-3 font-medium text-foreground">
-                          <a href={`/assessments/${a.id}`} className="hover:text-accent">
+                          <a href={a.assess_type === "bjj_injury_screen" ? `/bjj-injury-screen/${a.id}` : `/assessments/${a.id}`} className="hover:text-accent">
                             {a.athlete_name}
                           </a>
                         </td>
