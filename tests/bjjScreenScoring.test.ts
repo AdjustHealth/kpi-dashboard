@@ -28,17 +28,22 @@ describe("scoreBjjScreen", () => {
     expect(result.cmjHeight?.score).toBe(10);
   });
 
-  it("returns a value with no score when there's no benchmark for the selected sex (e.g. female IMTP/pull-ups)", () => {
+  it("returns a value with no score when there's no benchmark for the selected sex (e.g. female pull-ups)", () => {
     const data = screen({
       sex: "female",
       bodyweightKg: "60",
-      strength: { ...emptyBjjScreen().strength, imtp: "180", maxPullUps: "8" },
+      strength: { ...emptyBjjScreen().strength, maxPullUps: "8" },
     });
     const result = scoreBjjScreen(data);
-    expect(result.imtp?.value).toBeCloseTo(3, 5);
-    expect(result.imtp?.score).toBeNull();
     expect(result.maxPullUps?.value).toBe(8);
     expect(result.maxPullUps?.score).toBeNull();
+  });
+
+  it("scores female IMTP against Adjust's own general-population threshold (2.5x bodyweight)", () => {
+    const data = screen({ sex: "female", bodyweightKg: "60", strength: { ...emptyBjjScreen().strength, imtp: "150" } });
+    const result = scoreBjjScreen(data);
+    expect(result.imtp?.percentOfElite).toBe(100);
+    expect(result.imtp?.score).toBe(10);
   });
 
   it("never scores the IMTP ratio without a bodyweight entered", () => {
@@ -69,8 +74,8 @@ describe("scoreBjjScreen", () => {
     expect(result.mobilityScore).toBe(10);
   });
 
-  it("scores the ASH-Y shoulder test (Newtons) against the elite rugby/overhead-athlete benchmark", () => {
-    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderY: "132.8" } });
+  it("scores the ASH-Y shoulder test (Newtons) against Adjust's own Performance report general-population threshold", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderY: "180" } });
     const result = scoreBjjScreen(data);
     expect(result.standingShoulderY?.percentOfElite).toBe(100);
     expect(result.standingShoulderY?.score).toBe(10);
@@ -91,10 +96,12 @@ describe("scoreBjjScreen", () => {
     expect(result.dropJumpRsi?.score).toBe(10);
   });
 
-  it("the Watt Bike test is always recorded but never scored — no published benchmark exists", () => {
-    const data = screen({ sex: "male", conditioning: { wattBike3MinAvgWatts: "250" } });
+  it("scores the Watt Bike 3-min test against Adjust's own Performance report general-population threshold", () => {
+    const data = screen({ sex: "male", conditioning: { wattBike3MinAvgWatts: "400" } });
     const result = scoreBjjScreen(data);
-    expect(result.wattBike3MinAvgWatts).toBe(250);
+    expect(result.wattBike3MinAvgWatts?.percentOfElite).toBe(100);
+    expect(result.wattBike3MinAvgWatts?.score).toBe(10);
+    expect(result.categoryScores.conditioning).toBe(10);
   });
 
   it("overall score averages mobility as one item, not one per rating, so it doesn't outweigh the numeric tests", () => {
@@ -119,7 +126,7 @@ describe("scoreBjjScreen", () => {
     const data = screen({
       sex: "male",
       bodyweightKg: "80",
-      strength: { imtp: "264", standingShoulderY: "132.8", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
+      strength: { imtp: "264", standingShoulderY: "180", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);
@@ -135,7 +142,7 @@ describe("scoreBjjScreen", () => {
     const data = screen({
       sex: "male",
       bodyweightKg: "80",
-      strength: { imtp: "264", standingShoulderY: "132.8", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
+      strength: { imtp: "264", standingShoulderY: "180", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);

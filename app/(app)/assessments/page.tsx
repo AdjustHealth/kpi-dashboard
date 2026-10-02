@@ -127,22 +127,22 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
                 </div>
               </Link>
             ))}
-            <Link
-              href="/bjj-injury-screen/new"
-              className="group flex flex-col gap-3 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
-                </svg>
-              </div>
-              <div>
-                <div className="flex items-baseline justify-between">
-                  <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Performance Assessment</span>
+            <div className="group flex flex-col gap-3 rounded-xl border border-border bg-surface-raised/60 p-4 transition-colors hover:border-accent/40">
+              <Link href="/bjj-injury-screen/new" className="flex flex-col gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+                  </svg>
                 </div>
-                <span className="text-xs font-semibold text-accent">Start →</span>
-              </div>
-            </Link>
+                <div>
+                  <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Performance Assessment</span>
+                  <div className="text-xs font-semibold text-accent">Start →</div>
+                </div>
+              </Link>
+              <Link href="/bjj-injury-screen/demo/report" target="_blank" className="text-xs font-medium text-muted hover:text-accent">
+                Example report ↗
+              </Link>
+            </div>
           </div>
         </div>
 
