@@ -15,19 +15,20 @@ const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
   ["hipErIr", "Hip ER/IR"],
   ["lumbarFlexExt", "Lumbar Flexion/Extension"],
   ["txRotation", "Thoracic (Tx) Rotation"],
+  ["cervicalRotation", "Cervical Rotation"],
 ];
 
 const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] = [
   ["imtp", "IMTP — Peak Force", "kg"],
-  ["standingShoulderY", "Standing Shoulder Y", "cm"],
+  ["standingShoulderY", "Standing Shoulder Y (ASH-Y)", "N — dynamometer"],
   ["maxPullUps", "Max Pull Ups", "reps"],
-  ["maxChinUps", "Max Chin Ups", "reps"],
+  ["maxPushUps", "Max Push Ups", "reps"],
   ["gripStrengthKg", "Grip Strength (dominant hand)", "kg"],
 ];
 
 const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
   ["cmjHeight", "CMJ — Jump Height", "cm"],
-  ["dropJumpRsi", "Drop Jump — RSI", "unitless"],
+  ["dropJumpRsi", "RSI Mod (Drop Jump)", "unitless, 2dp"],
 ];
 
 const RATING_LABELS: Record<Exclude<Rating, "">, string> = {
@@ -225,10 +226,10 @@ export function BjjScreenWorkspace({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} />
           <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} />
-          <MetricResultRow label="Drop Jump RSI" result={score.dropJumpRsi} />
-          <MetricResultRow label="Standing Shoulder Y" result={score.standingShoulderY} />
+          <MetricResultRow label="RSI Mod (Drop Jump)" result={score.dropJumpRsi} />
+          <MetricResultRow label="Standing Shoulder Y (ASH-Y)" result={score.standingShoulderY} />
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
-          <MetricResultRow label="Max Chin Ups" result={score.maxChinUps} />
+          <MetricResultRow label="Max Push Ups" result={score.maxPushUps} />
           <MetricResultRow label="Ankle DF — Knee to Wall" result={score.ankleDfKneeToWallCm} />
           <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
           {score.mobilityScore !== null && (

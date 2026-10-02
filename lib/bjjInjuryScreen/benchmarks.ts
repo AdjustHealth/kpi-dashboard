@@ -55,32 +55,34 @@ export const CMJ_HEIGHT_CM_BENCHMARK: SexBenchmark = {
   },
 };
 
-/** Drop jump Reactive Strength Index (unitless: contact time vs. jump height). */
+/**
+ * Drop jump Reactive Strength Index Modified (RSI Mod — contact time vs.
+ * jump height, unitless). Single threshold for both sexes, matching the
+ * exact ">1.50 excellent" standard already used on Adjust's own Performance
+ * and Youth assessment reports, for consistency across every assessment
+ * type — no combat-sport-specific RSI data exists either way.
+ */
 export const DROP_JUMP_RSI_BENCHMARK: SexBenchmark = {
   male: {
-    value: 2.5,
+    value: 1.5,
     confidence: "general",
-    source: "General elite athletic population threshold for excellent reactive strength (commonly cited S&C benchmark, e.g. ScienceForSport) — no combat-sport-specific RSI data was found.",
+    source: "Adjust Health's own Performance/Youth assessment report threshold (>1.50 excellent), used here for consistency — no combat-sport-specific RSI data exists.",
   },
   female: {
-    value: 2.0,
+    value: 1.5,
     confidence: "general",
-    source: "General elite athletic population threshold for excellent reactive strength — no combat-sport-specific RSI data was found.",
+    source: "Adjust Health's own Performance/Youth assessment report threshold (>1.50 excellent), used here for consistency — no combat-sport-specific RSI data exists.",
   },
 };
 
-/** Standing Shoulder Y reach, in cm — a simplified single-direction stand-in for the full 3-direction Y Balance Upper Quarter composite. */
-export const SHOULDER_Y_CM_BENCHMARK: SexBenchmark = {
+/** Athletic Shoulder (ASH) Test, Y position — peak isometric force in Newtons, dominant arm, via dynamometer. */
+export const ASH_Y_NEWTONS_BENCHMARK: SexBenchmark = {
   male: {
-    value: 101.4,
+    value: 132.8,
     confidence: "general",
-    source: "Y Balance Upper Quarter composite reach, overhead athletes (soccer/track/volleyball) — no combat-sport-specific norm found. One systematic review notes closed-kinetic-chain sports like wrestling tend to reach further than this, so treat this as a floor, not a ceiling.",
+    source: "Elite rugby players (overhead/contact athletes), ASH test Y position, dominant arm peak force: 132.8±41.1N (Hawkin Dynamics / published ASH test reliability research in elite rugby) — no combat-sport-specific ASH-Y data was found.",
   },
-  female: {
-    value: 91.7,
-    confidence: "general",
-    source: "Y Balance Upper Quarter composite reach, overhead athletes (soccer/track/volleyball) — no combat-sport-specific norm found.",
-  },
+  female: null,
 };
 
 /** Max reps. */
@@ -93,7 +95,15 @@ export const PULL_UPS_BENCHMARK: SexBenchmark = {
   female: null,
 };
 
-export const CHIN_UPS_BENCHMARK: SexBenchmark = PULL_UPS_BENCHMARK;
+/** 1-minute push-up test, max reps. */
+export const PUSH_UPS_BENCHMARK: SexBenchmark = {
+  male: {
+    value: 47,
+    confidence: "general",
+    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for men aged 20-29 (standard, widely-cited general fitness normative data) — no combat-sport-specific push-up data was found.",
+  },
+  female: null,
+};
 
 /** Knee-to-wall (weight-bearing lunge) test, cm from the wall to the big toe with the knee touching the wall. */
 export const KNEE_TO_WALL_CM_BENCHMARK: SexBenchmark = {
