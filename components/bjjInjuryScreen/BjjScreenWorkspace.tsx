@@ -254,6 +254,15 @@ export function BjjScreenWorkspace({
         >
           Save Screen
         </button>
+        {id && (
+          <Link
+            href={`/bjj-injury-screen/${id}/report`}
+            target="_blank"
+            className="rounded-lg border border-border bg-surface-raised px-4 py-2 text-sm font-medium text-foreground hover:border-accent"
+          >
+            Open Report ↗
+          </Link>
+        )}
       </div>
     </div>
   );

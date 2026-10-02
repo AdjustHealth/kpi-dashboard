@@ -29,7 +29,7 @@ export async function GET() {
     `;
     return NextResponse.json({
       ok: true,
-      message: "Fixed — BJJ Injury Screens can now be saved.",
+      message: "Fixed — BJJ Performance Assessments can now be saved.",
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
