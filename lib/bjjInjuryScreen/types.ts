@@ -33,8 +33,9 @@ export type BjjScreenFormData = {
     lumbarFlexExt: Rating;
     txRotation: Rating;
     cervicalRotation: Rating;
-    /** Knee-to-wall test (weight-bearing lunge), cm from wall to big toe with knee touching the wall. */
-    ankleDfKneeToWallCm: string;
+    /** Knee-to-wall test (weight-bearing lunge), cm from wall to big toe with knee touching the wall — measured both sides, same as the Youth/Performance report, so side-to-side asymmetry (LSI) can be flagged. */
+    ankleDfKneeToWallCmLeft: string;
+    ankleDfKneeToWallCmRight: string;
   };
   strength: {
     /** Peak force in kg (what most force plates display) — compared against bodyweight for the elite ratio. */
@@ -79,7 +80,8 @@ export function emptyBjjScreen(): BjjScreenFormData {
       lumbarFlexExt: "",
       txRotation: "",
       cervicalRotation: "",
-      ankleDfKneeToWallCm: "",
+      ankleDfKneeToWallCmLeft: "",
+      ankleDfKneeToWallCmRight: "",
     },
     strength: {
       imtp: "",

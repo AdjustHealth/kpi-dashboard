@@ -54,7 +54,10 @@ export type BjjScreenScore = {
   standingShoulderY: MetricResult | null;
   maxPullUps: MetricResult | null;
   maxPushUps: MetricResult | null;
-  ankleDfKneeToWallCm: MetricResult | null;
+  ankleDfLeft: MetricResult | null;
+  ankleDfRight: MetricResult | null;
+  /** Limb Symmetry Index — min/max side × 100, same convention as the Youth/Performance report. Null unless both sides were measured. */
+  ankleDfLsi: number | null;
   gripStrengthKg: MetricResult | null;
   wattBike3MinAvgWatts: MetricResult | null;
   mobilityScore: number | null;
@@ -86,14 +89,17 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const standingShoulderY = scoreMetric(data.strength.standingShoulderY, sex, ASH_Y_NEWTONS_BENCHMARK);
   const maxPullUps = scoreMetric(data.strength.maxPullUps, sex, PULL_UPS_BENCHMARK);
   const maxPushUps = scoreMetric(data.strength.maxPushUps, sex, PUSH_UPS_BENCHMARK);
-  const ankleDfKneeToWallCm = scoreMetric(data.mobility.ankleDfKneeToWallCm, sex, KNEE_TO_WALL_CM_BENCHMARK);
+  const ankleDfLeft = scoreMetric(data.mobility.ankleDfKneeToWallCmLeft, sex, KNEE_TO_WALL_CM_BENCHMARK);
+  const ankleDfRight = scoreMetric(data.mobility.ankleDfKneeToWallCmRight, sex, KNEE_TO_WALL_CM_BENCHMARK);
+  const ankleDfLsi =
+    ankleDfLeft && ankleDfRight ? Math.round((Math.min(ankleDfLeft.value, ankleDfRight.value) / Math.max(ankleDfLeft.value, ankleDfRight.value)) * 100) : null;
   const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
   const wattBike3MinAvgWatts = scoreMetric(data.conditioning.wattBike3MinAvgWatts, sex, WATT_BIKE_3MIN_BENCHMARK);
 
   // Only the Poor/Demonstrated/Good ratings go into the qualitative
-  // mobility score — ankleDfKneeToWallCm is a real measurement, scored (and
-  // folded into the overall average) as its own numeric metric above instead.
-  const ratingKeys: Exclude<keyof BjjScreenFormData["mobility"], "ankleDfKneeToWallCm">[] = [
+  // mobility score — ankle DF is a real measurement, scored (and folded
+  // into the overall average) as its own numeric metric above instead.
+  const ratingKeys: Exclude<keyof BjjScreenFormData["mobility"], "ankleDfKneeToWallCmLeft" | "ankleDfKneeToWallCmRight">[] = [
     "shoulderErIr",
     "hipErIr",
     "lumbarFlexExt",
@@ -110,7 +116,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
 
   // Domain scores — what the report's radar/domain bars are built from.
   const categoryScores = {
-    mobility: average([mobilityScore, ankleDfKneeToWallCm?.score]),
+    mobility: average([mobilityScore, ankleDfLeft?.score, ankleDfRight?.score]),
     strength: average([imtp?.score, standingShoulderY?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthKg?.score]),
     power: average([cmjHeight?.score, dropJumpRsi?.score]),
     conditioning: average([wattBike3MinAvgWatts?.score]),
@@ -129,7 +135,9 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
     standingShoulderY,
     maxPullUps,
     maxPushUps,
-    ankleDfKneeToWallCm,
+    ankleDfLeft,
+    ankleDfRight,
+    ankleDfLsi,
     gripStrengthKg,
     wattBike3MinAvgWatts,
     mobilityScore,

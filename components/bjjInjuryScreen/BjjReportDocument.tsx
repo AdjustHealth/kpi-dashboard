@@ -110,9 +110,9 @@ const RATING_LABEL: Record<"poor" | "demonstrated" | "good", string> = { poor: "
 function RatingRow({ label, rating }: { label: string; rating: "poor" | "demonstrated" | "good" }) {
   const color = RATING_COLOR[rating];
   return (
-    <div style={{ padding: "13px 0", borderBottom: `1px solid ${BORDER}` }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontFamily: COND, fontSize: 14, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{label}</span>
+    <div style={{ padding: "16px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+        <span style={{ fontFamily: COND, fontSize: 15, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{label}</span>
         <span
           style={{
             fontFamily: COND,
@@ -132,13 +132,60 @@ function RatingRow({ label, rating }: { label: string; rating: "poor" | "demonst
       </div>
       <div style={{ display: "flex", gap: 4 }}>
         {(["poor", "demonstrated", "good"] as const).map((seg) => (
-          <div key={seg} style={{ flex: 1, height: 11, borderRadius: 3, background: seg === rating ? RATING_COLOR[seg] : BORDER }} />
+          <div key={seg} style={{ flex: 1, height: 13, borderRadius: 3, background: seg === rating ? RATING_COLOR[seg] : BORDER }} />
         ))}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 8, color: MUTED }}>Poor</span>
-        <span style={{ fontSize: 8, color: MUTED }}>Demonstrated</span>
-        <span style={{ fontSize: 8, color: MUTED }}>Good</span>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+        <span style={{ fontSize: 9, color: MUTED }}>Poor</span>
+        <span style={{ fontSize: 9, color: MUTED }}>Demonstrated</span>
+        <span style={{ fontSize: 9, color: MUTED }}>Good</span>
+      </div>
+    </div>
+  );
+}
+
+/** Bilateral L/R measurement with a Limb Symmetry Index badge — same pattern as the Youth/Performance report's lrBarRow (e.g. its own Knee-to-Wall test), since a meaningful side-to-side gap is worth flagging on its own, not just averaged away. */
+function BilateralRow({ label, left, right, unit }: { label: string; left: MetricResult | null; right: MetricResult | null; unit: string }) {
+  if (!left && !right) return null;
+  const lsi = left && right ? Math.round((Math.min(left.value, right.value) / Math.max(left.value, right.value)) * 100) : null;
+  const lsiColor = lsi === null ? MUTED : lsi >= 90 ? GREEN : lsi >= 85 ? AMBER : RED;
+  const side = (res: MetricResult | null, sideLabel: string) => {
+    const color = res ? bandColor(res.score) : "#3a4f63";
+    const pct = res?.percentOfElite !== null && res?.percentOfElite !== undefined ? Math.min(100, res.percentOfElite) : 0;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 16, fontFamily: COND, fontSize: 10, fontWeight: 900, color: MUTED }}>{sideLabel}</span>
+        <div style={{ flex: 1, height: 13, borderRadius: 3, background: BORDER, overflow: "hidden" }}>
+          {res && <div style={{ height: "100%", width: `${pct}%`, borderRadius: 3, background: color }} />}
+        </div>
+        <span style={{ width: 70, textAlign: "right", fontFamily: COND, fontSize: 15, fontWeight: 700, color: res ? "#ffffff" : MUTED }}>{res ? `${res.value.toFixed(1)}${unit}` : "—"}</span>
+      </div>
+    );
+  };
+  return (
+    <div style={{ padding: "16px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+        <span style={{ fontFamily: COND, fontSize: 15, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{label}</span>
+        <span
+          style={{
+            fontFamily: COND,
+            fontSize: 10,
+            fontWeight: 900,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: 3,
+            background: `${lsiColor}26`,
+            color: lsiColor,
+            flexShrink: 0,
+          }}
+        >
+          LSI {lsi !== null ? `${lsi}%` : "—"}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {side(left, "L")}
+        {side(right, "R")}
       </div>
     </div>
   );
@@ -212,21 +259,21 @@ function PageShell({
           Page {pageNum}
         </div>
       </div>
-      <div style={{ flex: 1, padding: "4px 44px 36px", display: "flex", flexDirection: "column", gap: 20 }}>{children}</div>
+      <div style={{ flex: 1, padding: "4px 44px 30px", display: "flex", flexDirection: "column", gap: 21 }}>{children}</div>
     </div>
   );
 }
 
 function DomainHero({ label, score, note }: { label: string; score: number | null; note: string }) {
   return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 24, padding: "20px 28px" }}>
-      <div style={{ textAlign: "center", minWidth: 90 }}>
-        <div style={{ fontFamily: COND, fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{label}</div>
-        <div style={{ fontFamily: COND, fontSize: 52, fontWeight: 900, color: bandColor(score), lineHeight: 1 }}>{score !== null ? score.toFixed(1) : "—"}</div>
+    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 28, padding: "22px 30px" }}>
+      <div style={{ textAlign: "center", minWidth: 100 }}>
+        <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>{label}</div>
+        <div style={{ fontFamily: COND, fontSize: 54, fontWeight: 900, color: bandColor(score), lineHeight: 1 }}>{score !== null ? score.toFixed(1) : "—"}</div>
         <div style={{ fontSize: 10, color: MUTED }}>out of 10</div>
       </div>
       <div style={{ width: 1, alignSelf: "stretch", background: BORDER }} />
-      <div style={{ flex: 1, fontSize: 13, color: TEXT, lineHeight: 1.6 }}>{note}</div>
+      <div style={{ flex: 1, fontSize: 14, color: TEXT, lineHeight: 1.7 }}>{note}</div>
       {score !== null && (
         <span
           style={{
@@ -255,13 +302,13 @@ function TestRow({ row }: { row: TestRowData }) {
   const pct = row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined ? Math.min(100, row.result.percentOfElite) : null;
   const thresholds = row.result ? bandThresholds(row.result, row.unit ?? "") : null;
   return (
-    <div style={{ padding: "13px 0", borderBottom: `1px solid ${BORDER}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ padding: "14px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: COND, fontSize: 14, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
-          {refLine(row) && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{refLine(row)}</div>}
+          <div style={{ fontFamily: COND, fontSize: 15, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
+          {refLine(row) && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>{refLine(row)}</div>}
         </div>
-        <div style={{ fontFamily: COND, fontSize: 24, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 76 }}>{row.displayValue}</div>
+        <div style={{ fontFamily: COND, fontSize: 28, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 84 }}>{row.displayValue}</div>
         <span
           style={{
             fontFamily: COND,
@@ -269,7 +316,7 @@ function TestRow({ row }: { row: TestRowData }) {
             fontWeight: 900,
             letterSpacing: 1,
             textTransform: "uppercase",
-            padding: "4px 10px",
+            padding: "5px 11px",
             borderRadius: 3,
             background: `${color}26`,
             color,
@@ -282,19 +329,19 @@ function TestRow({ row }: { row: TestRowData }) {
         </span>
       </div>
       {pct !== null && (
-        <div style={{ height: 5, borderRadius: 3, background: BORDER, overflow: "hidden", marginTop: 9 }}>
+        <div style={{ height: 6, borderRadius: 3, background: BORDER, overflow: "hidden", marginTop: 9 }}>
           <div style={{ height: "100%", borderRadius: 3, width: `${pct}%`, background: color }} />
         </div>
       )}
       {thresholds && (
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${RED}1a`, border: `1px solid ${RED}40`, fontSize: 9.5, color: RED, fontWeight: 600 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
+          <span style={{ flex: 1, textAlign: "center", padding: "6px 7px", borderRadius: 3, background: `${RED}1a`, border: `1px solid ${RED}40`, fontSize: 9.5, color: RED, fontWeight: 600 }}>
             Focus {thresholds.focus}
           </span>
-          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${AMBER}1a`, border: `1px solid ${AMBER}40`, fontSize: 9.5, color: AMBER, fontWeight: 600 }}>
+          <span style={{ flex: 1, textAlign: "center", padding: "6px 7px", borderRadius: 3, background: `${AMBER}1a`, border: `1px solid ${AMBER}40`, fontSize: 9.5, color: AMBER, fontWeight: 600 }}>
             Avg {thresholds.avg}
           </span>
-          <span style={{ flex: 1, textAlign: "center", padding: "5px 6px", borderRadius: 3, background: `${GREEN}1a`, border: `1px solid ${GREEN}40`, fontSize: 9.5, color: GREEN, fontWeight: 600 }}>
+          <span style={{ flex: 1, textAlign: "center", padding: "6px 7px", borderRadius: 3, background: `${GREEN}1a`, border: `1px solid ${GREEN}40`, fontSize: 9.5, color: GREEN, fontWeight: 600 }}>
             Strong {thresholds.strong}
           </span>
         </div>
@@ -305,18 +352,9 @@ function TestRow({ row }: { row: TestRowData }) {
 
 function InterpretationBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "16px 22px" }}>
-      <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.7 }}>{children}</div>
-    </div>
-  );
-}
-
-function ProtocolBox({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, padding: "16px 22px" }}>
-      <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>How These Are Tested</div>
-      <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.7 }}>{children}</div>
+    <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "20px 26px", marginTop: "auto" }}>
+      <div style={{ fontFamily: COND, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 10 }}>{title}</div>
+      <div style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.8 }}>{children}</div>
     </div>
   );
 }
@@ -422,7 +460,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const hasMobility =
     [data.mobility.shoulderErIr, data.mobility.hipErIr, data.mobility.lumbarFlexExt, data.mobility.txRotation, data.mobility.cervicalRotation].some(
       (r) => r !== ""
-    ) || data.mobility.ankleDfKneeToWallCm !== "";
+    ) || data.mobility.ankleDfKneeToWallCmLeft !== "" || data.mobility.ankleDfKneeToWallCmRight !== "";
   const hasStrength = [data.strength.imtp, data.strength.standingShoulderY, data.strength.maxPullUps, data.strength.maxPushUps, data.strength.gripStrengthKg].some(
     (v) => v !== ""
   );
@@ -438,10 +476,6 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       { label: "Cervical Rotation", rating: data.mobility.cervicalRotation },
     ] as { label: string; rating: "" | "poor" | "demonstrated" | "good" }[]
   ).filter((r): r is { label: string; rating: "poor" | "demonstrated" | "good" } => r.rating !== "");
-
-  const ankleDfRow: TestRowData | null = data.mobility.ankleDfKneeToWallCm
-    ? { label: "Ankle DF — Knee to Wall", displayValue: `${data.mobility.ankleDfKneeToWallCm}cm`, result: score.ankleDfKneeToWallCm, unit: "cm" }
-    : null;
 
   const strengthRows: TestRowData[] = [
     { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp, unit: "×" },
@@ -461,7 +495,11 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   ].filter((r) => r.displayValue !== "—");
 
   const focusLabelsOf = (rows: TestRowData[]) => rows.filter((r) => r.result?.score !== null && r.result?.score !== undefined && r.result.score < 5).map((r) => r.label);
-  const mobilityFocusLabels = [...mobilityRatingRows.filter((r) => r.rating === "poor").map((r) => r.label), ...focusLabelsOf(ankleDfRow ? [ankleDfRow] : [])];
+  const mobilityFocusLabels = [
+    ...mobilityRatingRows.filter((r) => r.rating === "poor").map((r) => r.label),
+    ...(score.ankleDfLeft?.score !== null && score.ankleDfLeft?.score !== undefined && score.ankleDfLeft.score < 5 ? ["Ankle DF (L)"] : []),
+    ...(score.ankleDfRight?.score !== null && score.ankleDfRight?.score !== undefined && score.ankleDfRight.score < 5 ? ["Ankle DF (R)"] : []),
+  ];
   const strengthFocusLabels = focusLabelsOf(strengthRows);
   const powerFocusLabels = focusLabelsOf(powerRows);
   const conditioningFocusLabels = focusLabelsOf(conditioningRows);
@@ -482,7 +520,8 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       { label: "Standing Shoulder Y (ASH-Y)", result: score.standingShoulderY },
       { label: "Max Pull Ups", result: score.maxPullUps },
       { label: "Max Push Ups", result: score.maxPushUps },
-      { label: "Ankle DF — Knee to Wall", result: score.ankleDfKneeToWallCm },
+      { label: "Ankle DF (L)", result: score.ankleDfLeft },
+      { label: "Ankle DF (R)", result: score.ankleDfRight },
       { label: "Grip Strength", result: score.gripStrengthKg },
       { label: "3-Min Watt Bike", result: score.wattBike3MinAvgWatts },
     ] as { label: string; result: MetricResult | null }[]
@@ -545,16 +584,11 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           />
           <div>
             {mobilityRatingRows.map((r) => <RatingRow key={r.label} label={r.label} rating={r.rating} />)}
-            {ankleDfRow && <TestRow row={ankleDfRow} />}
+            <BilateralRow label="Ankle DF — Knee to Wall" left={score.ankleDfLeft} right={score.ankleDfRight} unit="cm" />
           </div>
-          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-            <ProtocolBox>
-              Shoulder/hip/thoracic/cervical rotation: the clinician moves each joint through range and rates it Poor, Demonstrated or Good against age and sport-appropriate expectations. Ankle DF (knee-to-wall): foot flat, knee driven over the toes without the heel lifting — distance from the wall to the big toe at end-range is recorded in cm.
-            </ProtocolBox>
-            <InterpretationBox title="Mobility Interpretation">
-              Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling.
-            </InterpretationBox>
-          </div>
+          <InterpretationBox title="Mobility Interpretation">
+            Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling. A knee-to-wall LSI below 85% is worth addressing on its own, independent of either side&rsquo;s raw score.
+          </InterpretationBox>
         </PageShell>
       )}
 
@@ -572,14 +606,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             })}
           />
           <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-            <ProtocolBox>
-              IMTP: maximal two-handed pull against an immovable bar on a force plate, held 3–5 seconds, peak force ÷ bodyweight. ASH-Y: dynamometer pull in the Y position of the Athletic Shoulder Test, dominant arm. Pull-ups/push-ups: max unbroken reps to standard. Grip: max isometric squeeze on a hand dynamometer, dominant hand.
-            </ProtocolBox>
-            <InterpretationBox title="Strength Interpretation">
-              IMTP is normalised against bodyweight (peak force ÷ bodyweight) since raw force alone doesn&rsquo;t compare fairly across weight classes. Combat-sport-specific data is used where it exists (IMTP, grip); the rest are compared against the best available general-population standard.
-            </InterpretationBox>
-          </div>
+          <InterpretationBox title="Strength Interpretation">
+            IMTP is entered as raw peak force (kg) alongside Bodyweight in the Athlete Details section — the ×bodyweight ratio shown above is calculated automatically, not something to work out by hand. Combat-sport-specific data is used where it exists (IMTP, grip); the rest are compared against the best available general-population standard.
+          </InterpretationBox>
         </PageShell>
       )}
 
@@ -616,14 +645,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
             </>
           )}
-          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-            <ProtocolBox>
-              CMJ: hands on hips, drop straight into a quarter squat and jump for maximum height — no countermovement pause or arm swing, measured on a force plate or jump mat. RSI Mod (drop jump): step off a box, rebound off the floor as high and as fast as possible; RSI Mod = jump height ÷ ground contact time. 3-Min Watt Bike: seated, all-out effort sustained for 3 minutes on an air/watt bike — average power output across the full 3 minutes is recorded.
-            </ProtocolBox>
-            <InterpretationBox title="Power &amp; Conditioning Interpretation">
-              CMJ height reflects raw lower-body power; RSI Mod reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report. Conditioning is scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
-            </InterpretationBox>
-          </div>
+          <InterpretationBox title="Power &amp; Conditioning Interpretation">
+            CMJ height reflects raw lower-body power; RSI Mod (jump height ÷ ground contact time, unitless by convention — the same way every force-plate system reports it) reflects how quickly that power is expressed, against the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report. Conditioning is scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
+          </InterpretationBox>
         </PageShell>
       )}
 
