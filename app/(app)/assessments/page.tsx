@@ -19,7 +19,7 @@ const TYPE_LABEL: Record<string, string> = {
   performance: "Performance",
   youth: "Youth Performance",
   movestrong: "MoveStrong",
-  bjj_injury_screen: "BJJ Injury Screen",
+  bjj_injury_screen: "BJJ Performance Assessment",
 };
 
 const FILTERS = [
@@ -28,7 +28,7 @@ const FILTERS = [
   { key: "youth1", label: "Youth 1" },
   { key: "youth2", label: "Youth 2" },
   { key: "movestrong", label: "MoveStrong" },
-  { key: "bjj", label: "BJJ Injury Screen" },
+  { key: "bjj", label: "BJJ Performance Assessment" },
 ];
 
 const ASSESSMENT_TYPES = [
@@ -138,7 +138,7 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
               </div>
               <div>
                 <div className="flex items-baseline justify-between">
-                  <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Injury Screen</span>
+                  <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Performance Assessment</span>
                   <span className="text-xs text-muted">5 min</span>
                 </div>
                 <span className="text-xs font-semibold text-accent">Start →</span>

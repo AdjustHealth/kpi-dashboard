@@ -20,7 +20,7 @@ export default async function NewBjjInjuryScreenPage() {
 
   return (
     <>
-      <PageHeader title="BJJ Injury Screen" subtitle="Mobility, Strength & Power — 5 minutes" showWeekSelector={false} />
+      <PageHeader title="BJJ Performance Assessment" subtitle="Mobility, Strength & Power — 5 minutes" showWeekSelector={false} />
       <BjjScreenWorkspace initialData={data} />
     </>
   );

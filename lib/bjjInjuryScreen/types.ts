@@ -1,4 +1,4 @@
-/** BJJ Injury Screen — a quick (5 minute) mobility/strength/power screen for
+/** BJJ Performance Assessment — a quick (5 minute) mobility/strength/power screen for
  * BJJ athletes. Its own simple area sharing the assessment_tool section
  * grant and the same underlying `assessments` table (assess_type =
  * 'bjj_injury_screen'), same pattern as Consultation Templates — never
