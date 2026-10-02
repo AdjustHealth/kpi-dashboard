@@ -17,7 +17,7 @@ export default async function BjjInjuryScreenDetailPage({ params }: { params: Pr
 
   return (
     <>
-      <PageHeader title="BJJ Performance Assessment" subtitle="Mobility, Strength & Power — 5 minutes" showWeekSelector={false} />
+      <PageHeader title="BJJ Performance Assessment" subtitle="Mobility, Strength & Power" showWeekSelector={false} />
       <BjjScreenWorkspace screenId={rows[0].id as string} initialData={mergeBjjScreen(formData)} />
     </>
   );

@@ -139,7 +139,6 @@ export default async function AssessmentsPage({ searchParams }: { searchParams: 
               <div>
                 <div className="flex items-baseline justify-between">
                   <span className="font-display text-lg font-bold uppercase tracking-wide text-foreground">BJJ Performance Assessment</span>
-                  <span className="text-xs text-muted">5 min</span>
                 </div>
                 <span className="text-xs font-semibold text-accent">Start →</span>
               </div>
