@@ -10,6 +10,7 @@ import {
   PULL_UPS_BENCHMARK,
   PUSH_UPS_BENCHMARK,
   SexBenchmark,
+  WATT_BIKE_3MIN_BENCHMARK,
 } from "./benchmarks";
 
 function parseNum(raw: string | undefined): number | null {
@@ -55,10 +56,9 @@ export type BjjScreenScore = {
   maxPushUps: MetricResult | null;
   ankleDfKneeToWallCm: MetricResult | null;
   gripStrengthKg: MetricResult | null;
-  /** Raw value only — no published benchmark exists for this test, see benchmarks.ts. */
-  wattBike3MinAvgWatts: number | null;
+  wattBike3MinAvgWatts: MetricResult | null;
   mobilityScore: number | null;
-  /** 0-10 per domain, averaged from that domain's scored tests — what the report's domain bars/radar profile are built from. Conditioning is always null (the Watt Bike test has no elite benchmark to score against). */
+  /** 0-10 per domain, averaged from that domain's scored tests — what the report's domain bars/radar profile are built from. */
   categoryScores: { mobility: number | null; strength: number | null; power: number | null; conditioning: number | null };
   /** 0-10, the average of the domain scores above (not a flat average across every raw test, so a domain with more tests doesn't outweigh one with fewer). Null if nothing was scoreable yet (e.g. sex not set, or nothing entered). */
   overall: number | null;
@@ -88,7 +88,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const maxPushUps = scoreMetric(data.strength.maxPushUps, sex, PUSH_UPS_BENCHMARK);
   const ankleDfKneeToWallCm = scoreMetric(data.mobility.ankleDfKneeToWallCm, sex, KNEE_TO_WALL_CM_BENCHMARK);
   const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
-  const wattBike3MinAvgWatts = parseNum(data.conditioning.wattBike3MinAvgWatts);
+  const wattBike3MinAvgWatts = scoreMetric(data.conditioning.wattBike3MinAvgWatts, sex, WATT_BIKE_3MIN_BENCHMARK);
 
   // Only the Poor/Demonstrated/Good ratings go into the qualitative
   // mobility score — ankleDfKneeToWallCm is a real measurement, scored (and
@@ -109,14 +109,11 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   };
 
   // Domain scores — what the report's radar/domain bars are built from.
-  // Conditioning has no scoreable test (the Watt Bike test has no elite
-  // benchmark), so it's always null there, same as a domain with nothing
-  // entered yet.
   const categoryScores = {
     mobility: average([mobilityScore, ankleDfKneeToWallCm?.score]),
     strength: average([imtp?.score, standingShoulderY?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthKg?.score]),
     power: average([cmjHeight?.score, dropJumpRsi?.score]),
-    conditioning: null as number | null,
+    conditioning: average([wattBike3MinAvgWatts?.score]),
   };
 
   // Overall is the average of the domain scores (so Strength's 5 tests

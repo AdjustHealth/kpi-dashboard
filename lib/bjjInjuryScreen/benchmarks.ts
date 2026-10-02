@@ -1,15 +1,13 @@
 /**
- * Elite reference values for comparing a BJJ athlete's screen against —
- * researched directly for this feature (September 2026), not invented.
- * Every entry says exactly where it came from and how confident it is:
+ * Reference values for comparing a BJJ athlete's screen against. Every
+ * entry says exactly where it came from and how confident it is:
  *
  * - "combat"  — measured in judo/wrestling/combat-sport athletes specifically.
- * - "general" — the best published figure available, but from a general
- *   athletic/overhead-athlete population, not combat-sport-specific. Still
- *   useful context, just not a BJJ-trained benchmark.
- * - null      — no credible published elite reference could be found at
- *   all (the 3-minute Watt Bike test). The raw value is recorded and shown,
- *   but never scored against a made-up number.
+ * - "general" — no combat-sport-specific data exists, so the general
+ *   population/athlete standard is used instead — preferring Adjust
+ *   Health's own Performance assessment report thresholds (same tests,
+ *   same protocols) where one already exists there, otherwise the best
+ *   published general figure.
  *
  * Nothing here is BJJ-specific — no published BJJ normative dataset exists
  * for any of these tests as far as this research found. Judo/wrestling data
@@ -38,7 +36,11 @@ export const IMTP_RATIO_BENCHMARK: SexBenchmark = {
     confidence: "combat",
     source: "Elite male judo athletes, isometric mid-thigh pull peak force without lifting straps: 3.30 × bodyweight (PMC13541152, judo vs. resistance-trained populations).",
   },
-  female: null,
+  female: {
+    value: 2.5,
+    confidence: "general",
+    source: "Adjust Health's own Performance assessment report general-population IMTP relative-strength threshold — no combat-sport-specific female IMTP data exists.",
+  },
 };
 
 /** CMJ jump height in cm. */
@@ -78,11 +80,15 @@ export const DROP_JUMP_RSI_BENCHMARK: SexBenchmark = {
 /** Athletic Shoulder (ASH) Test, Y position — peak isometric force in Newtons, dominant arm, via dynamometer. */
 export const ASH_Y_NEWTONS_BENCHMARK: SexBenchmark = {
   male: {
-    value: 132.8,
+    value: 180,
     confidence: "general",
-    source: "Elite rugby players (overhead/contact athletes), ASH test Y position, dominant arm peak force: 132.8±41.1N (Hawkin Dynamics / published ASH test reliability research in elite rugby) — no combat-sport-specific ASH-Y data was found.",
+    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) — no combat-sport-specific ASH-Y data exists.",
   },
-  female: null,
+  female: {
+    value: 130,
+    confidence: "general",
+    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) — no combat-sport-specific ASH-Y data exists.",
+  },
 };
 
 /** Max reps. */
@@ -134,11 +140,20 @@ export const GRIP_STRENGTH_KG_BENCHMARK: SexBenchmark = {
 };
 
 /**
- * No published combat-sport or BJJ-specific benchmark exists for a
- * 3-minute all-out Watt Bike test. Wingate (30-second) anaerobic power data
- * exists for wrestlers/judokas, but that's a different protocol measuring a
- * different thing (5-second peak power vs. a 3-minute end-test/critical
- * power) — using it here would be comparing two different tests, not a real
- * benchmark. Recorded and tracked over time, not scored against elite.
+ * 3-minute all-out Watt Bike test, average power. No combat-sport-specific
+ * benchmark exists, so this uses Adjust Health's own Performance assessment
+ * report's threshold for the same 3-minute all-out protocol (reported there
+ * as peak power — the closest available standard for this test).
  */
-export const WATT_BIKE_3MIN_BENCHMARK: SexBenchmark = { male: null, female: null };
+export const WATT_BIKE_3MIN_BENCHMARK: SexBenchmark = {
+  male: {
+    value: 400,
+    confidence: "general",
+    source: "Adjust Health's own Performance assessment report threshold for the Watt Bike 3-min all-out test (peak power) — no combat-sport-specific data exists for this protocol.",
+  },
+  female: {
+    value: 280,
+    confidence: "general",
+    source: "Adjust Health's own Performance assessment report threshold for the Watt Bike 3-min all-out test (peak power) — no combat-sport-specific data exists for this protocol.",
+  },
+};

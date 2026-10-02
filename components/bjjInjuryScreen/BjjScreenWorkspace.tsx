@@ -210,7 +210,7 @@ export function BjjScreenWorkspace({
       </SectionCard>
 
       <SectionCard title="Conditioning">
-        <Field label="3-Min Watt Bike — Average Power" hint="watts. No published elite benchmark exists for this test (see results below) — recorded for your own tracking over time.">
+        <Field label="3-Min Watt Bike — Average Power" hint="watts">
           <Input value={data.conditioning.wattBike3MinAvgWatts} onChange={(e) => setValue("conditioning", "wattBike3MinAvgWatts", e.target.value)} />
         </Field>
       </SectionCard>
@@ -232,16 +232,11 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="Max Push Ups" result={score.maxPushUps} />
           <MetricResultRow label="Ankle DF — Knee to Wall" result={score.ankleDfKneeToWallCm} />
           <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
+          <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} />
           {score.mobilityScore !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
               <span className="text-xs font-medium text-foreground">Mobility (qualitative)</span>
               <Badge tone={scoreTone(score.mobilityScore)}>{score.mobilityScore}/10</Badge>
-            </div>
-          )}
-          {score.wattBike3MinAvgWatts !== null && (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <span className="text-xs font-medium text-foreground">3-Min Watt Bike</span>
-              <Badge>{score.wattBike3MinAvgWatts}w — not scored</Badge>
             </div>
           )}
         </div>

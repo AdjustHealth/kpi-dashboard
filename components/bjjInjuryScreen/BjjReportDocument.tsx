@@ -10,6 +10,10 @@ import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring
  * radar profile — rather than the lighter Adjust-brand style used for the
  * Consultation Templates patient report, which is a different document for
  * a different audience (a patient, not a competitive athlete/coach).
+ *
+ * Only domains that actually have a test entered get a page, a domain bar,
+ * or a radar axis — same rule the Youth/Performance report now follows: a
+ * section nobody ran (e.g. Conditioning) isn't shown as an empty gap.
  */
 
 const BG = "#06090d";
@@ -48,20 +52,21 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "Athlete";
 }
 
-/** Short "vs ___" reference line, matching tool.html's own srefRow convention. */
-function refLine(result: MetricResult | null): string {
+function capitalize(s: string): string {
+  return s ? s[0].toUpperCase() + s.slice(1) : "—";
+}
+
+type TestRowData = { label: string; displayValue: string; result: MetricResult | null; rating?: string };
+
+/** Short "vs ___" line under a test's label — plain reference data, not commentary. */
+function refLine(row: TestRowData): string {
+  if (row.rating) return "Poor / Demonstrated / Good — clinical rating";
+  const result = row.result;
   if (!result) return "Not recorded";
-  if (!result.benchmark) return "No elite benchmark for this test";
-  const kind = result.benchmark.confidence === "combat" ? "combat-sport" : "general elite";
-  return `vs ${result.benchmark.value} (${kind} data)`;
+  if (!result.benchmark) return "";
+  const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
+  return `${kind} — target ${result.benchmark.value}`;
 }
-
-function formatValue(value: number | undefined, decimals = 1): string {
-  if (value === undefined || value === null) return "—";
-  return value.toFixed(decimals);
-}
-
-type TestRowData = { label: string; displayValue: string; result: MetricResult | null };
 
 function PageShell({
   title,
@@ -110,45 +115,88 @@ function PageShell({
           Page {pageNum}
         </div>
       </div>
-      <div style={{ flex: 1, padding: "4px 44px 36px", display: "flex", flexDirection: "column", gap: 22 }}>{children}</div>
+      <div style={{ flex: 1, padding: "4px 44px 36px", display: "flex", flexDirection: "column", gap: 20 }}>{children}</div>
     </div>
   );
 }
 
-function DomainHero({ label, score }: { label: string; score: number | null }) {
+function DomainHero({ label, score, note }: { label: string; score: number | null; note: string }) {
   return (
     <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 24, padding: "20px 28px" }}>
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", minWidth: 90 }}>
         <div style={{ fontFamily: COND, fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{label}</div>
         <div style={{ fontFamily: COND, fontSize: 52, fontWeight: 900, color: bandColor(score), lineHeight: 1 }}>{score !== null ? score.toFixed(1) : "—"}</div>
         <div style={{ fontSize: 10, color: MUTED }}>out of 10</div>
       </div>
-      <div style={{ flex: 1, fontSize: 12, color: TEXT, lineHeight: 1.6 }}>
-        {score !== null
-          ? score >= 7.5
-            ? "Strong domain — at or above elite reference data across what was tested here."
-            : score >= 5
-              ? "Solid foundation — some room to close the gap to elite reference data."
-              : "Clear development priority — well below elite reference data on the tests recorded."
-          : "Nothing scored in this domain yet — fill in the tests on the assessment form."}
-      </div>
+      <div style={{ width: 1, alignSelf: "stretch", background: BORDER }} />
+      <div style={{ flex: 1, fontSize: 13, color: TEXT, lineHeight: 1.6 }}>{note}</div>
+      {score !== null && (
+        <span
+          style={{
+            fontFamily: COND,
+            fontSize: 11,
+            fontWeight: 900,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            padding: "6px 14px",
+            borderRadius: 4,
+            background: `${bandColor(score)}26`,
+            color: bandColor(score),
+            flexShrink: 0,
+          }}
+        >
+          {bandLabel(score)}
+        </span>
+      )}
     </div>
   );
 }
 
 function TestRow({ row }: { row: TestRowData }) {
-  const color = row.result?.score !== null && row.result?.score !== undefined ? bandColor(row.result.score) : "#3a4f63";
+  const score = row.result?.score ?? null;
+  const color = bandColor(score);
+  const pct = row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined ? Math.min(100, row.result.percentOfElite) : null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
-      <div style={{ width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
-        <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{refLine(row.result)}</div>
+    <div style={{ padding: "13px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: COND, fontSize: 14, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
+          {refLine(row) && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{refLine(row)}</div>}
+        </div>
+        <div style={{ fontFamily: COND, fontSize: 24, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 76 }}>{row.displayValue}</div>
+        <span
+          style={{
+            fontFamily: COND,
+            fontSize: 10,
+            fontWeight: 900,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: 3,
+            background: `${color}26`,
+            color,
+            minWidth: 56,
+            textAlign: "center",
+            flexShrink: 0,
+          }}
+        >
+          {bandLabel(score)}
+        </span>
       </div>
-      <div style={{ fontFamily: COND, fontSize: 22, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 70 }}>{row.displayValue}</div>
-      {row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined && (
-        <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, color, textAlign: "right", minWidth: 56 }}>{row.result.percentOfElite}%</div>
+      {pct !== null && (
+        <div style={{ height: 5, borderRadius: 3, background: BORDER, overflow: "hidden", marginTop: 9 }}>
+          <div style={{ height: "100%", borderRadius: 3, width: `${pct}%`, background: color }} />
+        </div>
       )}
+    </div>
+  );
+}
+
+function InterpretationBox({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "16px 22px", marginTop: "auto" }}>
+      <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: TEXT, lineHeight: 1.7 }}>{children}</div>
     </div>
   );
 }
@@ -188,7 +236,7 @@ function DomainBar({ label, score }: { label: string; score: number | null }) {
   );
 }
 
-/** Inline SVG radar — translated directly from public/tool.html's own radar generator, so this reads as the exact same report system, not a different one. */
+/** Inline SVG radar — translated from public/tool.html's own radar generator, with a dynamic axis count: only domains with a test entered get an axis (an untested domain isn't plotted as a collapsed zero-point). */
 function RadarProfile({ domains }: { domains: { label: string; score: number | null }[] }) {
   const cx = 118;
   const cy = 118;
@@ -245,57 +293,72 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const score = scoreBjjScreen(data);
   const name = firstName(athleteName);
 
+  const hasMobility =
+    [data.mobility.shoulderErIr, data.mobility.hipErIr, data.mobility.lumbarFlexExt, data.mobility.txRotation, data.mobility.cervicalRotation].some(
+      (r) => r !== ""
+    ) || data.mobility.ankleDfKneeToWallCm !== "";
+  const hasStrength = [data.strength.imtp, data.strength.standingShoulderY, data.strength.maxPullUps, data.strength.maxPushUps, data.strength.gripStrengthKg].some(
+    (v) => v !== ""
+  );
+  const hasPower = [data.power.cmjHeight, data.power.dropJumpRsi].some((v) => v !== "");
+  const hasConditioning = data.conditioning.wattBike3MinAvgWatts !== "";
+
   const mobilityRows: TestRowData[] = [
-    { label: "Shoulder ER/IR", displayValue: data.mobility.shoulderErIr ? data.mobility.shoulderErIr[0].toUpperCase() + data.mobility.shoulderErIr.slice(1) : "—", result: null },
-    { label: "Hip ER/IR", displayValue: data.mobility.hipErIr ? data.mobility.hipErIr[0].toUpperCase() + data.mobility.hipErIr.slice(1) : "—", result: null },
-    { label: "Lumbar Flexion/Extension", displayValue: data.mobility.lumbarFlexExt ? data.mobility.lumbarFlexExt[0].toUpperCase() + data.mobility.lumbarFlexExt.slice(1) : "—", result: null },
-    { label: "Thoracic (Tx) Rotation", displayValue: data.mobility.txRotation ? data.mobility.txRotation[0].toUpperCase() + data.mobility.txRotation.slice(1) : "—", result: null },
-    { label: "Cervical Rotation", displayValue: data.mobility.cervicalRotation ? data.mobility.cervicalRotation[0].toUpperCase() + data.mobility.cervicalRotation.slice(1) : "—", result: null },
+    { label: "Shoulder ER/IR", displayValue: capitalize(data.mobility.shoulderErIr), result: null, rating: data.mobility.shoulderErIr },
+    { label: "Hip ER/IR", displayValue: capitalize(data.mobility.hipErIr), result: null, rating: data.mobility.hipErIr },
+    { label: "Lumbar Flexion/Extension", displayValue: capitalize(data.mobility.lumbarFlexExt), result: null, rating: data.mobility.lumbarFlexExt },
+    { label: "Thoracic (Tx) Rotation", displayValue: capitalize(data.mobility.txRotation), result: null, rating: data.mobility.txRotation },
+    { label: "Cervical Rotation", displayValue: capitalize(data.mobility.cervicalRotation), result: null, rating: data.mobility.cervicalRotation },
     { label: "Ankle DF — Knee to Wall", displayValue: data.mobility.ankleDfKneeToWallCm ? `${data.mobility.ankleDfKneeToWallCm}cm` : "—", result: score.ankleDfKneeToWallCm },
-  ];
+  ].filter((r) => r.displayValue !== "—" || r.result);
+
   const strengthRows: TestRowData[] = [
-    { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${formatValue(score.imtp.value, 2)}×` : "—", result: score.imtp },
+    { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp },
     { label: "Standing Shoulder Y (ASH-Y)", displayValue: data.strength.standingShoulderY ? `${data.strength.standingShoulderY}N` : "—", result: score.standingShoulderY },
     { label: "Max Pull Ups", displayValue: data.strength.maxPullUps ? `${data.strength.maxPullUps} reps` : "—", result: score.maxPullUps },
     { label: "Max Push Ups", displayValue: data.strength.maxPushUps ? `${data.strength.maxPushUps} reps` : "—", result: score.maxPushUps },
     { label: "Grip Strength", displayValue: data.strength.gripStrengthKg ? `${data.strength.gripStrengthKg}kg` : "—", result: score.gripStrengthKg },
-  ];
+  ].filter((r) => r.displayValue !== "—");
+
   const powerRows: TestRowData[] = [
     { label: "CMJ — Jump Height", displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—", result: score.cmjHeight },
-    { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? formatValue(Number(data.power.dropJumpRsi), 2) : "—", result: score.dropJumpRsi },
-  ];
-  const conditioningRows: TestRowData[] = [
-    { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts !== null ? ({ value: score.wattBike3MinAvgWatts, percentOfElite: null, score: null, benchmark: null } as MetricResult) : null },
-  ];
+    { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? Number(data.power.dropJumpRsi).toFixed(2) : "—", result: score.dropJumpRsi },
+  ].filter((r) => r.displayValue !== "—");
 
-  // Key Development Areas — the lowest-scoring recorded tests, same purpose
-  // as tool.html's own development-priority list on the summary page.
-  const allScored: { label: string; result: MetricResult }[] = [
-    { label: "IMTP", result: score.imtp },
-    { label: "CMJ Jump Height", result: score.cmjHeight },
-    { label: "RSI Mod (Drop Jump)", result: score.dropJumpRsi },
-    { label: "Standing Shoulder Y (ASH-Y)", result: score.standingShoulderY },
-    { label: "Max Pull Ups", result: score.maxPullUps },
-    { label: "Max Push Ups", result: score.maxPushUps },
-    { label: "Ankle DF — Knee to Wall", result: score.ankleDfKneeToWallCm },
-    { label: "Grip Strength", result: score.gripStrengthKg },
-  ].filter((r): r is { label: string; result: MetricResult } => r.result !== null && r.result.score !== null)
-    .sort((a, b) => (a.result.score as number) - (b.result.score as number))
-    .slice(0, 3)
-    .filter((r) => (r.result.score as number) < 7.5);
+  const conditioningRows: TestRowData[] = [
+    { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts },
+  ].filter((r) => r.displayValue !== "—");
 
   const domains = [
-    { label: "Mobility", score: score.categoryScores.mobility },
-    { label: "Strength", score: score.categoryScores.strength },
-    { label: "Power", score: score.categoryScores.power },
-    { label: "Conditioning", score: score.categoryScores.conditioning },
-  ];
+    hasMobility && { label: "Mobility", score: score.categoryScores.mobility },
+    hasStrength && { label: "Strength", score: score.categoryScores.strength },
+    hasPower && { label: "Power", score: score.categoryScores.power },
+    hasConditioning && { label: "Conditioning", score: score.categoryScores.conditioning },
+  ].filter((d): d is { label: string; score: number | null } => Boolean(d));
+
+  // Key Development Areas — the lowest-scoring recorded tests.
+  const allScored: { label: string; result: MetricResult }[] = (
+    [
+      { label: "IMTP", result: score.imtp },
+      { label: "CMJ Jump Height", result: score.cmjHeight },
+      { label: "RSI Mod (Drop Jump)", result: score.dropJumpRsi },
+      { label: "Standing Shoulder Y (ASH-Y)", result: score.standingShoulderY },
+      { label: "Max Pull Ups", result: score.maxPullUps },
+      { label: "Max Push Ups", result: score.maxPushUps },
+      { label: "Ankle DF — Knee to Wall", result: score.ankleDfKneeToWallCm },
+      { label: "Grip Strength", result: score.gripStrengthKg },
+      { label: "3-Min Watt Bike", result: score.wattBike3MinAvgWatts },
+    ] as { label: string; result: MetricResult | null }[]
+  )
+    .filter((r): r is { label: string; result: MetricResult } => r.result !== null && r.result.score !== null)
+    .sort((a, b) => (a.result.score as number) - (b.result.score as number));
+  const focusAreas = allScored.filter((r) => (r.result.score as number) < 7.5).slice(0, 3);
 
   let pageNum = 1; // page 1 is the cover, rendered separately below
-  const mobilityPage = ++pageNum;
-  const strengthPage = ++pageNum;
-  const powerPage = ++pageNum;
-  const conditioningPage = ++pageNum;
+  const mobilityPage = hasMobility ? ++pageNum : null;
+  const strengthPage = hasStrength ? ++pageNum : null;
+  const powerPage = hasPower ? ++pageNum : null;
+  const conditioningPage = hasConditioning ? ++pageNum : null;
   const summaryPage = ++pageNum;
 
   return (
@@ -317,8 +380,10 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           <div style={{ fontFamily: COND, fontSize: 80, fontWeight: 900, textTransform: "uppercase", color: "#ffffff", lineHeight: 1.02, letterSpacing: -1 }}>BJJ</div>
           <div style={{ fontFamily: COND, fontSize: 80, fontWeight: 900, textTransform: "uppercase", color: "#ffffff", lineHeight: 1.02, letterSpacing: -1 }}>Performance</div>
           <div style={{ fontFamily: COND, fontSize: 80, fontWeight: 900, textTransform: "uppercase", color: LIME, lineHeight: 1.02, letterSpacing: -1, marginBottom: 40 }}>Report</div>
-          <div style={{ fontFamily: COND, fontSize: 26, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", color: "#ffffff" }}>{name}</div>
-          <div style={{ marginTop: 10, display: "flex", gap: 18, fontSize: 13, color: TEXT }}>
+          <div style={{ border: `2px solid ${LIME}`, padding: "14px 40px", display: "inline-block", marginBottom: 12 }}>
+            <div style={{ fontFamily: COND, fontSize: 26, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", color: "#ffffff" }}>{name}</div>
+          </div>
+          <div style={{ display: "flex", gap: 18, fontSize: 11, color: MUTED, letterSpacing: 1 }}>
             {data.assessmentDate && <span>{formatDate(data.assessmentDate)}</span>}
             {data.clinician && <span>Assessed by {data.clinician}</span>}
           </div>
@@ -327,34 +392,99 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       </div>
 
       {/* ---- Mobility ---- */}
-      <PageShell title="Mobility" subtitle="Poor / Demonstrated / Good, plus measured ankle dorsiflexion" pageNum={mobilityPage}>
-        <DomainHero label="Mobility" score={score.categoryScores.mobility} />
-        <div>{mobilityRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-      </PageShell>
+      {mobilityPage && (
+        <PageShell title="Mobility" subtitle="Poor / Demonstrated / Good, plus measured ankle dorsiflexion" pageNum={mobilityPage}>
+          <DomainHero
+            label="Mobility"
+            score={score.categoryScores.mobility}
+            note={
+              score.categoryScores.mobility !== null
+                ? score.categoryScores.mobility >= 7.5
+                  ? "Full, functional range across what was tested — no restriction limiting output here."
+                  : score.categoryScores.mobility >= 5
+                    ? "Workable range with some restriction — worth revisiting alongside strength work."
+                    : "Restricted range is the clearest limiter here — prioritise this before loading strength/power on top of it."
+                : "Set Sex above to compare the measured tests against reference data."
+            }
+          />
+          <div>{mobilityRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <InterpretationBox title="Mobility Interpretation">
+            Shoulder, hip, thoracic and cervical rotation are rated on clinical judgement against age/sport-appropriate expectations. Ankle dorsiflexion is measured directly (knee-to-wall) and scored against a general population reference. Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling.
+          </InterpretationBox>
+        </PageShell>
+      )}
 
       {/* ---- Strength ---- */}
-      <PageShell title="Strength" subtitle="Vs. elite &amp; combat-sport reference data" pageNum={strengthPage}>
-        <DomainHero label="Strength" score={score.categoryScores.strength} />
-        <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-      </PageShell>
+      {strengthPage && (
+        <PageShell title="Strength" subtitle="Vs. elite &amp; general-population reference data" pageNum={strengthPage}>
+          <DomainHero
+            label="Strength"
+            score={score.categoryScores.strength}
+            note={
+              score.categoryScores.strength !== null
+                ? score.categoryScores.strength >= 7.5
+                  ? "Strong across the board — force production is not the limiting factor right now."
+                  : score.categoryScores.strength >= 5
+                    ? "Solid base — targeted loading will close the gap to elite reference data."
+                    : "Clear development priority — build a base here before adding volume elsewhere."
+                : "Set Sex above to compare these tests against reference data."
+            }
+          />
+          <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <InterpretationBox title="Strength Interpretation">
+            IMTP is normalised against bodyweight (peak force ÷ bodyweight) since raw force alone doesn&rsquo;t compare fairly across weight classes. ASH-Y, pull-ups, push-ups and grip strength are compared against the best available elite or general-population standard for each test — combat-sport-specific data is used where it exists (IMTP, grip).
+          </InterpretationBox>
+        </PageShell>
+      )}
 
       {/* ---- Power ---- */}
-      <PageShell title="Power" subtitle="Vs. elite &amp; combat-sport reference data" pageNum={powerPage}>
-        <DomainHero label="Power" score={score.categoryScores.power} />
-        <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-      </PageShell>
+      {powerPage && (
+        <PageShell title="Power" subtitle="Vs. elite &amp; general-population reference data" pageNum={powerPage}>
+          <DomainHero
+            label="Power"
+            score={score.categoryScores.power}
+            note={
+              score.categoryScores.power !== null
+                ? score.categoryScores.power >= 7.5
+                  ? "Elite-level rate of force development — translates directly to explosive scrambles and takedowns."
+                  : score.categoryScores.power >= 5
+                    ? "Good power output with room to develop — plyometric and ballistic work will move this."
+                    : "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly."
+                : "Set Sex above to compare these tests against reference data."
+            }
+          />
+          <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <InterpretationBox title="Power Interpretation">
+            CMJ height reflects raw lower-body power; RSI Mod (contact time vs. jump height on the drop jump) reflects how quickly that power is expressed — the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report.
+          </InterpretationBox>
+        </PageShell>
+      )}
 
       {/* ---- Conditioning ---- */}
-      <PageShell title="Conditioning" subtitle="Recorded for tracking — no published elite benchmark exists" pageNum={conditioningPage}>
-        <DomainHero label="Conditioning" score={score.categoryScores.conditioning} />
-        <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
-        <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.6, maxWidth: "60ch" }}>
-          No published combat-sport or BJJ-specific benchmark exists for a 3-minute all-out Watt Bike test, so it isn&rsquo;t scored against a made-up number — track this athlete&rsquo;s own number over time instead.
-        </p>
-      </PageShell>
+      {conditioningPage && (
+        <PageShell title="Conditioning" subtitle="Vs. general-population reference data" pageNum={conditioningPage}>
+          <DomainHero
+            label="Conditioning"
+            score={score.categoryScores.conditioning}
+            note={
+              score.categoryScores.conditioning !== null
+                ? score.categoryScores.conditioning >= 7.5
+                  ? "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match."
+                  : score.categoryScores.conditioning >= 5
+                    ? "Workable engine — interval work will lift this further."
+                    : "Conditioning is a development priority — technique tends to break down first when this is the limiter."
+                : "Set Sex above to compare this test against reference data."
+            }
+          />
+          <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <InterpretationBox title="Conditioning Interpretation">
+            Scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
+          </InterpretationBox>
+        </PageShell>
+      )}
 
       {/* ---- Summary ---- */}
-      <PageShell title="Summary" subtitle="Performance profile — vs. combat-sport &amp; general elite reference data" pageNum={summaryPage}>
+      <PageShell title="Summary" subtitle="Performance profile — vs. elite &amp; general-population reference data" pageNum={summaryPage}>
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", overflow: "hidden" }}>
           <div style={{ padding: "22px 30px", textAlign: "center", borderRight: `1px solid ${BORDER}` }}>
             <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED }}>Overall</div>
@@ -368,7 +498,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                 : score.overall >= 5
                   ? "Good foundation — targeted development will drive gains"
                   : "Key areas identified for focused development"
-              : "Not enough data yet to score"}
+              : "Complete assessment"}
           </div>
         </div>
 
@@ -381,35 +511,44 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               ))}
             </div>
             <div style={{ marginTop: 10, padding: "8px 12px", background: "#1c2733", fontSize: 9.5, color: MUTED }}>
-              Combat-sport data where it exists; best available general elite-athlete data otherwise. <span style={{ color: GREEN }}>Strong</span> ≥7.5 · <span style={{ color: AMBER }}>Avg</span> 5–7.4 · <span style={{ color: RED }}>Focus</span> &lt;5
+              Combat-sport data where it exists; best available elite/general-population standard otherwise. <span style={{ color: GREEN }}>Strong</span> ≥7.5 · <span style={{ color: AMBER }}>Avg</span> 5–7.4 · <span style={{ color: RED }}>Focus</span> &lt;5
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 8, alignSelf: "flex-start" }}>Radar Profile</div>
-            <RadarProfile domains={domains} />
+            {domains.length >= 3 ? (
+              <RadarProfile domains={domains} />
+            ) : (
+              <div style={{ width: 236, height: 240, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 11, textAlign: "center", padding: 20 }}>
+                Complete at least 3 domains for a radar profile.
+              </div>
+            )}
           </div>
         </div>
 
         <div>
           <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 12 }}>Key Development Areas</div>
-          {allScored.length > 0 ? (
+          {focusAreas.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {allScored.map((d, i) => (
+              {focusAreas.map((d, i) => (
                 <div key={d.label} style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: LIME, color: "#0d1117", fontFamily: COND, fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {i + 1}
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: COND, fontSize: 14, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{d.label}</div>
-                    <div style={{ fontSize: 11, color: TEXT, marginTop: 2 }}>{d.result.percentOfElite}% of elite — {refLine(d.result)}</div>
+                    <div style={{ fontSize: 11, color: TEXT, marginTop: 2 }}>{d.result.percentOfElite}% of target</div>
                   </div>
+                  <span style={{ fontFamily: COND, fontSize: 18, fontWeight: 900, color: bandColor(d.result.score) }}>{(d.result.score as number).toFixed(1)}</span>
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ background: PANEL, border: `1px solid ${BORDER}`, padding: 18, color: MUTED, fontSize: 11 }}>
-              Nothing below elite reference data yet — or not enough tests recorded to tell.
+          ) : allScored.length > 0 ? (
+            <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${GREEN}`, padding: 18, color: TEXT, fontSize: 12 }}>
+              Every tested metric is at or above the Strong band — no focus areas identified.
             </div>
+          ) : (
+            <div style={{ background: PANEL, border: `1px solid ${BORDER}`, padding: 18, color: MUTED, fontSize: 11 }}>—</div>
           )}
         </div>
 
