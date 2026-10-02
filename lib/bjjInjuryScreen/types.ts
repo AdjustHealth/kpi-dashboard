@@ -7,6 +7,7 @@
 
 export type Rating = "" | "poor" | "demonstrated" | "good";
 export type Sex = "" | "male" | "female";
+export type InjuryResult = "" | "pass" | "fail";
 
 export type BjjScreenFormData = {
   athleteName: string;
@@ -15,6 +16,17 @@ export type BjjScreenFormData = {
   /** Needed to normalise IMTP and the Watt Bike test against bodyweight, same way the elite benchmarks are reported. */
   sex: Sex;
   bodyweightKg: string;
+  /** Same pass/fail regional screen as the Youth/Performance report's Injury Screen — not scored into the 0-10 domains, just a quick clinical pass/fail per region. */
+  injuryScreen: {
+    neck: InjuryResult;
+    back: InjuryResult;
+    shoulders: InjuryResult;
+    upperLimb: InjuryResult;
+    hips: InjuryResult;
+    knees: InjuryResult;
+    ankles: InjuryResult;
+    comments: string;
+  };
   mobility: {
     shoulderErIr: Rating;
     hipErIr: Rating;
@@ -51,6 +63,16 @@ export function emptyBjjScreen(): BjjScreenFormData {
     assessmentDate: "",
     sex: "",
     bodyweightKg: "",
+    injuryScreen: {
+      neck: "",
+      back: "",
+      shoulders: "",
+      upperLimb: "",
+      hips: "",
+      knees: "",
+      ankles: "",
+      comments: "",
+    },
     mobility: {
       shoulderErIr: "",
       hipErIr: "",
@@ -88,6 +110,7 @@ export function mergeBjjScreen(saved: Partial<BjjScreenFormData> | null | undefi
     assessmentDate: saved.assessmentDate ?? base.assessmentDate,
     sex: saved.sex ?? base.sex,
     bodyweightKg: saved.bodyweightKg ?? base.bodyweightKg,
+    injuryScreen: { ...base.injuryScreen, ...saved.injuryScreen },
     mobility: { ...base.mobility, ...saved.mobility },
     strength: { ...base.strength, ...saved.strength },
     power: { ...base.power, ...saved.power },
