@@ -20,15 +20,17 @@ export type BjjScreenFormData = {
     hipErIr: Rating;
     lumbarFlexExt: Rating;
     txRotation: Rating;
+    cervicalRotation: Rating;
     /** Knee-to-wall test (weight-bearing lunge), cm from wall to big toe with knee touching the wall. */
     ankleDfKneeToWallCm: string;
   };
   strength: {
     /** Peak force in kg (what most force plates display) — compared against bodyweight for the elite ratio. */
     imtp: string;
+    /** Athletic Shoulder (ASH) Test, Y position, peak isometric force in Newtons via dynamometer. */
     standingShoulderY: string;
     maxPullUps: string;
-    maxChinUps: string;
+    maxPushUps: string;
     /** Dominant hand, kg. */
     gripStrengthKg: string;
   };
@@ -54,13 +56,14 @@ export function emptyBjjScreen(): BjjScreenFormData {
       hipErIr: "",
       lumbarFlexExt: "",
       txRotation: "",
+      cervicalRotation: "",
       ankleDfKneeToWallCm: "",
     },
     strength: {
       imtp: "",
       standingShoulderY: "",
       maxPullUps: "",
-      maxChinUps: "",
+      maxPushUps: "",
       gripStrengthKg: "",
     },
     power: {
