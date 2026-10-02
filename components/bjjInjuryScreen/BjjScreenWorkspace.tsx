@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import type { BjjScreenFormData, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
 import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
 
-type ValueSection = "strength" | "power" | "conditioning";
+type ValueSection = "mobility" | "strength" | "power" | "conditioning";
 
 const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
   ["shoulderErIr", "Shoulder ER/IR"],
@@ -22,6 +22,7 @@ const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] 
   ["standingShoulderY", "Standing Shoulder Y", "cm"],
   ["maxPullUps", "Max Pull Ups", "reps"],
   ["maxChinUps", "Max Chin Ups", "reps"],
+  ["gripStrengthKg", "Grip Strength (dominant hand)", "kg"],
 ];
 
 const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
@@ -183,6 +184,12 @@ export function BjjScreenWorkspace({
             </Select>
           </Field>
         ))}
+        <Field label="Ankle DF — Knee to Wall" hint="cm from wall to big toe, knee touching the wall">
+          <Input
+            value={data.mobility.ankleDfKneeToWallCm}
+            onChange={(e) => setValue("mobility", "ankleDfKneeToWallCm", e.target.value)}
+          />
+        </Field>
       </SectionCard>
 
       <SectionCard title="Strength">
@@ -222,6 +229,8 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="Standing Shoulder Y" result={score.standingShoulderY} />
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
           <MetricResultRow label="Max Chin Ups" result={score.maxChinUps} />
+          <MetricResultRow label="Ankle DF — Knee to Wall" result={score.ankleDfKneeToWallCm} />
+          <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
           {score.mobilityScore !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
               <span className="text-xs font-medium text-foreground">Mobility (qualitative)</span>

@@ -20,6 +20,8 @@ export type BjjScreenFormData = {
     hipErIr: Rating;
     lumbarFlexExt: Rating;
     txRotation: Rating;
+    /** Knee-to-wall test (weight-bearing lunge), cm from wall to big toe with knee touching the wall. */
+    ankleDfKneeToWallCm: string;
   };
   strength: {
     /** Peak force in kg (what most force plates display) — compared against bodyweight for the elite ratio. */
@@ -27,6 +29,8 @@ export type BjjScreenFormData = {
     standingShoulderY: string;
     maxPullUps: string;
     maxChinUps: string;
+    /** Dominant hand, kg. */
+    gripStrengthKg: string;
   };
   power: {
     cmjHeight: string;
@@ -50,12 +54,14 @@ export function emptyBjjScreen(): BjjScreenFormData {
       hipErIr: "",
       lumbarFlexExt: "",
       txRotation: "",
+      ankleDfKneeToWallCm: "",
     },
     strength: {
       imtp: "",
       standingShoulderY: "",
       maxPullUps: "",
       maxChinUps: "",
+      gripStrengthKg: "",
     },
     power: {
       cmjHeight: "",

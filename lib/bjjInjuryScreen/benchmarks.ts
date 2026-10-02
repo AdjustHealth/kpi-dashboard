@@ -95,6 +95,34 @@ export const PULL_UPS_BENCHMARK: SexBenchmark = {
 
 export const CHIN_UPS_BENCHMARK: SexBenchmark = PULL_UPS_BENCHMARK;
 
+/** Knee-to-wall (weight-bearing lunge) test, cm from the wall to the big toe with the knee touching the wall. */
+export const KNEE_TO_WALL_CM_BENCHMARK: SexBenchmark = {
+  male: {
+    value: 15.0,
+    confidence: "general",
+    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) — no combat-sport-specific ankle dorsiflexion data was found.",
+  },
+  female: {
+    value: 14.0,
+    confidence: "general",
+    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) — no combat-sport-specific ankle dorsiflexion data was found.",
+  },
+};
+
+/** Grip strength, dominant hand, kg. */
+export const GRIP_STRENGTH_KG_BENCHMARK: SexBenchmark = {
+  male: {
+    value: 47.0,
+    confidence: "combat",
+    source: "Elite male judo athletes, maximal isometric handgrip strength: 460.7N ≈ 47kg (elite vs. non-elite judoka comparison study).",
+  },
+  female: {
+    value: 31.2,
+    confidence: "combat",
+    source: "Elite female judo athletes (medalists), maximal isometric handgrip strength: 305.6N ≈ 31.2kg (elite female cadet judo medalist vs. non-medalist study).",
+  },
+};
+
 /**
  * No published combat-sport or BJJ-specific benchmark exists for a
  * 3-minute all-out Watt Bike test. Wingate (30-second) anaerobic power data
