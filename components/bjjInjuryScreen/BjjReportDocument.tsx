@@ -52,13 +52,7 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "Athlete";
 }
 
-function capitalize(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : "—";
-}
-
-type TestRowData = { label: string; displayValue: string; result: MetricResult | null; rating?: string; unit?: string };
-
-const RATING_BAND_SCORE: Record<string, number> = { poor: 2, demonstrated: 6, good: 10 };
+type TestRowData = { label: string; displayValue: string; result: MetricResult | null; unit?: string };
 
 /** Elite/Avg/Focus reference values derived from the same 7.5/5 score bands everything else uses, so a reader can see not just this athlete's band but the actual numbers either side of it. */
 function bandThresholds(result: MetricResult, unit: string): { focus: string; avg: string; strong: string } | null {
@@ -72,12 +66,52 @@ function bandThresholds(result: MetricResult, unit: string): { focus: string; av
 
 /** Short "vs ___" line under a test's label — plain reference data, not commentary. */
 function refLine(row: TestRowData): string {
-  if (row.rating) return "Poor / Demonstrated / Good — clinical rating";
   const result = row.result;
   if (!result) return "Not recorded";
   if (!result.benchmark) return "";
   const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
   return `${kind} — target ${result.benchmark.value}`;
+}
+
+const RATING_COLOR: Record<"poor" | "demonstrated" | "good", string> = { poor: RED, demonstrated: AMBER, good: GREEN };
+const RATING_LABEL: Record<"poor" | "demonstrated" | "good", string> = { poor: "Poor", demonstrated: "Demonstrated", good: "Good" };
+
+/** Same treatment Adjust's Youth report uses for Poor/Demonstrated/Good ratings: the badge carries the rating word itself in its band colour, plus a 3-segment bar — no separate plain-white restatement of the word. */
+function RatingRow({ label, rating }: { label: string; rating: "poor" | "demonstrated" | "good" }) {
+  const color = RATING_COLOR[rating];
+  return (
+    <div style={{ padding: "13px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontFamily: COND, fontSize: 14, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{label}</span>
+        <span
+          style={{
+            fontFamily: COND,
+            fontSize: 10,
+            fontWeight: 900,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: 3,
+            background: `${color}26`,
+            color,
+            flexShrink: 0,
+          }}
+        >
+          {RATING_LABEL[rating]}
+        </span>
+      </div>
+      <div style={{ display: "flex", gap: 4 }}>
+        {(["poor", "demonstrated", "good"] as const).map((seg) => (
+          <div key={seg} style={{ flex: 1, height: 11, borderRadius: 3, background: seg === rating ? RATING_COLOR[seg] : BORDER }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ fontSize: 8, color: MUTED }}>Poor</span>
+        <span style={{ fontSize: 8, color: MUTED }}>Demonstrated</span>
+        <span style={{ fontSize: 8, color: MUTED }}>Good</span>
+      </div>
+    </div>
+  );
 }
 
 function PageShell({
@@ -165,7 +199,7 @@ function DomainHero({ label, score, note }: { label: string; score: number | nul
 }
 
 function TestRow({ row }: { row: TestRowData }) {
-  const score = row.rating ? (RATING_BAND_SCORE[row.rating] ?? null) : (row.result?.score ?? null);
+  const score = row.result?.score ?? null;
   const color = bandColor(score);
   const pct = row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined ? Math.min(100, row.result.percentOfElite) : null;
   const thresholds = row.result ? bandThresholds(row.result, row.unit ?? "") : null;
@@ -343,14 +377,19 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const hasPower = [data.power.cmjHeight, data.power.dropJumpRsi].some((v) => v !== "");
   const hasConditioning = data.conditioning.wattBike3MinAvgWatts !== "";
 
-  const mobilityRows: TestRowData[] = [
-    { label: "Shoulder ER/IR", displayValue: capitalize(data.mobility.shoulderErIr), result: null, rating: data.mobility.shoulderErIr },
-    { label: "Hip ER/IR", displayValue: capitalize(data.mobility.hipErIr), result: null, rating: data.mobility.hipErIr },
-    { label: "Lumbar Flexion/Extension", displayValue: capitalize(data.mobility.lumbarFlexExt), result: null, rating: data.mobility.lumbarFlexExt },
-    { label: "Thoracic (Tx) Rotation", displayValue: capitalize(data.mobility.txRotation), result: null, rating: data.mobility.txRotation },
-    { label: "Cervical Rotation", displayValue: capitalize(data.mobility.cervicalRotation), result: null, rating: data.mobility.cervicalRotation },
-    { label: "Ankle DF — Knee to Wall", displayValue: data.mobility.ankleDfKneeToWallCm ? `${data.mobility.ankleDfKneeToWallCm}cm` : "—", result: score.ankleDfKneeToWallCm, unit: "cm" },
-  ].filter((r) => r.displayValue !== "—" || r.result);
+  const mobilityRatingRows = (
+    [
+      { label: "Shoulder ER/IR", rating: data.mobility.shoulderErIr },
+      { label: "Hip ER/IR", rating: data.mobility.hipErIr },
+      { label: "Lumbar Flexion/Extension", rating: data.mobility.lumbarFlexExt },
+      { label: "Thoracic (Tx) Rotation", rating: data.mobility.txRotation },
+      { label: "Cervical Rotation", rating: data.mobility.cervicalRotation },
+    ] as { label: string; rating: "" | "poor" | "demonstrated" | "good" }[]
+  ).filter((r): r is { label: string; rating: "poor" | "demonstrated" | "good" } => r.rating !== "");
+
+  const ankleDfRow: TestRowData | null = data.mobility.ankleDfKneeToWallCm
+    ? { label: "Ankle DF — Knee to Wall", displayValue: `${data.mobility.ankleDfKneeToWallCm}cm`, result: score.ankleDfKneeToWallCm, unit: "cm" }
+    : null;
 
   const strengthRows: TestRowData[] = [
     { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp, unit: "×" },
@@ -447,7 +486,10 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                 : "Set Sex above to compare the measured tests against reference data."
             }
           />
-          <div>{mobilityRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <div>
+            {mobilityRatingRows.map((r) => <RatingRow key={r.label} label={r.label} rating={r.rating} />)}
+            {ankleDfRow && <TestRow row={ankleDfRow} />}
+          </div>
           <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
             <ProtocolBox>
               Shoulder/hip/thoracic/cervical rotation: the clinician moves each joint through range and rates it Poor, Demonstrated or Good against age and sport-appropriate expectations. Ankle DF (knee-to-wall): foot flat, knee driven over the toes without the heel lifting — distance from the wall to the big toe at end-range is recorded in cm.
