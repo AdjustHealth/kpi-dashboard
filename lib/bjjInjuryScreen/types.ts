@@ -6,11 +6,15 @@
  * exclusion). */
 
 export type Rating = "" | "poor" | "demonstrated" | "good";
+export type Sex = "" | "male" | "female";
 
 export type BjjScreenFormData = {
   athleteName: string;
   clinician: string;
   assessmentDate: string;
+  /** Needed to normalise IMTP and the Watt Bike test against bodyweight, same way the elite benchmarks are reported. */
+  sex: Sex;
+  bodyweightKg: string;
   mobility: {
     shoulderErIr: Rating;
     hipErIr: Rating;
@@ -18,6 +22,7 @@ export type BjjScreenFormData = {
     txRotation: Rating;
   };
   strength: {
+    /** Peak force in kg (what most force plates display) — compared against bodyweight for the elite ratio. */
     imtp: string;
     standingShoulderY: string;
     maxPullUps: string;
@@ -27,6 +32,10 @@ export type BjjScreenFormData = {
     cmjHeight: string;
     dropJumpRsi: string;
   };
+  conditioning: {
+    /** 3-minute all-out Watt Bike test, average power over the 3 minutes (watts). */
+    wattBike3MinAvgWatts: string;
+  };
 };
 
 export function emptyBjjScreen(): BjjScreenFormData {
@@ -34,6 +43,8 @@ export function emptyBjjScreen(): BjjScreenFormData {
     athleteName: "",
     clinician: "",
     assessmentDate: "",
+    sex: "",
+    bodyweightKg: "",
     mobility: {
       shoulderErIr: "",
       hipErIr: "",
@@ -50,6 +61,9 @@ export function emptyBjjScreen(): BjjScreenFormData {
       cmjHeight: "",
       dropJumpRsi: "",
     },
+    conditioning: {
+      wattBike3MinAvgWatts: "",
+    },
   };
 }
 
@@ -63,8 +77,11 @@ export function mergeBjjScreen(saved: Partial<BjjScreenFormData> | null | undefi
     athleteName: saved.athleteName ?? base.athleteName,
     clinician: saved.clinician ?? base.clinician,
     assessmentDate: saved.assessmentDate ?? base.assessmentDate,
+    sex: saved.sex ?? base.sex,
+    bodyweightKg: saved.bodyweightKg ?? base.bodyweightKg,
     mobility: { ...base.mobility, ...saved.mobility },
     strength: { ...base.strength, ...saved.strength },
     power: { ...base.power, ...saved.power },
+    conditioning: { ...base.conditioning, ...saved.conditioning },
   };
 }

@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Field, Input, Select } from "@/components/ui/Field";
-import type { BjjScreenFormData, Rating } from "@/lib/bjjInjuryScreen/types";
+import { Badge } from "@/components/ui/Badge";
+import type { BjjScreenFormData, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
+import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
 
-type ValueSection = "strength" | "power";
+type ValueSection = "strength" | "power" | "conditioning";
 
 const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
   ["shoulderErIr", "Shoulder ER/IR"],
@@ -15,16 +17,16 @@ const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
   ["txRotation", "Thoracic (Tx) Rotation"],
 ];
 
-const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string][] = [
-  ["imtp", "IMTP"],
-  ["standingShoulderY", "Standing Shoulder Y"],
-  ["maxPullUps", "Max Pull Ups"],
-  ["maxChinUps", "Max Chin Ups"],
+const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] = [
+  ["imtp", "IMTP — Peak Force", "kg"],
+  ["standingShoulderY", "Standing Shoulder Y", "cm"],
+  ["maxPullUps", "Max Pull Ups", "reps"],
+  ["maxChinUps", "Max Chin Ups", "reps"],
 ];
 
-const POWER_FIELDS: [keyof BjjScreenFormData["power"], string][] = [
-  ["cmjHeight", "CMJ — Jump Height"],
-  ["dropJumpRsi", "Drop Jump — RSI"],
+const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
+  ["cmjHeight", "CMJ — Jump Height", "cm"],
+  ["dropJumpRsi", "Drop Jump — RSI", "unitless"],
 ];
 
 const RATING_LABELS: Record<Exclude<Rating, "">, string> = {
@@ -33,11 +35,40 @@ const RATING_LABELS: Record<Exclude<Rating, "">, string> = {
   good: "Good",
 };
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-surface-raised/60 p-6">
-      <h2 className="mb-4 font-display text-sm font-bold uppercase tracking-wide text-muted">{title}</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
+      <h2 className="font-display text-sm font-bold uppercase tracking-wide text-muted">{title}</h2>
+      {hint && <p className="mb-4 mt-1 text-xs text-muted">{hint}</p>}
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${hint ? "" : "mt-4"}`}>{children}</div>
+    </div>
+  );
+}
+
+function scoreTone(score: number | null): "neutral" | "good" | "warning" | "critical" {
+  if (score == null) return "neutral";
+  if (score >= 7.5) return "good";
+  if (score >= 5) return "warning";
+  return "critical";
+}
+
+function MetricResultRow({ label, result }: { label: string; result: MetricResult | null }) {
+  if (!result) return null;
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-border bg-surface px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        {result.score !== null ? (
+          <Badge tone={scoreTone(result.score)}>{result.percentOfElite}% of elite</Badge>
+        ) : (
+          <Badge>No benchmark</Badge>
+        )}
+      </div>
+      {result.benchmark && (
+        <p className="text-[11px] text-muted">
+          vs {result.benchmark.value} ({result.benchmark.confidence === "combat" ? "combat-sport data" : "general elite athletes"}) — {result.benchmark.source}
+        </p>
+      )}
     </div>
   );
 }
@@ -54,6 +85,8 @@ export function BjjScreenWorkspace({
   const [data, setData] = useState<BjjScreenFormData>(initialData);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  const score = useMemo(() => scoreBjjScreen(data), [data]);
 
   function setTop<K extends keyof BjjScreenFormData>(key: K, value: BjjScreenFormData[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -125,6 +158,16 @@ export function BjjScreenWorkspace({
         <Field label="Assessment Date">
           <Input type="date" value={data.assessmentDate} onChange={(e) => setTop("assessmentDate", e.target.value)} />
         </Field>
+        <Field label="Sex" hint="Needed for the elite comparisons below — they differ by sex.">
+          <Select value={data.sex} onChange={(e) => setTop("sex", e.target.value as Sex)}>
+            <option value="">Not set</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </Select>
+        </Field>
+        <Field label="Bodyweight" hint="kg — needed to normalise IMTP against elite data">
+          <Input value={data.bodyweightKg} onChange={(e) => setTop("bodyweightKg", e.target.value)} placeholder="e.g. 82" />
+        </Field>
       </SectionCard>
 
       <SectionCard title="Mobility">
@@ -143,20 +186,56 @@ export function BjjScreenWorkspace({
       </SectionCard>
 
       <SectionCard title="Strength">
-        {STRENGTH_FIELDS.map(([key, label]) => (
-          <Field key={key} label={label}>
+        {STRENGTH_FIELDS.map(([key, label, unit]) => (
+          <Field key={key} label={label} hint={unit}>
             <Input value={data.strength[key]} onChange={(e) => setValue("strength", key, e.target.value)} />
           </Field>
         ))}
       </SectionCard>
 
       <SectionCard title="Power">
-        {POWER_FIELDS.map(([key, label]) => (
-          <Field key={key} label={label}>
+        {POWER_FIELDS.map(([key, label, unit]) => (
+          <Field key={key} label={label} hint={unit}>
             <Input value={data.power[key]} onChange={(e) => setValue("power", key, e.target.value)} />
           </Field>
         ))}
       </SectionCard>
+
+      <SectionCard title="Conditioning">
+        <Field label="3-Min Watt Bike — Average Power" hint="watts. No published elite benchmark exists for this test (see results below) — recorded for your own tracking over time.">
+          <Input value={data.conditioning.wattBike3MinAvgWatts} onChange={(e) => setValue("conditioning", "wattBike3MinAvgWatts", e.target.value)} />
+        </Field>
+      </SectionCard>
+
+      <div className="rounded-xl border border-accent/30 bg-accent/[0.04] p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-sm font-bold uppercase tracking-wide text-foreground">Vs. Elite</h2>
+          <Badge tone={scoreTone(score.overall)}>{score.overall !== null ? `${score.overall}/10 overall` : "Not enough data yet"}</Badge>
+        </div>
+        {!data.sex && (
+          <p className="mb-4 text-xs text-muted">Set Sex above to compare against elite reference data — mobility ratings score regardless.</p>
+        )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} />
+          <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} />
+          <MetricResultRow label="Drop Jump RSI" result={score.dropJumpRsi} />
+          <MetricResultRow label="Standing Shoulder Y" result={score.standingShoulderY} />
+          <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
+          <MetricResultRow label="Max Chin Ups" result={score.maxChinUps} />
+          {score.mobilityScore !== null && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="text-xs font-medium text-foreground">Mobility (qualitative)</span>
+              <Badge tone={scoreTone(score.mobilityScore)}>{score.mobilityScore}/10</Badge>
+            </div>
+          )}
+          {score.wattBike3MinAvgWatts !== null && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="text-xs font-medium text-foreground">3-Min Watt Bike</span>
+              <Badge>{score.wattBike3MinAvgWatts}w — not scored</Badge>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <button
