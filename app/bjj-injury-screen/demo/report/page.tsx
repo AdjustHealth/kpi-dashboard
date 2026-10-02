@@ -36,11 +36,12 @@ const DEMO_DATA = mergeBjjScreen({
     ankleDfKneeToWallCmRight: "11",
   },
   strength: {
-    imtp: "260",
-    standingShoulderY: "118",
+    imtp: "3.17",
+    standingShoulderYLeft: "118",
+    standingShoulderYRight: "108",
     maxPullUps: "12",
     maxPushUps: "40",
-    gripStrengthKg: "44",
+    gripStrengthN: "430",
   },
   power: {
     cmjHeight: "34",

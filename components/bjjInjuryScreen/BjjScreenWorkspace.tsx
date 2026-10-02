@@ -29,11 +29,12 @@ const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
 ];
 
 const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] = [
-  ["imtp", "IMTP — Peak Force", "kg"],
-  ["standingShoulderY", "Standing Shoulder Y (ASH-Y)", "N — dynamometer"],
+  ["imtp", "IMTP — Peak Force ÷ BW", "×BW, from ForceDecks"],
+  ["standingShoulderYLeft", "Standing Shoulder Y — Left (ASH-Y)", "N — dynamometer"],
+  ["standingShoulderYRight", "Standing Shoulder Y — Right (ASH-Y)", "N — dynamometer"],
   ["maxPullUps", "Max Pull Ups", "reps"],
   ["maxPushUps", "Max Push Ups", "reps"],
-  ["gripStrengthKg", "Grip Strength (dominant hand)", "kg"],
+  ["gripStrengthN", "Grip Strength (dominant hand)", "N — dynamometer"],
 ];
 
 const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
@@ -181,7 +182,7 @@ export function BjjScreenWorkspace({
             <option value="female">Female</option>
           </Select>
         </Field>
-        <Field label="Bodyweight" hint="kg — needed to normalise IMTP against elite data">
+        <Field label="Bodyweight" hint="kg — needed to normalise the Watt Bike test against elite data">
           <Input value={data.bodyweightKg} onChange={(e) => setTop("bodyweightKg", e.target.value)} placeholder="e.g. 82" />
         </Field>
       </SectionCard>
@@ -266,7 +267,14 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} />
           <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} />
           <MetricResultRow label="RSI Mod (Drop Jump)" result={score.dropJumpRsi} />
-          <MetricResultRow label="Standing Shoulder Y (ASH-Y)" result={score.standingShoulderY} />
+          <MetricResultRow label="Standing Shoulder Y — Left (ASH-Y)" result={score.standingShoulderYLeft} />
+          <MetricResultRow label="Standing Shoulder Y — Right (ASH-Y)" result={score.standingShoulderYRight} />
+          {score.standingShoulderYLsi !== null && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="text-xs font-medium text-foreground">ASH-Y — L/R Symmetry (LSI)</span>
+              <Badge tone={score.standingShoulderYLsi >= 90 ? "good" : score.standingShoulderYLsi >= 85 ? "warning" : "critical"}>{score.standingShoulderYLsi}%</Badge>
+            </div>
+          )}
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
           <MetricResultRow label="Max Push Ups" result={score.maxPushUps} />
           <MetricResultRow label="Ankle DF — Knee to Wall (L)" result={score.ankleDfLeft} />
@@ -277,7 +285,7 @@ export function BjjScreenWorkspace({
               <Badge tone={score.ankleDfLsi >= 90 ? "good" : score.ankleDfLsi >= 85 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
             </div>
           )}
-          <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
+          <MetricResultRow label="Grip Strength" result={score.gripStrengthN} />
           <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} />
           {score.mobilityScore !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">

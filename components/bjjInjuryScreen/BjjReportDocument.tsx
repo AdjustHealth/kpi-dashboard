@@ -71,6 +71,32 @@ function domainNote(score: number | null, focusLabels: string[], copy: { strong:
   return copy.focus;
 }
 
+function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/**
+ * Athlete-facing summary of what the scored results actually show for this
+ * domain — not an explanation of how the tests work. Built purely from the
+ * Focus-band items found, same list the page's own rows and badges are
+ * built from, so it can never say something the data on the page disagrees
+ * with.
+ */
+function findingsText(focusLabels: string[], avgLabels: string[], scoredCount: number, domainLabel: string): string {
+  if (scoredCount === 0) return `Nothing here could be compared against target yet.`;
+  if (focusLabels.length === 0 && avgLabels.length === 0) {
+    return `Everything in ${domainLabel.toLowerCase()} came back Strong — not a limiter right now.`;
+  }
+  if (focusLabels.length > 0) {
+    const also = avgLabels.length > 0 ? ` ${joinWithAnd(avgLabels)} ${avgLabels.length > 1 ? "are" : "is"} a step behind too.` : "";
+    if (focusLabels.length === scoredCount) return `${joinWithAnd(focusLabels)} all came back below target — the clearest place to spend development time.`;
+    return `${joinWithAnd(focusLabels)} ${focusLabels.length > 1 ? "are" : "is"} the clearest gap here — worth prioritising ${focusLabels.length > 1 ? "these" : "this"} on ${focusLabels.length > 1 ? "their" : "its"} own.${also}`;
+  }
+  return `${joinWithAnd(avgLabels)} ${avgLabels.length > 1 ? "are" : "is"} solid but not yet Strong — room to close that gap.`;
+}
+
 function formatDate(value: string): string {
   if (!value) return "";
   const d = new Date(`${value}T00:00:00`);
@@ -82,7 +108,7 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "Athlete";
 }
 
-type TestRowData = { label: string; displayValue: string; result: MetricResult | null; unit?: string };
+type TestRowData = { label: string; displayValue: string; result: MetricResult | null; unit?: string; rawNote?: string };
 
 /** Elite/Avg/Focus reference values derived from the same 7.5/5 score bands everything else uses, so a reader can see not just this athlete's band but the actual numbers either side of it. */
 function bandThresholds(result: MetricResult, unit: string): { focus: string; avg: string; strong: string } | null {
@@ -100,7 +126,7 @@ function refLine(row: TestRowData): string {
   if (!result) return "Not recorded";
   if (!result.benchmark) return "";
   const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
-  return `${kind} — target ${result.benchmark.value}`;
+  return `${kind} — target ${result.benchmark.value}${row.unit ?? ""}`;
 }
 
 const RATING_COLOR: Record<"poor" | "demonstrated" | "good", string> = { poor: RED, demonstrated: AMBER, good: GREEN };
@@ -307,6 +333,7 @@ function TestRow({ row }: { row: TestRowData }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: COND, fontSize: 15, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
           {refLine(row) && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>{refLine(row)}</div>}
+          {row.rawNote && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 1 }}>{row.rawNote}</div>}
         </div>
         <div style={{ fontFamily: COND, fontSize: 28, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 84 }}>{row.displayValue}</div>
         <span
@@ -461,9 +488,14 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     [data.mobility.shoulderErIr, data.mobility.hipErIr, data.mobility.lumbarFlexExt, data.mobility.txRotation, data.mobility.cervicalRotation].some(
       (r) => r !== ""
     ) || data.mobility.ankleDfKneeToWallCmLeft !== "" || data.mobility.ankleDfKneeToWallCmRight !== "";
-  const hasStrength = [data.strength.imtp, data.strength.standingShoulderY, data.strength.maxPullUps, data.strength.maxPushUps, data.strength.gripStrengthKg].some(
-    (v) => v !== ""
-  );
+  const hasStrength = [
+    data.strength.imtp,
+    data.strength.standingShoulderYLeft,
+    data.strength.standingShoulderYRight,
+    data.strength.maxPullUps,
+    data.strength.maxPushUps,
+    data.strength.gripStrengthN,
+  ].some((v) => v !== "");
   const hasPower = [data.power.cmjHeight, data.power.dropJumpRsi].some((v) => v !== "");
   const hasConditioning = data.conditioning.wattBike3MinAvgWatts !== "";
 
@@ -479,10 +511,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
 
   const strengthRows: TestRowData[] = [
     { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp, unit: "×" },
-    { label: "Standing Shoulder Y (ASH-Y)", displayValue: data.strength.standingShoulderY ? `${data.strength.standingShoulderY}N` : "—", result: score.standingShoulderY, unit: "N" },
     { label: "Max Pull Ups", displayValue: data.strength.maxPullUps ? `${data.strength.maxPullUps} reps` : "—", result: score.maxPullUps, unit: " reps" },
     { label: "Max Push Ups", displayValue: data.strength.maxPushUps ? `${data.strength.maxPushUps} reps` : "—", result: score.maxPushUps, unit: " reps" },
-    { label: "Grip Strength", displayValue: data.strength.gripStrengthKg ? `${data.strength.gripStrengthKg}kg` : "—", result: score.gripStrengthKg, unit: "kg" },
+    { label: "Grip Strength", displayValue: data.strength.gripStrengthN ? `${data.strength.gripStrengthN}N` : "—", result: score.gripStrengthN, unit: "N" },
   ].filter((r) => r.displayValue !== "—");
 
   const powerRows: TestRowData[] = [
@@ -491,18 +522,52 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   ].filter((r) => r.displayValue !== "—");
 
   const conditioningRows: TestRowData[] = [
-    { label: "3-Min Watt Bike — Avg Power", displayValue: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}w` : "—", result: score.wattBike3MinAvgWatts, unit: "w" },
+    {
+      label: "3-Min Watt Bike — Avg Power",
+      displayValue: score.wattBike3MinAvgWatts ? `${score.wattBike3MinAvgWatts.value.toFixed(2)} W/kg` : "—",
+      result: score.wattBike3MinAvgWatts,
+      unit: " W/kg",
+      rawNote: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}W measured, 3-min all-out average` : undefined,
+    },
   ].filter((r) => r.displayValue !== "—");
 
   const focusLabelsOf = (rows: TestRowData[]) => rows.filter((r) => r.result?.score !== null && r.result?.score !== undefined && r.result.score < 5).map((r) => r.label);
+  const avgLabelsOf = (rows: TestRowData[]) => rows.filter((r) => r.result?.score !== null && r.result?.score !== undefined && r.result.score >= 5 && r.result.score < 7.5).map((r) => r.label);
+  const scoredCountOf = (rows: TestRowData[]) => rows.filter((r) => r.result?.score !== null && r.result?.score !== undefined).length;
+  const isFocus = (r: MetricResult | null) => r?.score !== null && r?.score !== undefined && r.score < 5;
+  const isAvg = (r: MetricResult | null) => r?.score !== null && r?.score !== undefined && r.score >= 5 && r.score < 7.5;
+  const isScored = (r: MetricResult | null) => r?.score !== null && r?.score !== undefined;
+
   const mobilityFocusLabels = [
     ...mobilityRatingRows.filter((r) => r.rating === "poor").map((r) => r.label),
-    ...(score.ankleDfLeft?.score !== null && score.ankleDfLeft?.score !== undefined && score.ankleDfLeft.score < 5 ? ["Ankle DF (L)"] : []),
-    ...(score.ankleDfRight?.score !== null && score.ankleDfRight?.score !== undefined && score.ankleDfRight.score < 5 ? ["Ankle DF (R)"] : []),
+    ...(isFocus(score.ankleDfLeft) ? ["Ankle DF (L)"] : []),
+    ...(isFocus(score.ankleDfRight) ? ["Ankle DF (R)"] : []),
   ];
-  const strengthFocusLabels = focusLabelsOf(strengthRows);
+  const mobilityAvgLabels = [
+    ...mobilityRatingRows.filter((r) => r.rating === "demonstrated").map((r) => r.label),
+    ...(isAvg(score.ankleDfLeft) ? ["Ankle DF (L)"] : []),
+    ...(isAvg(score.ankleDfRight) ? ["Ankle DF (R)"] : []),
+  ];
+  const mobilityScoredCount = mobilityRatingRows.length + (isScored(score.ankleDfLeft) ? 1 : 0) + (isScored(score.ankleDfRight) ? 1 : 0);
+
+  const strengthFocusLabels = [
+    ...focusLabelsOf(strengthRows),
+    ...(isFocus(score.standingShoulderYLeft) ? ["ASH-Y (L)"] : []),
+    ...(isFocus(score.standingShoulderYRight) ? ["ASH-Y (R)"] : []),
+  ];
+  const strengthAvgLabels = [
+    ...avgLabelsOf(strengthRows),
+    ...(isAvg(score.standingShoulderYLeft) ? ["ASH-Y (L)"] : []),
+    ...(isAvg(score.standingShoulderYRight) ? ["ASH-Y (R)"] : []),
+  ];
+  const strengthScoredCount = scoredCountOf(strengthRows) + (isScored(score.standingShoulderYLeft) ? 1 : 0) + (isScored(score.standingShoulderYRight) ? 1 : 0);
+
   const powerFocusLabels = focusLabelsOf(powerRows);
+  const powerAvgLabels = avgLabelsOf(powerRows);
+  const powerScoredCount = scoredCountOf(powerRows);
   const conditioningFocusLabels = focusLabelsOf(conditioningRows);
+  const conditioningAvgLabels = avgLabelsOf(conditioningRows);
+  const conditioningScoredCount = scoredCountOf(conditioningRows);
 
   const domains = [
     hasMobility && { label: "Mobility", score: score.categoryScores.mobility },
@@ -517,12 +582,13 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       { label: "IMTP", result: score.imtp },
       { label: "CMJ Jump Height", result: score.cmjHeight },
       { label: "RSI Mod (Drop Jump)", result: score.dropJumpRsi },
-      { label: "Standing Shoulder Y (ASH-Y)", result: score.standingShoulderY },
+      { label: "Standing Shoulder Y (L)", result: score.standingShoulderYLeft },
+      { label: "Standing Shoulder Y (R)", result: score.standingShoulderYRight },
       { label: "Max Pull Ups", result: score.maxPullUps },
       { label: "Max Push Ups", result: score.maxPushUps },
       { label: "Ankle DF (L)", result: score.ankleDfLeft },
       { label: "Ankle DF (R)", result: score.ankleDfRight },
-      { label: "Grip Strength", result: score.gripStrengthKg },
+      { label: "Grip Strength", result: score.gripStrengthN },
       { label: "3-Min Watt Bike", result: score.wattBike3MinAvgWatts },
     ] as { label: string; result: MetricResult | null }[]
   )
@@ -587,7 +653,8 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             <BilateralRow label="Ankle DF — Knee to Wall" left={score.ankleDfLeft} right={score.ankleDfRight} unit="cm" />
           </div>
           <InterpretationBox title="Mobility Interpretation">
-            Restricted rotation anywhere in this chain tends to push load onto the lumbar spine during grappling-specific positions — a Focus rating here is worth acting on before it shows up as a strength or power ceiling. A knee-to-wall LSI below 85% is worth addressing on its own, independent of either side&rsquo;s raw score.
+            {findingsText(mobilityFocusLabels, mobilityAvgLabels, mobilityScoredCount, "Mobility")}
+            {score.ankleDfLsi !== null && score.ankleDfLsi < 85 ? ` Left/right ankle DF symmetry is also low (${score.ankleDfLsi}%), worth addressing on its own.` : ""}
           </InterpretationBox>
         </PageShell>
       )}
@@ -605,9 +672,13 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               unset: "Set Sex above to compare these tests against reference data.",
             })}
           />
-          <div>{strengthRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+          <div>
+            {strengthRows.map((r) => <TestRow key={r.label} row={r} />)}
+            <BilateralRow label="Standing Shoulder Y (ASH-Y)" left={score.standingShoulderYLeft} right={score.standingShoulderYRight} unit="N" />
+          </div>
           <InterpretationBox title="Strength Interpretation">
-            IMTP is entered as raw peak force (kg) alongside Bodyweight in the Athlete Details section — the ×bodyweight ratio shown above is calculated automatically, not something to work out by hand. Combat-sport-specific data is used where it exists (IMTP, grip); the rest are compared against the best available general-population standard.
+            {findingsText(strengthFocusLabels, strengthAvgLabels, strengthScoredCount, "Strength")}
+            {score.standingShoulderYLsi !== null && score.standingShoulderYLsi < 85 ? ` Left/right ASH-Y symmetry is also low (${score.standingShoulderYLsi}%), worth addressing on its own.` : ""}
           </InterpretationBox>
         </PageShell>
       )}
@@ -646,7 +717,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             </>
           )}
           <InterpretationBox title="Power &amp; Conditioning Interpretation">
-            CMJ height reflects raw lower-body power; RSI Mod (jump height ÷ ground contact time, unitless by convention — the same way every force-plate system reports it) reflects how quickly that power is expressed, against the same &ldquo;RSI Mod, &gt;1.50 excellent&rdquo; threshold used on every Adjust assessment report. Conditioning is scored against the same 3-minute all-out Watt Bike standard used on Adjust&rsquo;s Performance assessment report.
+            {hasPower && findingsText(powerFocusLabels, powerAvgLabels, powerScoredCount, "Power")} {hasConditioning && findingsText(conditioningFocusLabels, conditioningAvgLabels, conditioningScoredCount, "Conditioning")}
           </InterpretationBox>
         </PageShell>
       )}

@@ -13,8 +13,9 @@ export type BjjScreenFormData = {
   athleteName: string;
   clinician: string;
   assessmentDate: string;
-  /** Needed to normalise IMTP and the Watt Bike test against bodyweight, same way the elite benchmarks are reported. */
+  /** Needed to normalise the Watt Bike test against bodyweight, same way the elite benchmark is reported — IMTP doesn't need this, see strength.imtp below. */
   sex: Sex;
+  /** Only used to normalise the Watt Bike test — the ForceDecks already gives IMTP as a bodyweight-relative figure, so it doesn't need this. */
   bodyweightKg: string;
   /** Same pass/fail regional screen as the Youth/Performance report's Injury Screen — not scored into the 0-10 domains, just a quick clinical pass/fail per region. */
   injuryScreen: {
@@ -38,14 +39,15 @@ export type BjjScreenFormData = {
     ankleDfKneeToWallCmRight: string;
   };
   strength: {
-    /** Peak force in kg (what most force plates display) — compared against bodyweight for the elite ratio. */
+    /** Peak force relative to bodyweight (e.g. ×BW), read directly off the ForceDecks — already normalised, not a raw kg value. */
     imtp: string;
-    /** Athletic Shoulder (ASH) Test, Y position, peak isometric force in Newtons via dynamometer. */
-    standingShoulderY: string;
+    /** Athletic Shoulder (ASH) Test, Y position, peak isometric force in Newtons via dynamometer — measured both arms, same LSI treatment as the Ankle DF test. */
+    standingShoulderYLeft: string;
+    standingShoulderYRight: string;
     maxPullUps: string;
     maxPushUps: string;
-    /** Dominant hand, kg. */
-    gripStrengthKg: string;
+    /** Dominant hand, Newtons — matches the clinic's dynamometer. */
+    gripStrengthN: string;
   };
   power: {
     cmjHeight: string;
@@ -85,10 +87,11 @@ export function emptyBjjScreen(): BjjScreenFormData {
     },
     strength: {
       imtp: "",
-      standingShoulderY: "",
+      standingShoulderYLeft: "",
+      standingShoulderYRight: "",
       maxPullUps: "",
       maxPushUps: "",
-      gripStrengthKg: "",
+      gripStrengthN: "",
     },
     power: {
       cmjHeight: "",

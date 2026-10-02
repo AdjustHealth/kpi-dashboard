@@ -7,10 +7,16 @@ function screen(overrides: Partial<BjjScreenFormData> = {}): BjjScreenFormData {
 }
 
 describe("scoreBjjScreen", () => {
-  it("scores IMTP as exactly 100% of elite when peak force ÷ bodyweight matches the benchmark ratio (3.3)", () => {
-    const data = screen({ sex: "male", bodyweightKg: "80", strength: { ...emptyBjjScreen().strength, imtp: "264" } });
+  it("scores IMTP directly as entered (already bodyweight-relative off the ForceDecks), matching the elite ratio exactly at 100%", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, imtp: "3.3" } });
     const result = scoreBjjScreen(data);
     expect(result.imtp?.percentOfElite).toBe(100);
+    expect(result.imtp?.score).toBe(10);
+  });
+
+  it("scores IMTP with no Bodyweight entered — it no longer needs one, unlike the Watt Bike test", () => {
+    const data = screen({ sex: "male", bodyweightKg: "", strength: { ...emptyBjjScreen().strength, imtp: "3.3" } });
+    const result = scoreBjjScreen(data);
     expect(result.imtp?.score).toBe(10);
   });
 
@@ -31,7 +37,6 @@ describe("scoreBjjScreen", () => {
   it("returns a value with no score when there's no benchmark for the selected sex (e.g. female pull-ups)", () => {
     const data = screen({
       sex: "female",
-      bodyweightKg: "60",
       strength: { ...emptyBjjScreen().strength, maxPullUps: "8" },
     });
     const result = scoreBjjScreen(data);
@@ -40,15 +45,10 @@ describe("scoreBjjScreen", () => {
   });
 
   it("scores female IMTP against Adjust's own general-population threshold (2.5x bodyweight)", () => {
-    const data = screen({ sex: "female", bodyweightKg: "60", strength: { ...emptyBjjScreen().strength, imtp: "150" } });
+    const data = screen({ sex: "female", strength: { ...emptyBjjScreen().strength, imtp: "2.5" } });
     const result = scoreBjjScreen(data);
     expect(result.imtp?.percentOfElite).toBe(100);
     expect(result.imtp?.score).toBe(10);
-  });
-
-  it("never scores the IMTP ratio without a bodyweight entered", () => {
-    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, imtp: "264" } });
-    expect(scoreBjjScreen(data).imtp).toBeNull();
   });
 
   it("never scores anything numeric without a sex set, but still records the value", () => {
@@ -74,11 +74,19 @@ describe("scoreBjjScreen", () => {
     expect(result.mobilityScore).toBe(10);
   });
 
-  it("scores the ASH-Y shoulder test (Newtons) against Adjust's own Performance report general-population threshold", () => {
-    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderY: "180" } });
+  it("scores the ASH-Y shoulder test (Newtons) per side against Adjust's own Performance report general-population threshold", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderYLeft: "180", standingShoulderYRight: "90" } });
     const result = scoreBjjScreen(data);
-    expect(result.standingShoulderY?.percentOfElite).toBe(100);
-    expect(result.standingShoulderY?.score).toBe(10);
+    expect(result.standingShoulderYLeft?.percentOfElite).toBe(100);
+    expect(result.standingShoulderYLeft?.score).toBe(10);
+    expect(result.standingShoulderYRight?.percentOfElite).toBe(50);
+    expect(result.standingShoulderYRight?.score).toBe(5);
+  });
+
+  it("computes a Limb Symmetry Index between the two ASH-Y sides", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderYLeft: "180", standingShoulderYRight: "90" } });
+    const result = scoreBjjScreen(data);
+    expect(result.standingShoulderYLsi).toBe(50); // min(180,90)/max(180,90) * 100 = 50%
   });
 
   it("scores max push ups against the elite benchmark (chin ups no longer exists as a field)", () => {
@@ -89,19 +97,27 @@ describe("scoreBjjScreen", () => {
     expect((data.strength as Record<string, unknown>).maxChinUps).toBeUndefined();
   });
 
-  it("scores Drop Jump RSI Mod against the single >1.50 threshold, matching the clinic's Performance/Youth report convention", () => {
-    const data = screen({ sex: "female", power: { cmjHeight: "", dropJumpRsi: "1.5" } });
-    const result = scoreBjjScreen(data);
-    expect(result.dropJumpRsi?.percentOfElite).toBe(100);
-    expect(result.dropJumpRsi?.score).toBe(10);
+  it("scores Drop Jump RSI Mod against the clinic's own sex-specific Performance/Youth report thresholds (male 1.5, female 1.2)", () => {
+    const male = scoreBjjScreen(screen({ sex: "male", power: { cmjHeight: "", dropJumpRsi: "1.5" } }));
+    expect(male.dropJumpRsi?.percentOfElite).toBe(100);
+    expect(male.dropJumpRsi?.score).toBe(10);
+
+    const female = scoreBjjScreen(screen({ sex: "female", power: { cmjHeight: "", dropJumpRsi: "1.2" } }));
+    expect(female.dropJumpRsi?.percentOfElite).toBe(100);
+    expect(female.dropJumpRsi?.score).toBe(10);
   });
 
-  it("scores the Watt Bike 3-min test against Adjust's own Performance report general-population threshold", () => {
-    const data = screen({ sex: "male", conditioning: { wattBike3MinAvgWatts: "400" } });
+  it("scores the Watt Bike 3-min test as watts ÷ bodyweight against Wattbike's own 'Amateur' power-to-weight tier (3.7 W/kg)", () => {
+    const data = screen({ sex: "male", bodyweightKg: "100", conditioning: { wattBike3MinAvgWatts: "370" } });
     const result = scoreBjjScreen(data);
     expect(result.wattBike3MinAvgWatts?.percentOfElite).toBe(100);
     expect(result.wattBike3MinAvgWatts?.score).toBe(10);
     expect(result.categoryScores.conditioning).toBe(10);
+  });
+
+  it("never scores the Watt Bike test without a bodyweight entered, unlike IMTP", () => {
+    const data = screen({ sex: "male", conditioning: { wattBike3MinAvgWatts: "370" } });
+    expect(scoreBjjScreen(data).wattBike3MinAvgWatts).toBeNull();
   });
 
   it("overall score averages mobility as one item, not one per rating, so it doesn't outweigh the numeric tests", () => {
@@ -115,7 +131,8 @@ describe("scoreBjjScreen", () => {
         lumbarFlexExt: "good",
         txRotation: "good",
         cervicalRotation: "good",
-        ankleDfKneeToWallCmLeft: "", ankleDfKneeToWallCmRight: "",
+        ankleDfKneeToWallCmLeft: "",
+        ankleDfKneeToWallCmRight: "",
       },
     });
     const result = scoreBjjScreen(data);
@@ -125,12 +142,11 @@ describe("scoreBjjScreen", () => {
   it("computes per-domain category scores, averaging only the tests scored in that domain", () => {
     const data = screen({
       sex: "male",
-      bodyweightKg: "80",
-      strength: { imtp: "264", standingShoulderY: "180", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
+      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthN: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);
-    expect(result.categoryScores.strength).toBe(10); // avg(imtp=10, standingShoulderY=10)
+    expect(result.categoryScores.strength).toBe(10); // avg(imtp=10, standingShoulderYLeft=10)
     expect(result.categoryScores.power).toBe(5); // cmjHeight only, score 5
     expect(result.categoryScores.mobility).toBeNull();
     expect(result.categoryScores.conditioning).toBeNull();
@@ -141,19 +157,18 @@ describe("scoreBjjScreen", () => {
     // A flat average across all raw tests would be (10+10+5)/3 = 8.3; the domain average is (10+5)/2 = 7.5.
     const data = screen({
       sex: "male",
-      bodyweightKg: "80",
-      strength: { imtp: "264", standingShoulderY: "180", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
+      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthN: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);
     expect(result.overall).toBe(7.5);
   });
 
-  it("scores grip strength against the elite judo benchmark", () => {
-    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, gripStrengthKg: "47" } });
+  it("scores grip strength (Newtons) against the elite judo benchmark", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, gripStrengthN: "460.7" } });
     const result = scoreBjjScreen(data);
-    expect(result.gripStrengthKg?.percentOfElite).toBe(100);
-    expect(result.gripStrengthKg?.score).toBe(10);
+    expect(result.gripStrengthN?.percentOfElite).toBe(100);
+    expect(result.gripStrengthN?.score).toBe(10);
   });
 
   it("scores the knee-to-wall ankle dorsiflexion test per side, not part of the qualitative mobility score", () => {
