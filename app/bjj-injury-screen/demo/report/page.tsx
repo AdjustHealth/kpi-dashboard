@@ -32,7 +32,8 @@ const DEMO_DATA = mergeBjjScreen({
     lumbarFlexExt: "good",
     txRotation: "poor",
     cervicalRotation: "demonstrated",
-    ankleDfKneeToWallCm: "13",
+    ankleDfKneeToWallCmLeft: "13",
+    ankleDfKneeToWallCmRight: "11",
   },
   strength: {
     imtp: "260",

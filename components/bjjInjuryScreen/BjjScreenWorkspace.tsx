@@ -218,10 +218,16 @@ export function BjjScreenWorkspace({
             </Select>
           </Field>
         ))}
-        <Field label="Ankle DF — Knee to Wall" hint="cm from wall to big toe, knee touching the wall">
+        <Field label="Ankle DF — Knee to Wall (Left)" hint="cm from wall to big toe, knee touching the wall">
           <Input
-            value={data.mobility.ankleDfKneeToWallCm}
-            onChange={(e) => setValue("mobility", "ankleDfKneeToWallCm", e.target.value)}
+            value={data.mobility.ankleDfKneeToWallCmLeft}
+            onChange={(e) => setValue("mobility", "ankleDfKneeToWallCmLeft", e.target.value)}
+          />
+        </Field>
+        <Field label="Ankle DF — Knee to Wall (Right)" hint="cm from wall to big toe, knee touching the wall">
+          <Input
+            value={data.mobility.ankleDfKneeToWallCmRight}
+            onChange={(e) => setValue("mobility", "ankleDfKneeToWallCmRight", e.target.value)}
           />
         </Field>
       </SectionCard>
@@ -263,7 +269,14 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="Standing Shoulder Y (ASH-Y)" result={score.standingShoulderY} />
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
           <MetricResultRow label="Max Push Ups" result={score.maxPushUps} />
-          <MetricResultRow label="Ankle DF — Knee to Wall" result={score.ankleDfKneeToWallCm} />
+          <MetricResultRow label="Ankle DF — Knee to Wall (L)" result={score.ankleDfLeft} />
+          <MetricResultRow label="Ankle DF — Knee to Wall (R)" result={score.ankleDfRight} />
+          {score.ankleDfLsi !== null && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="text-xs font-medium text-foreground">Ankle DF — L/R Symmetry (LSI)</span>
+              <Badge tone={score.ankleDfLsi >= 90 ? "good" : score.ankleDfLsi >= 85 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
+            </div>
+          )}
           <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
           <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} />
           {score.mobilityScore !== null && (

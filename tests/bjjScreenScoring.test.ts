@@ -60,7 +60,7 @@ describe("scoreBjjScreen", () => {
 
   it("averages mobility ratings into a single 0-10 score (poor=2, demonstrated=6, good=10)", () => {
     const data = screen({
-      mobility: { shoulderErIr: "good", hipErIr: "poor", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCm: "" },
+      mobility: { shoulderErIr: "good", hipErIr: "poor", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCmLeft: "", ankleDfKneeToWallCmRight: "" },
     });
     const result = scoreBjjScreen(data);
     expect(result.mobilityScore).toBe(6); // (10 + 2) / 2
@@ -68,7 +68,7 @@ describe("scoreBjjScreen", () => {
 
   it("includes cervical rotation alongside the other qualitative mobility ratings", () => {
     const data = screen({
-      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "good", ankleDfKneeToWallCm: "" },
+      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "good", ankleDfKneeToWallCmLeft: "", ankleDfKneeToWallCmRight: "" },
     });
     const result = scoreBjjScreen(data);
     expect(result.mobilityScore).toBe(10);
@@ -115,7 +115,7 @@ describe("scoreBjjScreen", () => {
         lumbarFlexExt: "good",
         txRotation: "good",
         cervicalRotation: "good",
-        ankleDfKneeToWallCm: "",
+        ankleDfKneeToWallCmLeft: "", ankleDfKneeToWallCmRight: "",
       },
     });
     const result = scoreBjjScreen(data);
@@ -156,14 +156,32 @@ describe("scoreBjjScreen", () => {
     expect(result.gripStrengthKg?.score).toBe(10);
   });
 
-  it("scores the knee-to-wall ankle dorsiflexion test as its own numeric metric, not part of the qualitative mobility score", () => {
+  it("scores the knee-to-wall ankle dorsiflexion test per side, not part of the qualitative mobility score", () => {
     const data = screen({
       sex: "male",
-      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCm: "15" },
+      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCmLeft: "15", ankleDfKneeToWallCmRight: "" },
     });
     const result = scoreBjjScreen(data);
-    expect(result.ankleDfKneeToWallCm?.percentOfElite).toBe(100);
+    expect(result.ankleDfLeft?.percentOfElite).toBe(100);
+    expect(result.ankleDfRight).toBeNull();
     expect(result.mobilityScore).toBeNull(); // no Poor/Demonstrated/Good ratings were set
+  });
+
+  it("computes a Limb Symmetry Index between the two ankle DF sides, same convention as the Youth/Performance report", () => {
+    const data = screen({
+      sex: "male",
+      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCmLeft: "15", ankleDfKneeToWallCmRight: "12" },
+    });
+    const result = scoreBjjScreen(data);
+    expect(result.ankleDfLsi).toBe(80); // min(15,12)/max(15,12) * 100 = 80%
+  });
+
+  it("leaves the ankle DF LSI null when only one side was measured", () => {
+    const data = screen({
+      sex: "male",
+      mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCmLeft: "15", ankleDfKneeToWallCmRight: "" },
+    });
+    expect(scoreBjjScreen(data).ankleDfLsi).toBeNull();
   });
 
   it("returns a null overall score when nothing has been entered yet", () => {
