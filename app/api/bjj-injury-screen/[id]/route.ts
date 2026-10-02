@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { assessmentToolSql } from "@/lib/assessmentTool/db";
 import { requireSection } from "@/lib/requireLogin";
 import type { BjjScreenFormData } from "@/lib/bjjInjuryScreen/types";
+import { scoreBjjScreen } from "@/lib/bjjInjuryScreen/scoring";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireSection("assessment_tool");
@@ -9,6 +10,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
 
   const data = (await request.json()) as BjjScreenFormData;
+  const overallScore = scoreBjjScreen(data).overall;
 
   try {
     const sql = assessmentToolSql();
@@ -17,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         athlete_name = ${data.athleteName},
         clinician = ${data.clinician || null},
         assessment_date = ${data.assessmentDate || null},
+        overall_score = ${overallScore},
         form_data = ${sql.json(JSON.parse(JSON.stringify(data)))}
       where id = ${id} and assess_type = 'bjj_injury_screen'
     `;
