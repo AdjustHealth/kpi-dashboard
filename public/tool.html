@@ -1275,7 +1275,13 @@ const lsi=(a,b)=>(!a||!b)?null:Math.round((Math.min(a,b)/Math.max(a,b))*100);
 const lsiCls=v=>v===null?"rn":v>=90?"rg":v>=85?"ra":"rp";
 
 function sc(val,good,avg,lo=false){
-  if(!val||isNaN(val))return null;
+  // A real 0 (e.g. "couldn't do any push-ups") is a valid, important score,
+  // not the same as "not tested" — only null/undefined/NaN mean that. This
+  // is safe everywhere sc() is already called: every caller's own blank-vs-
+  // entered gate still runs first and still collapses a genuinely blank
+  // field to the same 0 nv() always has, so this change only takes effect
+  // where a caller has itself been fixed to let a real 0 through.
+  if(val===null||val===undefined||isNaN(val))return null;
   if(lo){if(val<=good)return 10;if(val<=avg)return 5+((avg-val)/(avg-good))*5;return Math.max(0,5-(val-avg)*3);}
   if(val>=good)return 10;if(val>=avg)return 5+((val-avg)/(good-avg))*5;return Math.max(0,(val/avg)*5);
 }
@@ -1654,7 +1660,12 @@ function collectFindings(){
   const fw=FTNW(),fr=FTNR();
   FT().forEach(t=>{
     if(!ftIsSelected(t.id))return;
-    const val=nv("f"+t.id);if(!val)return;
+    // Gate on the raw field being blank, not the parsed number being falsy —
+    // nv() collapses both "never typed" and "typed 0" to the same 0, and a
+    // real 0 (e.g. 0 push-ups) is a genuine, important result that should
+    // still be scored, not silently treated the same as never having tested it.
+    if(v("f"+t.id)==="")return;
+    const val=nv("f"+t.id);
     const rmType=t.rm?(v("frm_"+t.id)||"3RM"):null;
     const scoreVal=rmType==="1RM"?val/1.1:val;
     if(fw[t.id]&&bw){
@@ -1834,7 +1845,10 @@ function gen(){
   const imtp=nv("fimtp"),rfd=nv("frfd");
   const fd=FT().map(t=>{
     if(!ftIsSelected(t.id))return null;
-    const val=nv("f"+t.id);if(!val)return null;
+    // Same raw-blank check as the list-builder above — a typed "0" must not
+    // be dropped as if the test was never done.
+    if(v("f"+t.id)==="")return null;
+    const val=nv("f"+t.id);
     const rmType=t.rm?(v("frm_"+t.id)||"3RM"):null;
     const scoreVal=rmType==="1RM"?val/1.1:val; // Epley estimate: 1RM ≈ 3RM × 1.1
     const label=rmType?`${rmType} ${t.l}`:t.l;
