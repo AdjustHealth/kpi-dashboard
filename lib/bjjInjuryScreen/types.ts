@@ -8,11 +8,14 @@
 export type Rating = "" | "poor" | "demonstrated" | "good";
 export type Sex = "" | "male" | "female";
 export type InjuryResult = "" | "pass" | "fail";
+export type AgeGroup = "" | "adult" | "youth";
 
 export type BjjScreenFormData = {
   athleteName: string;
   clinician: string;
   assessmentDate: string;
+  /** "Youth" = 13-18, matching the Youth 2 tier on Adjust's own Youth Performance Report. Only CMJ has a published youth-specific reference (Lesinski et al. 2020) — every other test still uses the adult benchmark regardless of this, since no youth data exists for them (confirmed against the Youth report's own sourcing notes). */
+  ageGroup: AgeGroup;
   /** Needed to normalise the Watt Bike test against bodyweight, same way the elite benchmark is reported — IMTP doesn't need this, see strength.imtp below. */
   sex: Sex;
   /** Only used to normalise the Watt Bike test — the ForceDecks already gives IMTP as a bodyweight-relative figure, so it doesn't need this. */
@@ -64,6 +67,7 @@ export function emptyBjjScreen(): BjjScreenFormData {
     athleteName: "",
     clinician: "",
     assessmentDate: "",
+    ageGroup: "",
     sex: "",
     bodyweightKg: "",
     injuryScreen: {
@@ -113,6 +117,7 @@ export function mergeBjjScreen(saved: Partial<BjjScreenFormData> | null | undefi
     athleteName: saved.athleteName ?? base.athleteName,
     clinician: saved.clinician ?? base.clinician,
     assessmentDate: saved.assessmentDate ?? base.assessmentDate,
+    ageGroup: saved.ageGroup ?? base.ageGroup,
     sex: saved.sex ?? base.sex,
     bodyweightKg: saved.bodyweightKg ?? base.bodyweightKg,
     injuryScreen: { ...base.injuryScreen, ...saved.injuryScreen },

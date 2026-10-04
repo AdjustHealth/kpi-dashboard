@@ -3,6 +3,7 @@ import {
   ASH_Y_NEWTONS_BENCHMARK,
   Benchmark,
   CMJ_HEIGHT_CM_BENCHMARK,
+  CMJ_HEIGHT_CM_YOUTH_BENCHMARK,
   DROP_JUMP_RSI_BENCHMARK,
   GRIP_STRENGTH_KG_BENCHMARK,
   IMTP_RATIO_BENCHMARK,
@@ -92,7 +93,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const imtp = scoreMetric(data.strength.imtp, sex, IMTP_RATIO_BENCHMARK);
   const wattBike3MinAvgWatts = scoreRatioMetric(data.conditioning.wattBike3MinAvgWatts, bodyweight, sex, WATT_BIKE_WATTS_PER_KG_BENCHMARK);
 
-  const cmjHeight = scoreMetric(data.power.cmjHeight, sex, CMJ_HEIGHT_CM_BENCHMARK);
+  const cmjHeight = scoreMetric(data.power.cmjHeight, sex, data.ageGroup === "youth" ? CMJ_HEIGHT_CM_YOUTH_BENCHMARK : CMJ_HEIGHT_CM_BENCHMARK);
   const dropJumpRsi = scoreMetric(data.power.dropJumpRsi, sex, DROP_JUMP_RSI_BENCHMARK);
   const standingShoulderYLeft = scoreMetric(data.strength.standingShoulderYLeft, sex, ASH_Y_NEWTONS_BENCHMARK);
   const standingShoulderYRight = scoreMetric(data.strength.standingShoulderYRight, sex, ASH_Y_NEWTONS_BENCHMARK);

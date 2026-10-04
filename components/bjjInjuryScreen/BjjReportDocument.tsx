@@ -154,7 +154,7 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "Athlete";
 }
 
-type TestRowData = { label: string; displayValue: string; result: MetricResult | null; unit?: string; rawNote?: string };
+type TestRowData = { label: string; displayValue: string; result: MetricResult | null; unit?: string; rawNote?: string; refOverride?: string };
 
 /** Elite/Avg/Focus reference values derived from the same 7.5/5 score bands everything else uses, so a reader can see not just this athlete's band but the actual numbers either side of it. */
 function bandThresholds(result: MetricResult, unit: string): { focus: string; avg: string; strong: string } | null {
@@ -168,6 +168,7 @@ function bandThresholds(result: MetricResult, unit: string): { focus: string; av
 
 /** Short "vs ___" line under a test's label — plain reference data, not commentary. */
 function refLine(row: TestRowData, sex: Sex): string {
+  if (row.refOverride) return row.refOverride;
   const result = row.result;
   // A row can have a value on the page without a scored result — e.g. the
   // Watt Bike reading entered but not yet convertible to W/kg because
@@ -587,7 +588,16 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   ].filter((r) => r.displayValue !== "—");
 
   const powerRows: TestRowData[] = [
-    { label: "CMJ — Jump Height", displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—", result: score.cmjHeight, unit: "cm" },
+    {
+      label: "CMJ — Jump Height",
+      displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—",
+      result: score.cmjHeight,
+      unit: "cm",
+      refOverride:
+        data.ageGroup === "youth" && score.cmjHeight?.benchmark
+          ? `Youth reference (13-18) — target ${score.cmjHeight.benchmark.value}cm`
+          : undefined,
+    },
     { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? Number(data.power.dropJumpRsi).toFixed(2) : "—", result: score.dropJumpRsi, unit: "" },
   ].filter((r) => r.displayValue !== "—");
 

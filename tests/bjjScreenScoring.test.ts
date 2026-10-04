@@ -34,6 +34,19 @@ describe("scoreBjjScreen", () => {
     expect(result.cmjHeight?.score).toBe(10);
   });
 
+  it("scores CMJ against the youth (13-18) reference instead of the adult one when Age Group is set to youth", () => {
+    const data = screen({ sex: "male", ageGroup: "youth", power: { cmjHeight: "34", dropJumpRsi: "" } });
+    const result = scoreBjjScreen(data);
+    expect(result.cmjHeight?.percentOfElite).toBe(100);
+    expect(result.cmjHeight?.score).toBe(10);
+  });
+
+  it("scores CMJ against the adult reference when Age Group is adult or unset, even at a value that would be elite for youth", () => {
+    const data = screen({ sex: "male", ageGroup: "adult", power: { cmjHeight: "34", dropJumpRsi: "" } });
+    const result = scoreBjjScreen(data);
+    expect(result.cmjHeight?.percentOfElite).not.toBe(100); // 34 / 39.6 (adult male target), not 34/34
+  });
+
   it("scores female max pull ups against the general elite/tactical standard for women (12 reps)", () => {
     const data = screen({
       sex: "female",
