@@ -100,7 +100,11 @@ export const PULL_UPS_BENCHMARK: SexBenchmark = {
     confidence: "general",
     source: "General elite/tactical-athlete standard (15-20+ reps cited across multiple strength-standard and tactical-fitness sources) — no rigorous BJJ-specific or combat-sport-specific pull-up data was found in the literature.",
   },
-  female: null,
+  female: {
+    value: 12,
+    confidence: "general",
+    source: "General elite/tactical-athlete standard for women (\"excellent\"/\"elite\" tier clusters at 10-14 reps across multiple general strength-standard tables, once a clear outlier from a crowdsourced lifting site is excluded) — no rigorous BJJ-specific or combat-sport-specific pull-up data was found. 12/15 male keeps the same ~80% ratio seen across every other sex-split benchmark in this file.",
+  },
 };
 
 /** 1-minute push-up test, max reps. */
