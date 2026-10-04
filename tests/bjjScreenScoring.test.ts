@@ -34,14 +34,14 @@ describe("scoreBjjScreen", () => {
     expect(result.cmjHeight?.score).toBe(10);
   });
 
-  it("returns a value with no score when there's no benchmark for the selected sex (e.g. female pull-ups)", () => {
+  it("scores female max pull ups against the general elite/tactical standard for women (12 reps)", () => {
     const data = screen({
       sex: "female",
-      strength: { ...emptyBjjScreen().strength, maxPullUps: "8" },
+      strength: { ...emptyBjjScreen().strength, maxPullUps: "12" },
     });
     const result = scoreBjjScreen(data);
-    expect(result.maxPullUps?.value).toBe(8);
-    expect(result.maxPullUps?.score).toBeNull();
+    expect(result.maxPullUps?.percentOfElite).toBe(100);
+    expect(result.maxPullUps?.score).toBe(10);
   });
 
   it("scores female IMTP against Adjust's own general-population threshold (2.5x bodyweight)", () => {
@@ -97,7 +97,7 @@ describe("scoreBjjScreen", () => {
     expect((data.strength as Record<string, unknown>).maxChinUps).toBeUndefined();
   });
 
-  it("scores female max push ups against the YMCA/ACSM 'excellent' threshold for women (32 reps) — unlike pull-ups, which still has no reliable female standard", () => {
+  it("scores female max push ups against the YMCA/ACSM 'excellent' threshold for women (32 reps)", () => {
     const data = screen({ sex: "female", strength: { ...emptyBjjScreen().strength, maxPushUps: "32" } });
     const result = scoreBjjScreen(data);
     expect(result.maxPushUps?.percentOfElite).toBe(100);
