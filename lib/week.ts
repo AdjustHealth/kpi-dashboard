@@ -11,8 +11,32 @@ export function toDateKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Most recent Saturday on or before `from` (defaults to today). */
-export function defaultWeekEnding(from: Date = new Date()): string {
+/**
+ * Today's calendar date in the clinic's own timezone (Brisbane — AEST,
+ * UTC+10 year-round, no daylight saving) rather than the server's. Next.js
+ * server code runs on Vercel in UTC, which trails Brisbane by a full
+ * calendar day for part of every Australian business day — `new Date()`
+ * on the server can report "yesterday" well into the clinic's morning.
+ * Every server-side "what day is it" default in this app needs to agree
+ * with the clinic's actual wall clock, not the server's, so this is the
+ * one place that conversion happens — everything else here keeps using
+ * plain UTC date math on the Y/M/D this returns, unchanged.
+ */
+export function todayInClinicTz(): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Brisbane",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const y = Number(parts.find((p) => p.type === "year")!.value);
+  const m = Number(parts.find((p) => p.type === "month")!.value);
+  const d = Number(parts.find((p) => p.type === "day")!.value);
+  return new Date(y, m - 1, d);
+}
+
+/** Most recent Saturday on or before `from` (defaults to today, in the clinic's own timezone). */
+export function defaultWeekEnding(from: Date = todayInClinicTz()): string {
   const d = new Date(Date.UTC(from.getFullYear(), from.getMonth(), from.getDate()));
   const day = d.getUTCDay(); // 0 = Sunday .. 6 = Saturday
   d.setUTCDate(d.getUTCDate() - ((day + 1) % 7));
