@@ -250,7 +250,7 @@ export function BjjScreenWorkspace({
       </SectionCard>
 
       <SectionCard title="Conditioning">
-        <Field label="3-Min Watt Bike — Average Power" hint="watts">
+        <Field label="3-Min Watt Bike — Average Power" hint="watts — also needs Bodyweight above (unlike the other tests, this one is scored per kg)">
           <Input value={data.conditioning.wattBike3MinAvgWatts} onChange={(e) => setValue("conditioning", "wattBike3MinAvgWatts", e.target.value)} />
         </Field>
       </SectionCard>
@@ -271,8 +271,8 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="Standing Shoulder Y — Right (ASH-Y)" result={score.standingShoulderYRight} />
           {score.standingShoulderYLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <span className="text-xs font-medium text-foreground">ASH-Y — L/R Symmetry (LSI)</span>
-              <Badge tone={score.standingShoulderYLsi >= 90 ? "good" : score.standingShoulderYLsi >= 85 ? "warning" : "critical"}>{score.standingShoulderYLsi}%</Badge>
+              <span className="text-xs font-medium text-foreground">ASH-Y — L/R Deficit (LSI)</span>
+              <Badge tone={score.standingShoulderYLsi <= 10 ? "good" : score.standingShoulderYLsi <= 15 ? "warning" : "critical"}>{score.standingShoulderYLsi}%</Badge>
             </div>
           )}
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
@@ -281,8 +281,8 @@ export function BjjScreenWorkspace({
           <MetricResultRow label="Ankle DF — Knee to Wall (R)" result={score.ankleDfRight} />
           {score.ankleDfLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <span className="text-xs font-medium text-foreground">Ankle DF — L/R Symmetry (LSI)</span>
-              <Badge tone={score.ankleDfLsi >= 90 ? "good" : score.ankleDfLsi >= 85 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
+              <span className="text-xs font-medium text-foreground">Ankle DF — L/R Deficit (LSI)</span>
+              <Badge tone={score.ankleDfLsi <= 10 ? "good" : score.ankleDfLsi <= 15 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
             </div>
           )}
           <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />

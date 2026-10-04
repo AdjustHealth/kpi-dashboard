@@ -169,7 +169,10 @@ function bandThresholds(result: MetricResult, unit: string): { focus: string; av
 /** Short "vs ___" line under a test's label — plain reference data, not commentary. */
 function refLine(row: TestRowData): string {
   const result = row.result;
-  if (!result) return "Not recorded";
+  // A row can have a value on the page without a scored result — e.g. the
+  // Watt Bike reading entered but not yet convertible to W/kg because
+  // Bodyweight is blank. That's not the same as nothing being recorded.
+  if (!result) return row.displayValue === "—" ? "Not recorded" : "";
   if (!result.benchmark) return "";
   const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
   return `${kind} — target ${result.benchmark.value}${row.unit ?? ""}`;
@@ -219,8 +222,9 @@ function RatingRow({ label, rating }: { label: string; rating: "poor" | "demonst
 /** Bilateral L/R measurement with a Limb Symmetry Index badge — same pattern as the Youth/Performance report's lrBarRow (e.g. its own Knee-to-Wall test), since a meaningful side-to-side gap is worth flagging on its own, not just averaged away. */
 function BilateralRow({ label, left, right, unit }: { label: string; left: MetricResult | null; right: MetricResult | null; unit: string }) {
   if (!left && !right) return null;
-  const lsi = left && right ? Math.round((Math.min(left.value, right.value) / Math.max(left.value, right.value)) * 100) : null;
-  const lsiColor = lsi === null ? MUTED : lsi >= 90 ? GREEN : lsi >= 85 ? AMBER : RED;
+  // Deficit convention: 0% = perfectly symmetric, higher = bigger side-to-side gap.
+  const lsi = left && right ? Math.round((1 - Math.min(left.value, right.value) / Math.max(left.value, right.value)) * 100) : null;
+  const lsiColor = lsi === null ? MUTED : lsi <= 10 ? GREEN : lsi <= 15 ? AMBER : RED;
   const side = (res: MetricResult | null, sideLabel: string) => {
     const color = res ? bandColor(res.score) : "#3a4f63";
     const pct = res?.percentOfElite !== null && res?.percentOfElite !== undefined ? Math.min(100, res.percentOfElite) : 0;
@@ -585,10 +589,21 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const conditioningRows: TestRowData[] = [
     {
       label: "3-Min Watt Bike — Avg Power",
-      displayValue: score.wattBike3MinAvgWatts ? `${score.wattBike3MinAvgWatts.value.toFixed(2)} W/kg` : "—",
+      // Falls back to the raw watts reading (unscored) when there's no
+      // Bodyweight to convert it to W/kg — the entered value should never
+      // just vanish from the page because one other field is blank.
+      displayValue: score.wattBike3MinAvgWatts
+        ? `${score.wattBike3MinAvgWatts.value.toFixed(2)} W/kg`
+        : data.conditioning.wattBike3MinAvgWatts
+          ? `${data.conditioning.wattBike3MinAvgWatts}W`
+          : "—",
       result: score.wattBike3MinAvgWatts,
       unit: " W/kg",
-      rawNote: data.conditioning.wattBike3MinAvgWatts ? `${data.conditioning.wattBike3MinAvgWatts}W measured, 3-min all-out average` : undefined,
+      rawNote: score.wattBike3MinAvgWatts
+        ? `${data.conditioning.wattBike3MinAvgWatts}W measured, 3-min all-out average`
+        : data.conditioning.wattBike3MinAvgWatts
+          ? "Needs Bodyweight above to convert to W/kg and score."
+          : undefined,
     },
   ].filter((r) => r.displayValue !== "—");
 
@@ -736,7 +751,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           </div>
           <InterpretationBox title="Mobility Interpretation">
             {findingsText(mobilityFocusLabels, mobilityAvgLabels, mobilityScoredCount, "Mobility")}
-            {score.ankleDfLsi !== null && score.ankleDfLsi < 85 ? ` Left/right ankle DF symmetry is also low (${score.ankleDfLsi}%), worth addressing on its own.` : ""}
+            {score.ankleDfLsi !== null && score.ankleDfLsi > 15 ? ` Left/right ankle DF symmetry is also low (${score.ankleDfLsi}% deficit), worth addressing on its own.` : ""}
             <BjjNotes notes={mobilityBjjNotes} />
           </InterpretationBox>
         </PageShell>
@@ -761,7 +776,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           </div>
           <InterpretationBox title="Strength Interpretation">
             {findingsText(strengthFocusLabels, strengthAvgLabels, strengthScoredCount, "Strength")}
-            {score.standingShoulderYLsi !== null && score.standingShoulderYLsi < 85 ? ` Left/right ASH-Y symmetry is also low (${score.standingShoulderYLsi}%), worth addressing on its own.` : ""}
+            {score.standingShoulderYLsi !== null && score.standingShoulderYLsi > 15 ? ` Left/right ASH-Y symmetry is also low (${score.standingShoulderYLsi}% deficit), worth addressing on its own.` : ""}
             <BjjNotes notes={strengthBjjNotes} />
           </InterpretationBox>
         </PageShell>
@@ -794,7 +809,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                   strong: "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match.",
                   avg: "Workable engine — interval work will lift this further.",
                   focus: "Conditioning is a development priority — technique tends to break down first when this is the limiter.",
-                  unset: "Set Sex above to compare this test against reference data.",
+                  unset: !data.sex
+                    ? "Set Sex above to compare this test against reference data."
+                    : "Set Bodyweight above to compare this test against reference data — the Watt Bike test is normalised per kg, unlike the other tests.",
                 })}
               />
               <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>

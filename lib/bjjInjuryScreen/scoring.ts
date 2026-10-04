@@ -64,13 +64,13 @@ export type BjjScreenScore = {
   dropJumpRsi: MetricResult | null;
   standingShoulderYLeft: MetricResult | null;
   standingShoulderYRight: MetricResult | null;
-  /** Limb Symmetry Index for the ASH-Y test. Null unless both arms were measured. */
+  /** Side-to-side deficit for the ASH-Y test — 0% is perfectly symmetric, higher is a bigger gap. Null unless both arms were measured. */
   standingShoulderYLsi: number | null;
   maxPullUps: MetricResult | null;
   maxPushUps: MetricResult | null;
   ankleDfLeft: MetricResult | null;
   ankleDfRight: MetricResult | null;
-  /** Limb Symmetry Index — min/max side × 100, same convention as the Youth/Performance report. Null unless both sides were measured. */
+  /** Side-to-side deficit — (1 − min/max side) × 100, so 0% is perfectly symmetric and higher is a bigger gap. Null unless both sides were measured. */
   ankleDfLsi: number | null;
   gripStrengthKg: MetricResult | null;
   /** W ÷ bodyweight — the only test here that still needs the Bodyweight field, since Wattbike doesn't output a relative figure the way ForceDecks does. */
@@ -96,16 +96,21 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const dropJumpRsi = scoreMetric(data.power.dropJumpRsi, sex, DROP_JUMP_RSI_BENCHMARK);
   const standingShoulderYLeft = scoreMetric(data.strength.standingShoulderYLeft, sex, ASH_Y_NEWTONS_BENCHMARK);
   const standingShoulderYRight = scoreMetric(data.strength.standingShoulderYRight, sex, ASH_Y_NEWTONS_BENCHMARK);
+  // Reported as a deficit (0% = perfectly symmetric, higher = bigger
+  // side-to-side gap) per the clinic's own convention — the inverse of the
+  // textbook symmetry-index reading (100% = symmetric) tool.html's lsi()
+  // uses, by request.
   const standingShoulderYLsi =
     standingShoulderYLeft && standingShoulderYRight
-      ? Math.round((Math.min(standingShoulderYLeft.value, standingShoulderYRight.value) / Math.max(standingShoulderYLeft.value, standingShoulderYRight.value)) * 100)
+      ? Math.round((1 - Math.min(standingShoulderYLeft.value, standingShoulderYRight.value) / Math.max(standingShoulderYLeft.value, standingShoulderYRight.value)) * 100)
       : null;
   const maxPullUps = scoreMetric(data.strength.maxPullUps, sex, PULL_UPS_BENCHMARK);
   const maxPushUps = scoreMetric(data.strength.maxPushUps, sex, PUSH_UPS_BENCHMARK);
   const ankleDfLeft = scoreMetric(data.mobility.ankleDfKneeToWallCmLeft, sex, KNEE_TO_WALL_CM_BENCHMARK);
   const ankleDfRight = scoreMetric(data.mobility.ankleDfKneeToWallCmRight, sex, KNEE_TO_WALL_CM_BENCHMARK);
+  // Same deficit convention as standingShoulderYLsi above.
   const ankleDfLsi =
-    ankleDfLeft && ankleDfRight ? Math.round((Math.min(ankleDfLeft.value, ankleDfRight.value) / Math.max(ankleDfLeft.value, ankleDfRight.value)) * 100) : null;
+    ankleDfLeft && ankleDfRight ? Math.round((1 - Math.min(ankleDfLeft.value, ankleDfRight.value) / Math.max(ankleDfLeft.value, ankleDfRight.value)) * 100) : null;
   const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
 
   // Only the Poor/Demonstrated/Good ratings go into the qualitative
