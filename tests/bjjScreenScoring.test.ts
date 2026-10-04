@@ -97,6 +97,13 @@ describe("scoreBjjScreen", () => {
     expect((data.strength as Record<string, unknown>).maxChinUps).toBeUndefined();
   });
 
+  it("scores female max push ups against the YMCA/ACSM 'excellent' threshold for women (32 reps) — unlike pull-ups, which still has no reliable female standard", () => {
+    const data = screen({ sex: "female", strength: { ...emptyBjjScreen().strength, maxPushUps: "32" } });
+    const result = scoreBjjScreen(data);
+    expect(result.maxPushUps?.percentOfElite).toBe(100);
+    expect(result.maxPushUps?.score).toBe(10);
+  });
+
   it("scores Drop Jump RSI Mod against the clinic's own sex-specific Performance/Youth report thresholds (male 1.5, female 1.2)", () => {
     const male = scoreBjjScreen(screen({ sex: "male", power: { cmjHeight: "", dropJumpRsi: "1.5" } }));
     expect(male.dropJumpRsi?.percentOfElite).toBe(100);

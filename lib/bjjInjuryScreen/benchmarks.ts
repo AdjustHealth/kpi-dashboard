@@ -110,7 +110,11 @@ export const PUSH_UPS_BENCHMARK: SexBenchmark = {
     confidence: "general",
     source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for men aged 20-29 (standard, widely-cited general fitness normative data) — no combat-sport-specific push-up data was found.",
   },
-  female: null,
+  female: {
+    value: 32,
+    confidence: "general",
+    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for women aged 20-29 (>32 reps, standard full push-ups from the feet, same table as the men's figure) — no combat-sport-specific push-up data was found.",
+  },
 };
 
 /** Knee-to-wall (weight-bearing lunge) test, cm from the wall to the big toe with the knee touching the wall. */
