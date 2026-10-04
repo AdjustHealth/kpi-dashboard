@@ -142,7 +142,7 @@ describe("scoreBjjScreen", () => {
   it("computes per-domain category scores, averaging only the tests scored in that domain", () => {
     const data = screen({
       sex: "male",
-      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthN: "" },
+      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);
@@ -157,18 +157,18 @@ describe("scoreBjjScreen", () => {
     // A flat average across all raw tests would be (10+10+5)/3 = 8.3; the domain average is (10+5)/2 = 7.5.
     const data = screen({
       sex: "male",
-      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthN: "" },
+      strength: { imtp: "3.3", standingShoulderYLeft: "180", standingShoulderYRight: "", maxPullUps: "", maxPushUps: "", gripStrengthKg: "" },
       power: { cmjHeight: "19.8", dropJumpRsi: "" },
     });
     const result = scoreBjjScreen(data);
     expect(result.overall).toBe(7.5);
   });
 
-  it("scores grip strength (Newtons) against the elite judo benchmark", () => {
-    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, gripStrengthN: "460.7" } });
+  it("scores grip strength (kg) against the elite judo benchmark", () => {
+    const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, gripStrengthKg: "47.0" } });
     const result = scoreBjjScreen(data);
-    expect(result.gripStrengthN?.percentOfElite).toBe(100);
-    expect(result.gripStrengthN?.score).toBe(10);
+    expect(result.gripStrengthKg?.percentOfElite).toBe(100);
+    expect(result.gripStrengthKg?.score).toBe(10);
   });
 
   it("scores the knee-to-wall ankle dorsiflexion test per side, not part of the qualitative mobility score", () => {

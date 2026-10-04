@@ -4,7 +4,7 @@ import {
   Benchmark,
   CMJ_HEIGHT_CM_BENCHMARK,
   DROP_JUMP_RSI_BENCHMARK,
-  GRIP_STRENGTH_N_BENCHMARK,
+  GRIP_STRENGTH_KG_BENCHMARK,
   IMTP_RATIO_BENCHMARK,
   KNEE_TO_WALL_CM_BENCHMARK,
   PULL_UPS_BENCHMARK,
@@ -72,7 +72,7 @@ export type BjjScreenScore = {
   ankleDfRight: MetricResult | null;
   /** Limb Symmetry Index — min/max side × 100, same convention as the Youth/Performance report. Null unless both sides were measured. */
   ankleDfLsi: number | null;
-  gripStrengthN: MetricResult | null;
+  gripStrengthKg: MetricResult | null;
   /** W ÷ bodyweight — the only test here that still needs the Bodyweight field, since Wattbike doesn't output a relative figure the way ForceDecks does. */
   wattBike3MinAvgWatts: MetricResult | null;
   mobilityScore: number | null;
@@ -106,7 +106,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   const ankleDfRight = scoreMetric(data.mobility.ankleDfKneeToWallCmRight, sex, KNEE_TO_WALL_CM_BENCHMARK);
   const ankleDfLsi =
     ankleDfLeft && ankleDfRight ? Math.round((Math.min(ankleDfLeft.value, ankleDfRight.value) / Math.max(ankleDfLeft.value, ankleDfRight.value)) * 100) : null;
-  const gripStrengthN = scoreMetric(data.strength.gripStrengthN, sex, GRIP_STRENGTH_N_BENCHMARK);
+  const gripStrengthKg = scoreMetric(data.strength.gripStrengthKg, sex, GRIP_STRENGTH_KG_BENCHMARK);
 
   // Only the Poor/Demonstrated/Good ratings go into the qualitative
   // mobility score — ankle DF is a real measurement, scored (and folded
@@ -129,7 +129,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
   // Domain scores — what the report's radar/domain bars are built from.
   const categoryScores = {
     mobility: average([mobilityScore, ankleDfLeft?.score, ankleDfRight?.score]),
-    strength: average([imtp?.score, standingShoulderYLeft?.score, standingShoulderYRight?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthN?.score]),
+    strength: average([imtp?.score, standingShoulderYLeft?.score, standingShoulderYRight?.score, maxPullUps?.score, maxPushUps?.score, gripStrengthKg?.score]),
     power: average([cmjHeight?.score, dropJumpRsi?.score]),
     conditioning: average([wattBike3MinAvgWatts?.score]),
   };
@@ -152,7 +152,7 @@ export function scoreBjjScreen(data: BjjScreenFormData): BjjScreenScore {
     ankleDfLeft,
     ankleDfRight,
     ankleDfLsi,
-    gripStrengthN,
+    gripStrengthKg,
     wattBike3MinAvgWatts,
     mobilityScore,
     categoryScores,

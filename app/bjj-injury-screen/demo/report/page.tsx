@@ -41,7 +41,7 @@ const DEMO_DATA = mergeBjjScreen({
     standingShoulderYRight: "108",
     maxPullUps: "12",
     maxPushUps: "40",
-    gripStrengthN: "430",
+    gripStrengthKg: "43",
   },
   power: {
     cmjHeight: "34",

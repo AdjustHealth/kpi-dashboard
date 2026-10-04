@@ -494,7 +494,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     data.strength.standingShoulderYRight,
     data.strength.maxPullUps,
     data.strength.maxPushUps,
-    data.strength.gripStrengthN,
+    data.strength.gripStrengthKg,
   ].some((v) => v !== "");
   const hasPower = [data.power.cmjHeight, data.power.dropJumpRsi].some((v) => v !== "");
   const hasConditioning = data.conditioning.wattBike3MinAvgWatts !== "";
@@ -513,7 +513,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     { label: "IMTP (vs. bodyweight)", displayValue: score.imtp ? `${score.imtp.value.toFixed(2)}×` : "—", result: score.imtp, unit: "×" },
     { label: "Max Pull Ups", displayValue: data.strength.maxPullUps ? `${data.strength.maxPullUps} reps` : "—", result: score.maxPullUps, unit: " reps" },
     { label: "Max Push Ups", displayValue: data.strength.maxPushUps ? `${data.strength.maxPushUps} reps` : "—", result: score.maxPushUps, unit: " reps" },
-    { label: "Grip Strength", displayValue: data.strength.gripStrengthN ? `${data.strength.gripStrengthN}N` : "—", result: score.gripStrengthN, unit: "N" },
+    { label: "Grip Strength", displayValue: data.strength.gripStrengthKg ? `${data.strength.gripStrengthKg}kg` : "—", result: score.gripStrengthKg, unit: "kg" },
   ].filter((r) => r.displayValue !== "—");
 
   const powerRows: TestRowData[] = [
@@ -588,7 +588,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       { label: "Max Push Ups", result: score.maxPushUps },
       { label: "Ankle DF (L)", result: score.ankleDfLeft },
       { label: "Ankle DF (R)", result: score.ankleDfRight },
-      { label: "Grip Strength", result: score.gripStrengthN },
+      { label: "Grip Strength", result: score.gripStrengthKg },
       { label: "3-Min Watt Bike", result: score.wattBike3MinAvgWatts },
     ] as { label: string; result: MetricResult | null }[]
   )

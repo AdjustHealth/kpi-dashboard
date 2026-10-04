@@ -34,7 +34,7 @@ const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] 
   ["standingShoulderYRight", "Standing Shoulder Y — Right (ASH-Y)", "N — dynamometer"],
   ["maxPullUps", "Max Pull Ups", "reps"],
   ["maxPushUps", "Max Push Ups", "reps"],
-  ["gripStrengthN", "Grip Strength (dominant hand)", "N — dynamometer"],
+  ["gripStrengthKg", "Grip Strength (dominant hand)", "kg — dynamometer"],
 ];
 
 const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
@@ -285,7 +285,7 @@ export function BjjScreenWorkspace({
               <Badge tone={score.ankleDfLsi >= 90 ? "good" : score.ankleDfLsi >= 85 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
             </div>
           )}
-          <MetricResultRow label="Grip Strength" result={score.gripStrengthN} />
+          <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
           <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} />
           {score.mobilityScore !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
