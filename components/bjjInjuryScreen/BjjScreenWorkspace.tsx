@@ -65,7 +65,7 @@ function scoreTone(score: number | null): "neutral" | "good" | "warning" | "crit
   return "critical";
 }
 
-function MetricResultRow({ label, result }: { label: string; result: MetricResult | null }) {
+function MetricResultRow({ label, result, sex }: { label: string; result: MetricResult | null; sex: Sex }) {
   if (!result) return null;
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border bg-surface px-3 py-2">
@@ -77,10 +77,12 @@ function MetricResultRow({ label, result }: { label: string; result: MetricResul
           <Badge>No benchmark</Badge>
         )}
       </div>
-      {result.benchmark && (
+      {result.benchmark ? (
         <p className="text-[11px] text-muted">
           vs {result.benchmark.value} ({result.benchmark.confidence === "combat" ? "combat-sport data" : "general elite athletes"}) — {result.benchmark.source}
         </p>
+      ) : (
+        sex && <p className="text-[11px] text-muted">No {sex} reference standard available yet — value is recorded but not scored.</p>
       )}
     </div>
   );
@@ -264,29 +266,29 @@ export function BjjScreenWorkspace({
           <p className="mb-4 text-xs text-muted">Set Sex above to compare against elite reference data — mobility ratings score regardless.</p>
         )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} />
-          <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} />
-          <MetricResultRow label="RSI Mod (Drop Jump)" result={score.dropJumpRsi} />
-          <MetricResultRow label="Standing Shoulder Y — Left (ASH-Y)" result={score.standingShoulderYLeft} />
-          <MetricResultRow label="Standing Shoulder Y — Right (ASH-Y)" result={score.standingShoulderYRight} />
+          <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} sex={data.sex} />
+          <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} sex={data.sex} />
+          <MetricResultRow label="RSI Mod (Drop Jump)" result={score.dropJumpRsi} sex={data.sex} />
+          <MetricResultRow label="Standing Shoulder Y — Left (ASH-Y)" result={score.standingShoulderYLeft} sex={data.sex} />
+          <MetricResultRow label="Standing Shoulder Y — Right (ASH-Y)" result={score.standingShoulderYRight} sex={data.sex} />
           {score.standingShoulderYLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
               <span className="text-xs font-medium text-foreground">ASH-Y — L/R Deficit (LSI)</span>
               <Badge tone={score.standingShoulderYLsi <= 10 ? "good" : score.standingShoulderYLsi <= 15 ? "warning" : "critical"}>{score.standingShoulderYLsi}%</Badge>
             </div>
           )}
-          <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} />
-          <MetricResultRow label="Max Push Ups" result={score.maxPushUps} />
-          <MetricResultRow label="Ankle DF — Knee to Wall (L)" result={score.ankleDfLeft} />
-          <MetricResultRow label="Ankle DF — Knee to Wall (R)" result={score.ankleDfRight} />
+          <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} sex={data.sex} />
+          <MetricResultRow label="Max Push Ups" result={score.maxPushUps} sex={data.sex} />
+          <MetricResultRow label="Ankle DF — Knee to Wall (L)" result={score.ankleDfLeft} sex={data.sex} />
+          <MetricResultRow label="Ankle DF — Knee to Wall (R)" result={score.ankleDfRight} sex={data.sex} />
           {score.ankleDfLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
               <span className="text-xs font-medium text-foreground">Ankle DF — L/R Deficit (LSI)</span>
               <Badge tone={score.ankleDfLsi <= 10 ? "good" : score.ankleDfLsi <= 15 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
             </div>
           )}
-          <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} />
-          <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} />
+          <MetricResultRow label="Grip Strength" result={score.gripStrengthKg} sex={data.sex} />
+          <MetricResultRow label="3-Min Watt Bike" result={score.wattBike3MinAvgWatts} sex={data.sex} />
           {score.mobilityScore !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
               <span className="text-xs font-medium text-foreground">Mobility (qualitative)</span>
