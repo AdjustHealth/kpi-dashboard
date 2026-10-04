@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { calcDueStatus, holdEndOf } from "@/lib/programTracker/date";
+import { todayInClinicTz } from "@/lib/week";
 
 describe("calcDueStatus", () => {
-  const today = new Date();
+  // Matches calcDueStatus's own notion of "today" (the clinic's Brisbane
+  // timezone, not the test runner's) — otherwise these two "todays" can be
+  // different calendar dates for part of every day, the exact bug this file
+  // now protects against.
+  const today = todayInClinicTz();
   today.setHours(0, 0, 0, 0);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const daysFromNow = (n: number) => {

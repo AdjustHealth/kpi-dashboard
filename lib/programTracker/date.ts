@@ -9,6 +9,8 @@
  * unchanged.
  */
 
+import { todayInClinicTz } from "@/lib/week";
+
 export function localISO(dt: Date): string {
   const y = dt.getFullYear();
   const m = String(dt.getMonth() + 1).padStart(2, "0");
@@ -30,7 +32,7 @@ function daysUntilNextMonday(day: number): number {
 
 /** The start of the NEXT block — always the coming Monday, strictly after today (even if today is itself a Monday). */
 export function nextMonday(): string {
-  const dt = new Date();
+  const dt = todayInClinicTz();
   dt.setHours(0, 0, 0, 0);
   dt.setDate(dt.getDate() + daysUntilNextMonday(dt.getDay()));
   return localISO(dt);
@@ -38,7 +40,7 @@ export function nextMonday(): string {
 
 /** The Wednesday of the current Mon-Sun week, whatever day it is when a meeting is created — meetings always land on the day the team actually meets. */
 export function thisWednesday(): string {
-  const dt = new Date();
+  const dt = todayInClinicTz();
   dt.setHours(0, 0, 0, 0);
   const day = dt.getDay();
   dt.setDate(dt.getDate() + (day === 0 ? -6 : 1 - day) + 2);
@@ -75,7 +77,7 @@ function dueWindowEnd(from: Date): Date {
 export function calcDueStatus(nextDue: string | null, status: string | null, holdEnd: string | null): DueStatus {
   if (status === "Hold") {
     if (!holdEnd) return "On hold";
-    const t = new Date();
+    const t = todayInClinicTz();
     t.setHours(0, 0, 0, 0);
     const d = new Date(holdEnd + "T00:00:00");
     if (d < t) return "Hold overdue";
@@ -83,7 +85,7 @@ export function calcDueStatus(nextDue: string | null, status: string | null, hol
     return "On hold";
   }
   if (!nextDue) return "";
-  const t = new Date();
+  const t = todayInClinicTz();
   t.setHours(0, 0, 0, 0);
   const d = new Date(nextDue + "T00:00:00");
   if (d < t) return "OVERDUE";
