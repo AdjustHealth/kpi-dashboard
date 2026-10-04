@@ -83,10 +83,10 @@ describe("scoreBjjScreen", () => {
     expect(result.standingShoulderYRight?.score).toBe(5);
   });
 
-  it("computes a Limb Symmetry Index between the two ASH-Y sides", () => {
+  it("computes a Limb Symmetry Index (deficit) between the two ASH-Y sides", () => {
     const data = screen({ sex: "male", strength: { ...emptyBjjScreen().strength, standingShoulderYLeft: "180", standingShoulderYRight: "90" } });
     const result = scoreBjjScreen(data);
-    expect(result.standingShoulderYLsi).toBe(50); // min(180,90)/max(180,90) * 100 = 50%
+    expect(result.standingShoulderYLsi).toBe(50); // (1 - min(180,90)/max(180,90)) * 100 = 50%
   });
 
   it("scores max push ups against the elite benchmark (chin ups no longer exists as a field)", () => {
@@ -182,13 +182,13 @@ describe("scoreBjjScreen", () => {
     expect(result.mobilityScore).toBeNull(); // no Poor/Demonstrated/Good ratings were set
   });
 
-  it("computes a Limb Symmetry Index between the two ankle DF sides, same convention as the Youth/Performance report", () => {
+  it("computes a Limb Symmetry Index (deficit) between the two ankle DF sides — 0% is perfectly symmetric, higher is a bigger gap", () => {
     const data = screen({
       sex: "male",
       mobility: { shoulderErIr: "", hipErIr: "", lumbarFlexExt: "", txRotation: "", cervicalRotation: "", ankleDfKneeToWallCmLeft: "15", ankleDfKneeToWallCmRight: "12" },
     });
     const result = scoreBjjScreen(data);
-    expect(result.ankleDfLsi).toBe(80); // min(15,12)/max(15,12) * 100 = 80%
+    expect(result.ankleDfLsi).toBe(20); // (1 - min(15,12)/max(15,12)) * 100 = 20%
   });
 
   it("leaves the ankle DF LSI null when only one side was measured", () => {
