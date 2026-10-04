@@ -1,5 +1,5 @@
 import { PrintButton } from "@/components/consultationTemplates/PrintButton";
-import type { BjjScreenFormData, InjuryResult } from "@/lib/bjjInjuryScreen/types";
+import type { BjjScreenFormData, InjuryResult, Sex } from "@/lib/bjjInjuryScreen/types";
 import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
 
 const INJURY_REGIONS: [keyof Omit<BjjScreenFormData["injuryScreen"], "comments">, string][] = [
@@ -167,13 +167,17 @@ function bandThresholds(result: MetricResult, unit: string): { focus: string; av
 }
 
 /** Short "vs ___" line under a test's label — plain reference data, not commentary. */
-function refLine(row: TestRowData): string {
+function refLine(row: TestRowData, sex: Sex): string {
   const result = row.result;
   // A row can have a value on the page without a scored result — e.g. the
   // Watt Bike reading entered but not yet convertible to W/kg because
   // Bodyweight is blank. That's not the same as nothing being recorded.
   if (!result) return row.displayValue === "—" ? "Not recorded" : "";
-  if (!result.benchmark) return "";
+  // A result can exist (the value was recorded and is shown) with no
+  // benchmark to compare it against — e.g. Max Pull Ups has no reliable
+  // female standard. Say so explicitly rather than leaving the row looking
+  // like it's missing data.
+  if (!result.benchmark) return sex ? `No ${sex} reference standard available yet` : "";
   const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
   return `${kind} — target ${result.benchmark.value}${row.unit ?? ""}`;
 }
@@ -372,17 +376,18 @@ function DomainHero({ label, score, note }: { label: string; score: number | nul
   );
 }
 
-function TestRow({ row }: { row: TestRowData }) {
+function TestRow({ row, sex }: { row: TestRowData; sex: Sex }) {
   const score = row.result?.score ?? null;
   const color = bandColor(score);
   const pct = row.result?.percentOfElite !== null && row.result?.percentOfElite !== undefined ? Math.min(100, row.result.percentOfElite) : null;
   const thresholds = row.result ? bandThresholds(row.result, row.unit ?? "") : null;
+  const ref = refLine(row, sex);
   return (
     <div style={{ padding: "14px 0", borderBottom: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: COND, fontSize: 15, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>{row.label}</div>
-          {refLine(row) && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>{refLine(row)}</div>}
+          {ref && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>{ref}</div>}
           {row.rawNote && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 1 }}>{row.rawNote}</div>}
         </div>
         <div style={{ fontFamily: COND, fontSize: 28, fontWeight: 700, color: "#ffffff", textAlign: "right", minWidth: 84 }}>{row.displayValue}</div>
@@ -771,7 +776,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             })}
           />
           <div>
-            {strengthRows.map((r) => <TestRow key={r.label} row={r} />)}
+            {strengthRows.map((r) => <TestRow key={r.label} row={r} sex={data.sex} />)}
             <BilateralRow label="Standing Shoulder Y (ASH-Y)" left={score.standingShoulderYLeft} right={score.standingShoulderYRight} unit="N" />
           </div>
           <InterpretationBox title="Strength Interpretation">
@@ -797,7 +802,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                   unset: "Set Sex above to compare these tests against reference data.",
                 })}
               />
-              <div>{powerRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+              <div>{powerRows.map((r) => <TestRow key={r.label} row={r} sex={data.sex} />)}</div>
             </>
           )}
           {hasConditioning && (
@@ -814,7 +819,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                     : "Set Bodyweight above to compare this test against reference data — the Watt Bike test is normalised per kg, unlike the other tests.",
                 })}
               />
-              <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} />)}</div>
+              <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} sex={data.sex} />)}</div>
             </>
           )}
           <InterpretationBox title="Power &amp; Conditioning Interpretation">
