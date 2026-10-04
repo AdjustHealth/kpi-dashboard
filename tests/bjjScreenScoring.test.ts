@@ -107,8 +107,8 @@ describe("scoreBjjScreen", () => {
     expect(female.dropJumpRsi?.score).toBe(10);
   });
 
-  it("scores the Watt Bike 3-min test as watts ÷ bodyweight against Wattbike's own 'Amateur' power-to-weight tier (3.7 W/kg)", () => {
-    const data = screen({ sex: "male", bodyweightKg: "100", conditioning: { wattBike3MinAvgWatts: "370" } });
+  it("scores the Watt Bike 3-min test as watts ÷ bodyweight against the midpoint of Wattbike's Amateur/Professional power-to-weight tiers (5.4 W/kg)", () => {
+    const data = screen({ sex: "male", bodyweightKg: "100", conditioning: { wattBike3MinAvgWatts: "540" } });
     const result = scoreBjjScreen(data);
     expect(result.wattBike3MinAvgWatts?.percentOfElite).toBe(100);
     expect(result.wattBike3MinAvgWatts?.score).toBe(10);

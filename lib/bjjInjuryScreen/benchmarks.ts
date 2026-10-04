@@ -148,22 +148,33 @@ export const GRIP_STRENGTH_KG_BENCHMARK: SexBenchmark = {
  * power across the 3-minute all-out effort approximates MMP. Expressed as
  * W ÷ bodyweight (W/kg), same as every other strength/power test here,
  * rather than a flat watt number that would unfairly favour heavier
- * athletes. No combat-sport-specific data exists, so this uses Wattbike's
- * own published power-to-weight tiers for the test (confirmed directly
- * from support.wattbike.com, not estimated): Professional 7.1 W/kg,
- * Amateur 3.7 W/kg, Beginner 2.6 W/kg. "Professional" (7.1) would set an
- * unrealistic bar for a grappling-sport conditioning test, so "Amateur"
- * (3.7) is used as the Strong/elite-for-context threshold instead.
+ * athletes.
+ *
+ * Wattbike only publishes three power-to-weight tiers for this test
+ * (confirmed directly from support.wattbike.com): Professional 7.1 W/kg,
+ * Amateur 3.7 W/kg, Beginner 2.6 W/kg — no combat-sport-specific data
+ * exists. Every other benchmark in this file anchors "Strong" (≥75% of
+ * the value here) to a genuinely elite performer, so anchoring it to
+ * "Amateur" cyclist undersold it in practice: a real competing BJJ
+ * athlete (62kg, 199W = 3.19 W/kg) cleared it at 86%, landing "Strong"
+ * for an output the clinic's own read was "pretty average". "Professional"
+ * (7.1) swings the other way — an unrealistic bar built from dedicated
+ * cyclists' numbers, not grapplers whose main training isn't cycling
+ * endurance. With no official tier in between and no combat-sport data to
+ * fall back on, this uses the midpoint of Wattbike's own two tiers (5.4
+ * W/kg) as the clinic's working "Strong" target — a plain interpolation,
+ * not a sourced figure, and one to revisit if a better combat-sport
+ * aerobic-power dataset turns up.
  */
 export const WATT_BIKE_WATTS_PER_KG_BENCHMARK: SexBenchmark = {
   male: {
-    value: 3.7,
+    value: 5.4,
     confidence: "general",
-    source: "Wattbike's own published power-to-weight benchmark for the 3-Minute Test (\"Amateur\" tier, 3.7 W/kg) — no sex split published, no combat-sport-specific data exists for this protocol.",
+    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers — no official intermediate tier or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
   },
   female: {
-    value: 3.7,
+    value: 5.4,
     confidence: "general",
-    source: "Wattbike's own published power-to-weight benchmark for the 3-Minute Test (\"Amateur\" tier, 3.7 W/kg) — no sex split published, no combat-sport-specific data exists for this protocol.",
+    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers — no official intermediate tier, sex split, or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
   },
 };
