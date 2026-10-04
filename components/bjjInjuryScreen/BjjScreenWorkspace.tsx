@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
-import type { BjjScreenFormData, InjuryResult, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
+import type { AgeGroup, BjjScreenFormData, InjuryResult, Rating, Sex } from "@/lib/bjjInjuryScreen/types";
 import { scoreBjjScreen, type MetricResult } from "@/lib/bjjInjuryScreen/scoring";
 
 type ValueSection = "mobility" | "strength" | "power" | "conditioning";
@@ -182,6 +182,13 @@ export function BjjScreenWorkspace({
             <option value="">Not set</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
+          </Select>
+        </Field>
+        <Field label="Age Group" hint="Youth = 13-18. Only CMJ has a published youth reference — every other test still uses the adult benchmark, flagged on the report.">
+          <Select value={data.ageGroup} onChange={(e) => setTop("ageGroup", e.target.value as AgeGroup)}>
+            <option value="">Not set</option>
+            <option value="adult">Adult</option>
+            <option value="youth">Youth (13-18)</option>
           </Select>
         </Field>
         <Field label="Bodyweight" hint="kg — needed to normalise the Watt Bike test against elite data">

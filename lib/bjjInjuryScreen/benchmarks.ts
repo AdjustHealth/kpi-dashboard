@@ -58,6 +58,32 @@ export const CMJ_HEIGHT_CM_BENCHMARK: SexBenchmark = {
 };
 
 /**
+ * CMJ jump height for a youth athlete (13-18) — the one test with real
+ * published youth data (Lesinski et al. 2020, PLOS ONE, Optojump, N=703
+ * elite German youth athletes). These are the exact "Youth 2 (13-18)"
+ * figures already live on Adjust's own Youth Performance Report — reused
+ * here rather than re-derived, since they're already client-approved as
+ * an "around about" reference band for the full 13-18 span (the paper
+ * itself only had enough per-age data to report ages 12-15 individually).
+ * No other BJJ test has an equivalent youth dataset — RSI, IMTP, ASH-Y,
+ * grip, Ankle DF and Watt Bike all stay on the adult benchmark regardless
+ * of age group, same conclusion the Youth report's own sourcing notes
+ * already reached ("no published/credible youth norm exists").
+ */
+export const CMJ_HEIGHT_CM_YOUTH_BENCHMARK: SexBenchmark = {
+  male: {
+    value: 34,
+    confidence: "general",
+    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for boys — derived from Lesinski et al. 2020 (age 15 P50 = 34.4cm).",
+  },
+  female: {
+    value: 26,
+    confidence: "general",
+    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for girls — derived from Lesinski et al. 2020 (girls' CMJ plateaus by age 14-15, P50 ~26-27cm).",
+  },
+};
+
+/**
  * Drop jump Reactive Strength Index Modified (RSI Mod — jump height ÷
  * ground contact time, unitless by convention, entered directly off the
  * device same as every other force-plate/jump-mat output). Matches Adjust's
