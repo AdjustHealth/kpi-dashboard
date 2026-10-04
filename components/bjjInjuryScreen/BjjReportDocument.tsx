@@ -71,6 +71,52 @@ function domainNote(score: number | null, focusLabels: string[], copy: { strong:
   return copy.focus;
 }
 
+/**
+ * What a flagged test actually means for BJJ (why) and what to do about it
+ * (action) — matched by keyword against whatever label string the caller
+ * has on hand (row labels and Key-Development-Areas labels spell the same
+ * test slightly differently, e.g. "ASH-Y (L)" vs "Standing Shoulder Y (L)"),
+ * so one lookup serves every place a test label shows up in the report.
+ * Domain pages show why+action; the Summary page's tighter space uses the
+ * action clause alone.
+ */
+const BJJ_NOTES: { match: (label: string) => boolean; why: string; action: string }[] = [
+  { match: (l) => l.includes("IMTP"), why: "Whole-body pulling force relative to bodyweight — the base for grip fights and takedown finishes.", action: "Prioritise heavy trap-bar pulls or deadlifts, 2x/week." },
+  { match: (l) => l.includes("ASH-Y") || l.includes("Standing Shoulder Y"), why: "Shoulder stability in an overhead/lateral position — the quality most linked to shoulder injuries from framing and underhooks.", action: "Prioritise scapular control and loaded carry work before heavy live sparring on that side." },
+  { match: (l) => l.includes("Pull Ups"), why: "Relative pulling strength for closing distance and finishing chokes.", action: "Build with weighted pull-up progressions." },
+  { match: (l) => l.includes("Push Ups"), why: "Pressing endurance for base and surviving top pressure.", action: "Build with higher-rep press circuits." },
+  { match: (l) => l.includes("Grip"), why: "The most BJJ-specific strength quality — it controls the sleeve/collar/lapel grip fight.", action: "Build with farmer's carries and gi-grip hangs, 2-3x/week." },
+  { match: (l) => l.includes("Ankle DF"), why: "Underpins base and squat depth for takedowns, and is a common injury site in foot-trapped scrambles.", action: "Add banded ankle mobilisations and calf/soleus stretching." },
+  { match: (l) => l.includes("Shoulder ER/IR"), why: "Underpins framing, underhooks and kimura/americana defence.", action: "Add banded ER/IR work and rotator cuff mobility before loading end-range." },
+  { match: (l) => l.includes("Hip ER/IR"), why: "Drives guard retention, triangle/armbar setups and hip escapes.", action: "Add 90/90 hip switches and controlled hip CARs daily." },
+  { match: (l) => l.includes("Lumbar"), why: "Restricted lumbar motion often shows up as low-back strain when bridging under a heavier opponent.", action: "Add segmental flexion/extension drills like cat-cow and rock-backs." },
+  { match: (l) => l.includes("Thoracic") || l.includes("(Tx)"), why: "Drives guard passing and back-takes — a restriction here is often compensated for at the shoulder or lumbar spine, raising injury risk there.", action: "Add open-book stretches and rotational work." },
+  { match: (l) => l.includes("Cervical"), why: "Matters for base and injury risk in guillotine/neck-crank scenarios.", action: "Add controlled neck CARs and isometric neck strengthening." },
+  { match: (l) => l.includes("CMJ"), why: "Lower-body explosive power drives takedown entries and explosive hip movement (upa, hip escape).", action: "Add box jumps and trap-bar jump squats." },
+  { match: (l) => l.includes("RSI"), why: "How fast force is produced right after absorbing a load — drives scramble speed and explosive reactions.", action: "Add short-contact depth jumps." },
+  { match: (l) => l.includes("Watt Bike"), why: "Determines whether technique holds up in the third round.", action: "Build with structured intervals (e.g. 30s on/30s off) toward match-length efforts." },
+];
+
+function bjjNoteFor(label: string): string | null {
+  const entry = BJJ_NOTES.find((n) => n.match(label));
+  return entry ? `${entry.why} ${entry.action}` : null;
+}
+
+function bjjActionFor(label: string): string | null {
+  return BJJ_NOTES.find((n) => n.match(label))?.action ?? null;
+}
+
+/** Short, deduped BJJ-specific notes for the worst Focus-band items in a domain — appended under the plain findings sentence, capped at 2 so the box stays short and doesn't push a page over length. */
+function bjjFocusNotes(focusLabels: string[]): string[] {
+  const notes: string[] = [];
+  for (const label of focusLabels) {
+    const note = bjjNoteFor(label);
+    if (note && !notes.includes(note)) notes.push(note);
+    if (notes.length === 2) break;
+  }
+  return notes;
+}
+
 function joinWithAnd(items: string[]): string {
   if (items.length <= 1) return items[0] ?? "";
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
@@ -227,7 +273,7 @@ function InjuryChip({ label, result }: { label: string; result: InjuryResult }) 
       style={{
         background: pass ? `${GREEN}1f` : fail ? `${RED}1f` : PANEL,
         border: `1px solid ${pass ? GREEN : fail ? RED : BORDER}`,
-        padding: "16px 10px",
+        padding: "12px 10px",
         textAlign: "center",
       }}
     >
@@ -285,7 +331,7 @@ function PageShell({
           Page {pageNum}
         </div>
       </div>
-      <div style={{ flex: 1, padding: "4px 44px 30px", display: "flex", flexDirection: "column", gap: 21 }}>{children}</div>
+      <div style={{ flex: 1, padding: "4px 44px 30px", display: "flex", flexDirection: "column", gap: 18 }}>{children}</div>
     </div>
   );
 }
@@ -382,6 +428,21 @@ function InterpretationBox({ title, children }: { title: string; children: React
     <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "20px 26px", marginTop: "auto" }}>
       <div style={{ fontFamily: COND, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 10 }}>{title}</div>
       <div style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.8 }}>{children}</div>
+    </div>
+  );
+}
+
+/** "What this means for BJJ" notes under a domain's plain findings sentence — short, specific, action-oriented, capped to 2 so it reads as a quick add-on, not a second essay. */
+function BjjNotes({ notes }: { notes: string[] }) {
+  if (notes.length === 0) return null;
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 6 }}>
+      {notes.map((note, i) => (
+        <div key={i} style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
+          <span style={{ color: LIME, fontWeight: 700 }}>For BJJ — </span>
+          {note}
+        </div>
+      ))}
     </div>
   );
 }
@@ -569,6 +630,11 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const conditioningAvgLabels = avgLabelsOf(conditioningRows);
   const conditioningScoredCount = scoredCountOf(conditioningRows);
 
+  const mobilityBjjNotes = bjjFocusNotes(mobilityFocusLabels);
+  const strengthBjjNotes = bjjFocusNotes(strengthFocusLabels);
+  const powerBjjNotes = bjjFocusNotes(powerFocusLabels);
+  const conditioningBjjNotes = bjjFocusNotes(conditioningFocusLabels);
+
   const domains = [
     hasMobility && { label: "Mobility", score: score.categoryScores.mobility },
     hasStrength && { label: "Strength", score: score.categoryScores.strength },
@@ -595,6 +661,22 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
     .filter((r): r is { label: string; result: MetricResult } => r.result !== null && r.result.score !== null)
     .sort((a, b) => (a.result.score as number) - (b.result.score as number));
   const focusAreas = allScored.filter((r) => (r.result.score as number) < 7.5).slice(0, 3);
+
+  // A short, synthesised read of the whole profile for the Summary page —
+  // names the single clearest physical limiter (if any) in BJJ terms rather
+  // than just restating the domain scores shown right below it.
+  const overallSummaryText = (() => {
+    if (score.overall === null) return null;
+    if (focusAreas.length === 0) {
+      return "Every tested quality sits at or above the Avg band — a strong, well-rounded physical profile for BJJ. Technique and game plan are the limiting factors right now, not physical output.";
+    }
+    const top = focusAreas[0];
+    const topAction = bjjActionFor(top.label);
+    const others = focusAreas.slice(1).map((f) => f.label);
+    let text = `${top.label} is the clearest physical limiter right now (${top.result.percentOfElite}% of target).${topAction ? ` ${topAction}` : ""}`;
+    if (others.length > 0) text += ` Also behind target: ${joinWithAnd(others)}.`;
+    return text;
+  })();
 
   let pageNum = 1; // page 1 is the cover, rendered separately below
   const mobilityPage = hasMobility ? ++pageNum : null;
@@ -655,6 +737,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           <InterpretationBox title="Mobility Interpretation">
             {findingsText(mobilityFocusLabels, mobilityAvgLabels, mobilityScoredCount, "Mobility")}
             {score.ankleDfLsi !== null && score.ankleDfLsi < 85 ? ` Left/right ankle DF symmetry is also low (${score.ankleDfLsi}%), worth addressing on its own.` : ""}
+            <BjjNotes notes={mobilityBjjNotes} />
           </InterpretationBox>
         </PageShell>
       )}
@@ -679,6 +762,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           <InterpretationBox title="Strength Interpretation">
             {findingsText(strengthFocusLabels, strengthAvgLabels, strengthScoredCount, "Strength")}
             {score.standingShoulderYLsi !== null && score.standingShoulderYLsi < 85 ? ` Left/right ASH-Y symmetry is also low (${score.standingShoulderYLsi}%), worth addressing on its own.` : ""}
+            <BjjNotes notes={strengthBjjNotes} />
           </InterpretationBox>
         </PageShell>
       )}
@@ -718,6 +802,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
           )}
           <InterpretationBox title="Power &amp; Conditioning Interpretation">
             {hasPower && findingsText(powerFocusLabels, powerAvgLabels, powerScoredCount, "Power")} {hasConditioning && findingsText(conditioningFocusLabels, conditioningAvgLabels, conditioningScoredCount, "Conditioning")}
+            <BjjNotes notes={[...powerBjjNotes, ...conditioningBjjNotes.filter((n) => !powerBjjNotes.includes(n))].slice(0, 2)} />
           </InterpretationBox>
         </PageShell>
       )}
@@ -725,9 +810,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       {/* ---- Summary ---- */}
       <PageShell title="Summary" subtitle="Performance profile — vs. elite &amp; general-population reference data" pageNum={summaryPage}>
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", overflow: "hidden" }}>
-          <div style={{ padding: "22px 30px", textAlign: "center", borderRight: `1px solid ${BORDER}` }}>
+          <div style={{ padding: "16px 30px", textAlign: "center", borderRight: `1px solid ${BORDER}` }}>
             <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED }}>Overall</div>
-            <div style={{ fontFamily: COND, fontSize: 56, fontWeight: 900, color: bandColor(score.overall), lineHeight: 1 }}>{score.overall !== null ? score.overall.toFixed(1) : "—"}</div>
+            <div style={{ fontFamily: COND, fontSize: 48, fontWeight: 900, color: bandColor(score.overall), lineHeight: 1 }}>{score.overall !== null ? score.overall.toFixed(1) : "—"}</div>
             <div style={{ fontSize: 10, color: MUTED }}>out of 10</div>
           </div>
           <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 28px", fontFamily: COND, fontSize: 17, fontWeight: 700, textTransform: "uppercase", color: "#ffffff" }}>
@@ -740,6 +825,13 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               : "Complete assessment"}
           </div>
         </div>
+
+        {overallSummaryText && (
+          <div style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "12px 20px" }}>
+            <div style={{ fontFamily: COND, fontSize: 10.5, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: LIME, marginBottom: 5 }}>Overall Summary</div>
+            <div style={{ fontSize: 12, color: TEXT, lineHeight: 1.55 }}>{overallSummaryText}</div>
+          </div>
+        )}
 
         {hasInjuryScreen && (
           <div>
@@ -758,12 +850,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
         <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 24 }}>
           <div>
             <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 12 }}>Domain Scores</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {domains.map((d) => (
                 <DomainBar key={d.label} label={d.label} score={d.score} />
               ))}
             </div>
-            <div style={{ marginTop: 10, padding: "8px 12px", background: "#1c2733", fontSize: 9.5, color: MUTED }}>
+            <div style={{ marginTop: 8, padding: "7px 12px", background: "#1c2733", fontSize: 9.5, color: MUTED }}>
               Combat-sport data where it exists; best available elite/general-population standard otherwise. <span style={{ color: GREEN }}>Strong</span> ≥7.5 · <span style={{ color: AMBER }}>Avg</span> 5–7.4 · <span style={{ color: RED }}>Focus</span> &lt;5
             </div>
           </div>
@@ -780,11 +872,11 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
         </div>
 
         <div>
-          <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 12 }}>Key Development Areas</div>
+          <div style={{ fontFamily: COND, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>Key Development Areas</div>
           {focusAreas.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {focusAreas.map((d, i) => (
-                <div key={d.label} style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+                <div key={d.label} style={{ background: PANEL, borderLeft: `4px solid ${LIME}`, padding: "11px 18px", display: "flex", alignItems: "center", gap: 14 }}>
                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: LIME, color: "#0d1117", fontFamily: COND, fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {i + 1}
                   </div>
