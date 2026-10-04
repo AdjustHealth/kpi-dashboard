@@ -127,17 +127,17 @@ export const KNEE_TO_WALL_CM_BENCHMARK: SexBenchmark = {
   },
 };
 
-/** Grip strength, dominant hand, Newtons — matching the clinic's dynamometer, which reads in N rather than kg. */
-export const GRIP_STRENGTH_N_BENCHMARK: SexBenchmark = {
+/** Grip strength, dominant hand, kg — matches the clinic's dynamometer. */
+export const GRIP_STRENGTH_KG_BENCHMARK: SexBenchmark = {
   male: {
-    value: 460.7,
+    value: 47.0,
     confidence: "combat",
-    source: "Elite male judo athletes, maximal isometric handgrip strength: 460.7N (elite vs. non-elite judoka comparison study).",
+    source: "Elite male judo athletes, maximal isometric handgrip strength: 460.7N ≈ 47kg (elite vs. non-elite judoka comparison study).",
   },
   female: {
-    value: 305.6,
+    value: 31.2,
     confidence: "combat",
-    source: "Elite female judo athletes (medalists), maximal isometric handgrip strength: 305.6N (elite female cadet judo medalist vs. non-medalist study).",
+    source: "Elite female judo athletes (medalists), maximal isometric handgrip strength: 305.6N ≈ 31.2kg (elite female cadet judo medalist vs. non-medalist study).",
   },
 };
 

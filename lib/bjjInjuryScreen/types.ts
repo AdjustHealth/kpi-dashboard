@@ -46,8 +46,8 @@ export type BjjScreenFormData = {
     standingShoulderYRight: string;
     maxPullUps: string;
     maxPushUps: string;
-    /** Dominant hand, Newtons — matches the clinic's dynamometer. */
-    gripStrengthN: string;
+    /** Dominant hand, kg — matches the clinic's dynamometer. */
+    gripStrengthKg: string;
   };
   power: {
     cmjHeight: string;
@@ -91,7 +91,7 @@ export function emptyBjjScreen(): BjjScreenFormData {
       standingShoulderYRight: "",
       maxPullUps: "",
       maxPushUps: "",
-      gripStrengthN: "",
+      gripStrengthKg: "",
     },
     power: {
       cmjHeight: "",
