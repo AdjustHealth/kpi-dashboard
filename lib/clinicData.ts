@@ -1,10 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { recentWeeks } from "@/lib/week";
+import { recentWeeks, financialYearToDateWeeks } from "@/lib/week";
 import { cvaTierBucket, CvaTier } from "@/lib/cvaTier";
 import { retentionPct } from "@/lib/providerData";
 import { isRescheduleNote, isCancellationExcludedFromStats } from "@/lib/nookal/parsers";
 import { CancellationEventRow } from "@/components/clinic/CancellationsTable";
+import { cumulativeSum } from "@/lib/calc";
 
 export interface ClinicWeekRow {
   week_ending: string;
@@ -17,6 +18,19 @@ export async function getClinicHistory(week: string, historyWeeks = 12): Promise
   const { data } = await supabase.from("weekly_kpis").select("*").in("week_ending", weeks);
   const byWeek = new Map((data ?? []).map((r) => [r.week_ending as string, r as ClinicWeekRow]));
   return weeks.map((w) => byWeek.get(w) ?? { week_ending: w });
+}
+
+/**
+ * Podiatry revenue since the start of the current Australian financial
+ * year (1 July) through `week` — replaces the old manually-entered m_pod_ytd
+ * figure. A straight sum of the weekly m_pod_rev figures (themselves each
+ * half of the real fortnightly total), not a separately-reconciled
+ * authoritative number — if that ever needs to be reconciled against the
+ * podiatrist's own invoicing again, this is the place to adjust.
+ */
+export async function getPodiatryYtdRevenue(week: string): Promise<number> {
+  const history = await getClinicHistory(week, financialYearToDateWeeks(week));
+  return cumulativeSum(history, "m_pod_rev");
 }
 
 export async function getClinicTargets(): Promise<Record<string, unknown>> {

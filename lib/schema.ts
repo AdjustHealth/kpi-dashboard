@@ -55,7 +55,11 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // Genuinely additive on top of Glofox Income, not a subset of it.
   { idx: 11, id: "m_gym3p", label: "3rd Party Gym Revenue", source: "calc", type: "currency", category: "Gym" },
   { idx: 13, id: "gym_total", label: "Total Gym Revenue", source: "calc", type: "currency", category: "Gym" },
-  { idx: 14, id: "m_mems", label: "Paid Memberships", source: "manual", type: "number", category: "Gym" },
+  // m_mems (Paid Memberships) deliberately removed — it was a manually
+  // re-typed duplicate of a number the app already computes live from the
+  // Program Tracker (getPaidGymMemberCount(), the same "active, paid
+  // members" figure already shown on the Revenue page's Paid Gym Members
+  // tile and synced onto the Senior Physio's Memberships specialty metric).
   // Podiatry revenue is only known fortnightly (collected/reconciled every
   // 2 weeks, in arrears) — m_pod_fortnightly is where the real, un-halved
   // figure gets typed in once, on whichever week it comes in; the
@@ -65,8 +69,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // twice. m_pod_rev itself stays a normal writable column (not generated),
   // correctable by hand if it's ever wrong.
   { idx: 15, id: "m_pod_rev", label: "Podiatry Revenue (weekly)", source: "calc", type: "currency", category: "Podiatry" },
-  { idx: 16, id: "m_pod_c", label: "Podiatry Consults", source: "manual", type: "number", category: "Podiatry" },
-  { idx: 17, id: "m_pod_ytd", label: "Podiatry YTD Revenue", source: "manual", type: "currency", category: "Podiatry" },
+  // m_pod_c (Podiatry Consults) deliberately removed — not used anywhere.
+  // Podiatry YTD Revenue is now a straight cumulative sum of m_pod_rev
+  // since the start of the current Australian financial year (see
+  // getPodiatryYtdRevenue in lib/clinicData.ts) instead of a manually
+  // re-typed figure.
+  { idx: 17, id: "m_pod_ytd", label: "Podiatry YTD Revenue", source: "calc", type: "currency", category: "Podiatry" },
   { idx: 18, id: "total_adjust_pod_rev", label: "Total Adjust + Podiatry Revenue", source: "calc", type: "currency", category: "Revenue" },
   { idx: 19, id: "cx_cancels", label: "Cancellations (count)", source: "calc", type: "number", category: "CX" },
   { idx: 20, id: "cx_pct", label: "Cancellation %", source: "calc", type: "percent", category: "CX" },
@@ -194,12 +202,16 @@ export function getManualClinicFields(): ClinicField[] {
 }
 
 /**
- * Fields computed as pure Postgres generated columns (see
- * supabase/migrations/0001_init.sql) — never directly editable.
+ * Fields computed either as pure Postgres generated columns (see
+ * supabase/migrations/0001_init.sql) or server-side from another source
+ * entirely (e.g. m_pod_ytd, a financial-year-to-date sum computed in
+ * lib/clinicData.ts, not stored per-week at all) — never directly
+ * editable either way.
  */
 export const GENERATED_CLINIC_FIELD_IDS = [
   "gym_total",
   "total_adjust_pod_rev",
+  "m_pod_ytd",
   "diary_mgmt_pct",
   "jbv_total",
   "specialty_vestibular_total",

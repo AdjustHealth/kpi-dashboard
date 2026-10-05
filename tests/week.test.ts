@@ -5,6 +5,8 @@ import {
   TRACKING_START_WEEK_ENDING,
   clinicHistoryWeeks,
   CLINIC_HISTORY_START_WEEK_ENDING,
+  financialYearStartWeekEnding,
+  financialYearToDateWeeks,
 } from "@/lib/week";
 
 describe("trackingHistoryWeeks", () => {
@@ -60,5 +62,38 @@ describe("clinicHistoryWeeks", () => {
 
   it("is capped at max for far-future weeks", () => {
     expect(clinicHistoryWeeks("2030-01-01", 52)).toBe(52);
+  });
+});
+
+describe("financialYearStartWeekEnding", () => {
+  it("resolves to the Saturday on/after 1 July of the FY a week falls in, for a week in Jul-Jun H1", () => {
+    // 1 July 2026 is a Wednesday, same as TRACKING_START_WEEK — first Saturday on/after is 4 July 2026.
+    expect(financialYearStartWeekEnding("2026-10-03")).toBe("2026-07-04");
+    expect(financialYearStartWeekEnding("2026-07-04")).toBe("2026-07-04");
+  });
+
+  it("uses the PREVIOUS 1 July for a week in Jan-Jun (still that same financial year)", () => {
+    // A week in e.g. March falls in the FY that started the previous July —
+    // but 1 July 2025 predates CLINIC_HISTORY_START_WEEK_ENDING, so it clamps.
+    expect(financialYearStartWeekEnding("2026-03-07")).toBe(CLINIC_HISTORY_START_WEEK_ENDING);
+  });
+
+  it("never goes earlier than CLINIC_HISTORY_START_WEEK_ENDING, even when the real FY start predates it", () => {
+    expect(financialYearStartWeekEnding("2026-01-10") >= CLINIC_HISTORY_START_WEEK_ENDING).toBe(true);
+  });
+});
+
+describe("financialYearToDateWeeks", () => {
+  it("is 1 for the first week of the financial year", () => {
+    expect(financialYearToDateWeeks("2026-07-04")).toBe(1);
+  });
+
+  it("grows by one for every week further into the financial year", () => {
+    expect(financialYearToDateWeeks("2026-07-11")).toBe(2);
+    expect(financialYearToDateWeeks("2026-07-18")).toBe(3);
+  });
+
+  it("is uncapped, unlike clinicHistoryWeeks/trackingHistoryWeeks — a YTD sum needs the whole year so far", () => {
+    expect(financialYearToDateWeeks("2027-06-26")).toBeGreaterThan(8);
   });
 });
