@@ -119,7 +119,6 @@ export const ADMIN_METRIC_FIELDS: ProviderField[] = [
   { key: "pct_of_total_clinic_cx", label: "Cancellations % of Total Clinic", type: "percent" },
   { key: "not_rebooked", label: "Number Unretained", type: "number", betterWhen: "lower" },
   { key: "cancellations_not_rebooked_pct", label: "Cancellations Unretained %", type: "percent", betterWhen: "lower" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked (100% − Cancellations Unretained %)" },
   { key: "reschedule_rate_pct", label: "Reschedule Rate", type: "percent", betterWhen: "higher" },
   { key: "booked_within_7_days_pct", label: "Cancellations Booked Within 7 Days", type: "percent", betterWhen: "higher" },
   { key: "avg_days_to_next_booking", label: "Average Days to Next Booking", type: "decimal", decimals: 1, betterWhen: "lower" },
