@@ -57,11 +57,12 @@ export default async function RevenuePage({
     return {
       label: formatWeekLabel(h.week_ending),
       "Total Turnover": adjustPod !== null ? adjustPod + (gym ?? 0) : null,
+      "Adjust Only": rev,
       ...(weeklyTarget !== null ? { Target: weeklyTarget } : {}),
       ...(breakeven !== null ? { "Break-Even": breakeven } : {}),
     };
   });
-  const turnoverSeriesKeys = ["Total Turnover"];
+  const turnoverSeriesKeys = ["Total Turnover", "Adjust Only"];
   if (weeklyTarget !== null) turnoverSeriesKeys.push("Target");
   if (breakeven !== null) turnoverSeriesKeys.push("Break-Even");
 
