@@ -40,18 +40,23 @@ export default async function RevenuePage({
   const gymTarget = typeof targets.weekly_gym_revenue_target === "number" ? targets.weekly_gym_revenue_target : null;
   const latest = history[history.length - 1] ?? {};
   const latestRevenue = typeof latest.total_rev === "number" ? latest.total_rev : null;
+  const latestAdjustPod = typeof latest.total_adjust_pod_rev === "number" ? latest.total_adjust_pod_rev : latestRevenue;
   const latestGymTotal = typeof latest.gym_total === "number" ? latest.gym_total : null;
-  const latestTurnover = latestRevenue !== null ? latestRevenue + (latestGymTotal ?? 0) : null;
+  const latestTurnover = latestAdjustPod !== null ? latestAdjustPod + (latestGymTotal ?? 0) : null;
 
-  // Total Turnover = Adjust clinic revenue + Gym revenue combined — matches
-  // the director's own weekly finance sheet, where Target/Break-Even are set
-  // against this combined figure, not clinic revenue alone.
+  // Total Turnover = Adjust clinic revenue + Podiatry revenue + Gym revenue
+  // combined — matches the director's own weekly finance sheet, where
+  // Target/Break-Even are set against this combined figure, not clinic
+  // revenue alone. Adjust+Podiatry is read from total_adjust_pod_rev (a
+  // generated DB column, same one the dashboard's own trend already uses),
+  // not re-summed here, so there's one definition of that pairing, not two.
   const turnoverData = history.map((h) => {
     const rev = typeof h.total_rev === "number" ? h.total_rev : null;
+    const adjustPod = typeof h.total_adjust_pod_rev === "number" ? h.total_adjust_pod_rev : rev;
     const gym = typeof h.gym_total === "number" ? h.gym_total : null;
     return {
       label: formatWeekLabel(h.week_ending),
-      "Total Turnover": rev !== null ? rev + (gym ?? 0) : null,
+      "Total Turnover": adjustPod !== null ? adjustPod + (gym ?? 0) : null,
       ...(weeklyTarget !== null ? { Target: weeklyTarget } : {}),
       ...(breakeven !== null ? { "Break-Even": breakeven } : {}),
     };
@@ -107,7 +112,7 @@ export default async function RevenuePage({
       <div className="flex flex-col gap-8 p-8">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Total Turnover</h2>
-          <p className="mb-3 text-xs text-muted">Adjust clinic revenue + Gym revenue combined — matches the weekly finance sheet.</p>
+          <p className="mb-3 text-xs text-muted">Adjust clinic revenue + Podiatry revenue + Gym revenue combined — matches the weekly finance sheet.</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
               label="Total Turnover"
@@ -123,7 +128,7 @@ export default async function RevenuePage({
           <div className="mt-4">
             <Card title="Total Turnover vs Target & Break-Even">
               <MultiLineChart
-                title="Total Turnover (Adjust + Gym) vs Target vs Break-Even"
+                title="Total Turnover (Adjust + Podiatry + Gym) vs Target vs Break-Even"
                 data={turnoverData}
                 seriesKeys={turnoverSeriesKeys}
                 format="currency"
