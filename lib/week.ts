@@ -117,3 +117,24 @@ export const CLINIC_HISTORY_START_WEEK_ENDING = firstWeekEndingOnOrAfter(CLINIC_
 export function clinicHistoryWeeks(week: string, max = 8): number {
   return Math.min(max, Math.max(1, weeksBetween(CLINIC_HISTORY_START_WEEK_ENDING, week) + 1));
 }
+
+/**
+ * The week_ending (Saturday) of the week containing 1 July of the
+ * Australian financial year `week` falls in — e.g. for any week in
+ * Jul 2026-Jun 2027, this returns the week ending shortly after 1 Jul 2026.
+ * Clamped to CLINIC_HISTORY_START_WEEK_ENDING since nothing before that
+ * has real weekly_kpis data. Used for YTD-style cumulative figures (e.g.
+ * Podiatry YTD Revenue) that need the whole financial year to date, not a
+ * fixed trailing window.
+ */
+export function financialYearStartWeekEnding(week: string): string {
+  const d = new Date(`${week}T00:00:00Z`);
+  const fyStartYear = d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1; // FY starts 1 July (month 6, 0-indexed)
+  const fyStart = firstWeekEndingOnOrAfter(`${fyStartYear}-07-01`);
+  return fyStart > CLINIC_HISTORY_START_WEEK_ENDING ? fyStart : CLINIC_HISTORY_START_WEEK_ENDING;
+}
+
+/** How many weeks of history to fetch to cover the current Australian financial year to date through `week` — uncapped, unlike clinicHistoryWeeks/trackingHistoryWeeks, since a YTD sum needs the whole year so far, not a fixed trailing window. */
+export function financialYearToDateWeeks(week: string): number {
+  return Math.max(1, weeksBetween(financialYearStartWeekEnding(week), week) + 1);
+}

@@ -6,7 +6,7 @@ import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { StackedBarChart } from "@/components/charts/StackedBarChart";
 import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
-import { getClinicHistory, getClinicTargets } from "@/lib/clinicData";
+import { getClinicHistory, getClinicTargets, getPodiatryYtdRevenue } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatValue } from "@/lib/format";
 import { targetColor } from "@/lib/targetColor";
@@ -26,10 +26,11 @@ export default async function RevenuePage({
   // Revenue trends read as noise over just 4 weeks — a trailing quarter (13
   // weeks) gives enough points to actually see seasonality/direction, while
   // still staying a fixed window rather than growing wider every week.
-  const [history, targets, gymPaidMemberCount] = await Promise.all([
+  const [history, targets, gymPaidMemberCount, podiatryYtd] = await Promise.all([
     getClinicHistory(week, clinicHistoryWeeks(week, 13)),
     getClinicTargets(),
     getPaidGymMemberCount(),
+    getPodiatryYtdRevenue(week),
   ]);
 
   const weeklyTarget = typeof targets.weekly_revenue_target === "number" ? targets.weekly_revenue_target : null;
@@ -233,13 +234,12 @@ export default async function RevenuePage({
           <h2 className="mb-3 text-sm font-semibold text-foreground">Podiatry</h2>
           <p className="mb-3 text-xs text-muted">
             Revenue is only known fortnightly — entered once as the real total, then split in half automatically
-            into that week and the previous week. YTD is tracked separately (its own running total, not a sum of
-            the weekly figures here).
+            into that week and the previous week. YTD is a running sum of those weekly figures since the start of
+            the current financial year (1 July), not a separately-entered number.
           </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatTile {...clinicStatTile(history, "m_pod_rev")} label="Podiatry Revenue" />
-            <StatTile {...clinicStatTile(history, "m_pod_c")} label="Podiatry Consults" />
-            <StatTile {...clinicStatTile(history, "m_pod_ytd")} label="Podiatry YTD Revenue" />
+            <StatTile label="Podiatry YTD Revenue" value={formatValue(podiatryYtd, "currency")} rawValue={podiatryYtd} />
           </div>
           <div className="mt-4">
             <Card title="Podiatry Revenue Trend">
