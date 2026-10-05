@@ -419,6 +419,28 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(jordan.cancellations).toBe(1);
   });
 
+  it("excludes Gym Supervision sessions from a coach's cancellation stats — several Program Tracker gym coaches (e.g. Lachlan Brazier) are also real Nookal practitioners, so a cancelled supervision slot isn't a clinical cancellation", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,13/07/2026 - 19/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Lachlan Brazier,2,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+13/07/2026,Adjust Physiotherapy,Real Client,0400 000 020,Lachlan Brazier,Private - Physio,Service,Cancelled,2026-07-06 10:00:00,,no rebook needed,13/07/2026,9:00am,Staff Two,3001
+14/07/2026,Adjust Physiotherapy,Gym Client,0400 000 021,Lachlan Brazier,Gym Supervision,Service,Cancelled,2026-07-07 10:00:00,,no rebook needed,14/07/2026,9:00am,Staff Two,3002
+
+`;
+    const result = parseCancellationsReport(csv);
+    const lachlan = result.byProvider["Lachlan Brazier"];
+    expect(lachlan.eventsCount).toBe(1);
+    expect(lachlan.cancellations).toBe(1);
+  });
+
   it("accepts an injected isReschedule classifier (e.g. the LLM classifier) instead of the regex default", () => {
     const csv = `Cancellations Report
 
@@ -924,6 +946,10 @@ describe("isCancellationExcludedFromStats", () => {
 
   it("excludes a HotDoc placeholder record", () => {
     expect(isCancellationExcludedFromStats({ ...base, caseName: "General (Online)", client: "HotDoc Placeholder" })).toBe(true);
+  });
+
+  it("excludes a Gym Supervision session", () => {
+    expect(isCancellationExcludedFromStats({ ...base, caseName: "Gym Supervision" })).toBe(true);
   });
 
   it("excludes a stale/ghost recurring slot actioned well before the appointment", () => {

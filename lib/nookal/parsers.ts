@@ -376,6 +376,13 @@ const CORPORATE_SCREENING_PATTERN = /village|move\s*ot|biosym|pre[\s-]?employmen
 // cancellation event, so it shouldn't count toward cancellation stats either.
 const HOTDOC_PLACEHOLDER_PATTERN = /hotdoc/i;
 
+// Gym Supervision sessions are booked in Nookal under the supervising coach's
+// own provider name (several Program Tracker gym coaches, e.g. Lachlan
+// Brazier, are also real Nookal practitioners) — but cancelling one isn't a
+// clinical cancellation, so it shouldn't inflate that provider's cancelled-
+// appointments count or list.
+const GYM_SUPERVISION_PATTERN = /gym\s*supervision/i;
+
 // Notes matching these patterns mean the whole booking plan was cancelled
 // in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
 // produce one Details row per future appointment in that plan, which would
@@ -437,6 +444,7 @@ export function isCancellationExcludedFromStats(row: {
   if (isBulkCancelNote(row.note ?? undefined)) return true;
   if (CORPORATE_SCREENING_PATTERN.test(row.caseName ?? "")) return true;
   if (HOTDOC_PLACEHOLDER_PATTERN.test(row.caseName ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(row.client)) return true;
+  if (GYM_SUPERVISION_PATTERN.test(row.caseName ?? "")) return true;
   const apptDate = row.appointmentDate ? new Date(row.appointmentDate) : null;
   const modifiedDate = row.modifiedAt ? new Date(row.modifiedAt) : null;
   if (isStaleCancellation(apptDate, modifiedDate)) return true;
@@ -542,6 +550,7 @@ export function parseCancellationsReport(
       if (isBulkCancelNote(note)) continue;
       if (CORPORATE_SCREENING_PATTERN.test(r["Case"] ?? "")) continue;
       if (HOTDOC_PLACEHOLDER_PATTERN.test(r["Case"] ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(client ?? "")) continue;
+      if (GYM_SUPERVISION_PATTERN.test(r["Case"] ?? "")) continue;
       const apptDate = parseNookalDate(r["Appointment Date"]);
       const modifiedDate = parseNookalDate(r["Modifed Date"]);
       if (isStaleCancellation(apptDate, modifiedDate)) continue;
