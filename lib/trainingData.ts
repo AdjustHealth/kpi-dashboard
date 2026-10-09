@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { TrainingGroupId } from "@/lib/trainingGroup";
+import { TrainingGroupId, TRAINING_GROUPS } from "@/lib/trainingGroup";
 
 export interface TrainingTopic {
   id: string;
@@ -42,6 +42,13 @@ export async function getTrainingTopics(group: TrainingGroupId): Promise<Trainin
   return (data ?? []) as TrainingTopic[];
 }
 
+/** Every topic, across every group — what a personal record needs to show a provider's history in a PREVIOUS group they've since moved on from (see getRelevantTrainingGroups below), not just their current one. */
+export async function getAllTrainingTopics(): Promise<TrainingTopic[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("training_topics").select("*").order("sort_order");
+  return (data ?? []) as TrainingTopic[];
+}
+
 /** Every completion for a set of topic ids — fetched in one query so a group detail page doesn't round-trip per topic. */
 export async function getCompletionsForTopics(topicIds: string[]): Promise<TrainingCompletion[]> {
   if (topicIds.length === 0) return [];
@@ -55,4 +62,22 @@ export async function getCompletionsForProvider(providerId: string): Promise<Tra
   const supabase = await createClient();
   const { data } = await supabase.from("training_completions").select("*").eq("provider_id", providerId);
   return (data ?? []) as TrainingCompletion[];
+}
+
+/**
+ * Which groups a provider's own "My Training" page needs to show — their
+ * current group (lib/trainingGroup.ts's trainingGroupForProvider), plus any
+ * OTHER group they have at least one completion in. Without this, a New
+ * Grad who gets moved to Associate Physio before finishing every New Grad
+ * topic would simply lose sight of what's still outstanding there — the
+ * page would only ever fetch their current group's topics, so the
+ * unfinished ones (and the provider's own completed ones) silently
+ * disappear from their own view the moment they're reclassified. Order
+ * matches TRAINING_GROUPS (career-progression order), current group first.
+ */
+export function getRelevantTrainingGroups(currentGroup: TrainingGroupId | null, completions: TrainingCompletion[], allTopics: TrainingTopic[]): TrainingGroupId[] {
+  const topicGroupById = new Map(allTopics.map((t) => [t.id, t.training_group]));
+  const groupsWithCompletions = new Set(completions.map((c) => topicGroupById.get(c.topic_id)).filter((g): g is TrainingGroupId => g !== undefined));
+  if (currentGroup) groupsWithCompletions.add(currentGroup);
+  return TRAINING_GROUPS.map((g) => g.id).filter((id) => groupsWithCompletions.has(id));
 }

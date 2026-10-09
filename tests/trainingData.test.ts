@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupTopicsByCategory, TrainingTopic } from "@/lib/trainingData";
+import { groupTopicsByCategory, getRelevantTrainingGroups, TrainingTopic, TrainingCompletion } from "@/lib/trainingData";
 
 function topic(overrides: Partial<TrainingTopic>): TrainingTopic {
   return {
@@ -37,5 +37,32 @@ describe("groupTopicsByCategory", () => {
 
   it("returns an empty array for no topics", () => {
     expect(groupTopicsByCategory([])).toEqual([]);
+  });
+});
+
+describe("getRelevantTrainingGroups", () => {
+  function completion(topicId: string): TrainingCompletion {
+    return { id: "c", topic_id: topicId, provider_id: "p", completed_at: "2026-01-01", marked_by: null, note: null };
+  }
+  const newGradTopic = topic({ id: "ng1", training_group: "new_grad" });
+  const associateTopic = topic({ id: "as1", training_group: "associate" });
+  const allTopics = [newGradTopic, associateTopic];
+
+  it("includes the current group even with no completions yet", () => {
+    expect(getRelevantTrainingGroups("new_grad", [], allTopics)).toEqual(["new_grad"]);
+  });
+
+  it("keeps a PREVIOUS group's history visible after moving on — the bug this exists to fix: a promoted New Grad's unfinished (or finished) topics must not vanish just because their current group changed", () => {
+    const groups = getRelevantTrainingGroups("associate", [completion("ng1")], allTopics);
+    expect(groups).toEqual(["new_grad", "associate"]);
+  });
+
+  it("orders groups by career progression (TRAINING_GROUPS order), not completion order", () => {
+    const groups = getRelevantTrainingGroups("new_grad", [completion("as1")], allTopics);
+    expect(groups).toEqual(["new_grad", "associate"]);
+  });
+
+  it("returns an empty array for no current group and no completions", () => {
+    expect(getRelevantTrainingGroups(null, [], allTopics)).toEqual([]);
   });
 });
