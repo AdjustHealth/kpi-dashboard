@@ -5,7 +5,9 @@ import { Provider } from "@/lib/types";
  * as the director chose rather than reusing CvaTier's "senior"/"new_grad"
  * labels, since Associate Physio here deliberately merges what the
  * director's own sheet tracked as two separate tiers ("Tier 2 — Developing"
- * and "Tier 3 — Advanced") into one group.
+ * and "Tier 3 — Advanced", i.e. experience_tier "2_5yr") into one group.
+ * experience_tier "senior" is NOT part of that merge — it's a different
+ * thing (see trainingGroupForProvider below).
  */
 export type TrainingGroupId = "new_grad" | "associate" | "senior_physio" | "ep" | "massage";
 
@@ -38,10 +40,19 @@ export function isExcludedFromTraining(name: string): boolean {
 /**
  * Which Clinical Training group a provider belongs to right now — mirrors
  * cvaTierBucket()'s role + targets.experience_tier logic (lib/cvaTier.ts),
- * but collapses "2_5yr" and "senior"-tier physios (who aren't on the Senior
- * Physio tab) into the one merged Associate Physio group. Returns null for
- * a physio with no experience_tier set yet, for role "admin", or for anyone
- * in EXCLUDED_TRAINING_FIRST_NAMES — none of these have a training group.
+ * with one deliberate difference: cvaTierBucket folds BOTH role
+ * "senior_physio" and a role "physio" with experience_tier "senior" into
+ * the same "senior" CVA bucket (that's how Michael and Nick — physios
+ * experienced enough for the Senior CVA target without formally being on
+ * the Senior Physio tab — get tracked for CVA purposes). For Clinical
+ * Training, "senior" tier is training-wise a real Senior Physio too (the
+ * director's own Training Log sheet already had Nick in the same column
+ * group as Sam and Marcio, not alongside the Tier 3 physios) — so it maps
+ * to senior_physio here, not into the Associate Physio merge. Only
+ * "2_5yr" — the sheet's actual Tier 2/Tier 3 split — merges into
+ * Associate Physio. Returns null for a physio with no experience_tier set
+ * yet, for role "admin", or for anyone in EXCLUDED_TRAINING_FIRST_NAMES —
+ * none of these have a training group.
  */
 export function trainingGroupForProvider(p: { name: string; role: string; targets?: Record<string, unknown> | null }): TrainingGroupId | null {
   if (isExcludedFromTraining(p.name)) return null;
@@ -51,7 +62,8 @@ export function trainingGroupForProvider(p: { name: string; role: string; target
   if (p.role === "physio") {
     const tier = p.targets?.experience_tier;
     if (tier === "new_grad") return "new_grad";
-    if (tier === "2_5yr" || tier === "senior") return "associate";
+    if (tier === "2_5yr") return "associate";
+    if (tier === "senior") return "senior_physio";
   }
   return null;
 }

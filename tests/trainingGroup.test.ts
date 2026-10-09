@@ -29,9 +29,12 @@ describe("trainingGroupForProvider", () => {
     expect(trainingGroupForProvider(provider({ role: "physio", targets: { experience_tier: "new_grad" } }))).toBe("new_grad");
   });
 
-  it("merges 2-5yr and senior-tier physios into the one Associate Physio group — not split into Tier 2/3 the way the director's own sheet had them", () => {
+  it("merges 2-5yr-tier physios into the Associate Physio group — not split into Tier 2/3 the way the director's own sheet had them", () => {
     expect(trainingGroupForProvider(provider({ role: "physio", targets: { experience_tier: "2_5yr" } }))).toBe("associate");
-    expect(trainingGroupForProvider(provider({ role: "physio", targets: { experience_tier: "senior" } }))).toBe("associate");
+  });
+
+  it("buckets a senior-tier physio (e.g. Nick) as Senior Physio, not Associate — he's training-wise a Senior Physio even without the senior_physio role, same as his CVA bucket", () => {
+    expect(trainingGroupForProvider(provider({ role: "physio", targets: { experience_tier: "senior" } }))).toBe("senior_physio");
   });
 
   it("returns null for a physio with no experience_tier set, and for admin", () => {
