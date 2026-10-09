@@ -2,8 +2,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
-import { TRAINING_GROUPS, providersInTrainingGroup, TrainingGroupId } from "@/lib/trainingGroup";
-import { TrainingTopic, TrainingCompletion } from "@/lib/trainingData";
+import { TRAINING_GROUPS, TrainingGroupId, isExcludedFromTraining } from "@/lib/trainingGroup";
+import { TrainingTopic, TrainingCompletion, rosterForTrainingGroup } from "@/lib/trainingData";
 import { requireSection } from "@/lib/auth/access";
 
 export default async function ClinicalTrainingPage() {
@@ -18,20 +18,30 @@ export default async function ClinicalTrainingPage() {
 
   const topicIds = topics.map((t) => t.id);
   const { data: completionsData } = topicIds.length ? await supabase.from("training_completions").select("*").in("topic_id", topicIds) : { data: [] };
-  const completions = (completionsData ?? []) as TrainingCompletion[];
+  // Excludes anyone in lib/trainingGroup.ts's EXCLUDED_TRAINING_FIRST_NAMES (Michael) up
+  // front, so a stray completion for him can't appear in a count without him ever
+  // appearing in the roster that count's denominator is built from.
+  const excludedProviderIds = new Set(providers.filter((p) => isExcludedFromTraining(p.name)).map((p) => p.id));
+  const completions = ((completionsData ?? []) as TrainingCompletion[]).filter((c) => !excludedProviderIds.has(c.provider_id));
 
   const topicsByGroup = new Map<TrainingGroupId, TrainingTopic[]>();
   for (const t of topics) topicsByGroup.set(t.training_group, [...(topicsByGroup.get(t.training_group) ?? []), t]);
 
+  // Roster (not just currently-in-group providers) for both the count shown
+  // and the stat math — otherwise a group whose team has mostly moved on
+  // (New Graduates, almost by definition) would either undercount everyone
+  // who's actually finished it, or — if completions for people no longer in
+  // the group were counted without widening the roster too — run over 100%.
+  // See lib/trainingData.ts's rosterForTrainingGroup.
   const groupStats = TRAINING_GROUPS.map((group) => {
     const groupTopics = topicsByGroup.get(group.id) ?? [];
-    const groupProviders = providersInTrainingGroup(providers, group.id);
     const groupTopicIds = new Set(groupTopics.map((t) => t.id));
-    const groupProviderIds = new Set(groupProviders.map((p) => p.id));
-    const totalAssignments = groupTopics.length * groupProviders.length;
-    const completeAssignments = completions.filter((c) => groupTopicIds.has(c.topic_id) && groupProviderIds.has(c.provider_id)).length;
+    const groupCompletions = completions.filter((c) => groupTopicIds.has(c.topic_id));
+    const roster = rosterForTrainingGroup(group.id, providers, groupCompletions);
+    const totalAssignments = groupTopics.length * roster.length;
+    const completeAssignments = groupCompletions.length;
     const pct = totalAssignments > 0 ? Math.round((completeAssignments / totalAssignments) * 100) : null;
-    return { group, topicCount: groupTopics.length, providerCount: groupProviders.length, pct };
+    return { group, topicCount: groupTopics.length, providerCount: roster.length, pct };
   });
 
   const totalTopics = topics.length;

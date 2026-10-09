@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireSection, getAccessContext } from "@/lib/auth/access";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 import { Provider } from "@/lib/types";
-import { TRAINING_GROUPS, providersInTrainingGroup, initialsForProvider, TrainingGroupId } from "@/lib/trainingGroup";
-import { getTrainingTopics, getCompletionsForTopics, groupTopicsByCategory } from "@/lib/trainingData";
+import { TRAINING_GROUPS, providersInTrainingGroup, initialsForProvider, isExcludedFromTraining, TrainingGroupId } from "@/lib/trainingGroup";
+import { getTrainingTopics, getCompletionsForTopics, groupTopicsByCategory, rosterForTrainingGroup } from "@/lib/trainingData";
 import { TopicRow, TopicRowProvider } from "@/components/training/TopicRow";
 import { AddTopicForm } from "@/components/training/AddTopicForm";
 
@@ -25,17 +25,32 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
     supabase.auth.getUser(),
   ]);
   const allProviders = (providersData ?? []) as Provider[];
-  const groupProviders = providersInTrainingGroup(allProviders, groupId);
-  const rowProviders: TopicRowProvider[] = groupProviders.map((p) => ({ id: p.id, initials: initialsForProvider(p.name), name: p.name }));
+  const currentProviders = providersInTrainingGroup(allProviders, groupId);
+  const currentIds = new Set(currentProviders.map((p) => p.id));
 
-  const completions = await getCompletionsForTopics(topics.map((t) => t.id));
+  // Excludes anyone in EXCLUDED_TRAINING_FIRST_NAMES (Michael) up front — same
+  // reasoning as the Overview page — so a stray completion for him can't
+  // inflate the numerator below without him ever appearing in the roster
+  // that forms its denominator.
+  const excludedProviderIds = new Set(allProviders.filter((p) => isExcludedFromTraining(p.name)).map((p) => p.id));
+  const completions = (await getCompletionsForTopics(topics.map((t) => t.id))).filter((c) => !excludedProviderIds.has(c.provider_id));
   const completionsByTopic = new Map<string, Record<string, { completed_at: string; marked_by: string | null }>>();
   for (const c of completions) {
     if (!completionsByTopic.has(c.topic_id)) completionsByTopic.set(c.topic_id, {});
     completionsByTopic.get(c.topic_id)![c.provider_id] = { completed_at: c.completed_at, marked_by: c.marked_by };
   }
 
-  const totalAssignments = topics.length * groupProviders.length;
+  // The full roster is current members PLUS anyone who's moved on but has
+  // history here — without the latter, the stats below would count
+  // completions that don't belong to anyone shown, and could run over 100%.
+  const roster = rosterForTrainingGroup(groupId, allProviders, completions);
+  const rowProviders: TopicRowProvider[] = roster.map((p) => ({
+    id: p.id,
+    initials: initialsForProvider(p.name),
+    name: currentIds.has(p.id) ? p.name : `${p.name} — no longer in this group`,
+  }));
+
+  const totalAssignments = topics.length * roster.length;
   const completeAssignments = completions.length;
   const pct = totalAssignments > 0 ? Math.round((completeAssignments / totalAssignments) * 100) : null;
 
@@ -44,7 +59,12 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <PageHeader title={group.label} subtitle={`${topics.length} topic${topics.length === 1 ? "" : "s"} · ${groupProviders.length} staff`} showWeekSelector={false} backTo="history" />
+      <PageHeader
+        title={group.label}
+        subtitle={`${topics.length} topic${topics.length === 1 ? "" : "s"} · ${currentProviders.length} current${roster.length > currentProviders.length ? `, ${roster.length - currentProviders.length} with history` : ""}`}
+        showWeekSelector={false}
+        backTo="history"
+      />
       <div className="flex flex-col gap-6 p-8">
         <Link href="/training" className="flex w-fit items-center gap-1.5 text-sm font-semibold text-muted hover:text-foreground">
           ← Clinical Training
@@ -59,9 +79,9 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
           {isDirector && <AddTopicForm trainingGroup={groupId} />}
         </div>
 
-        {groupProviders.length === 0 || topics.length === 0 ? (
+        {roster.length === 0 || topics.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-            {topics.length === 0 ? `No topics in ${group.label} yet.` : `No active staff currently in ${group.label}.`}
+            {topics.length === 0 ? `No topics in ${group.label} yet.` : `No staff currently in ${group.label}, and no one with history here yet.`}
             {isDirector && topics.length === 0 && " Add the first one above."}
           </div>
         ) : (
