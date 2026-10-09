@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { TrainingGroupId, TRAINING_GROUPS } from "@/lib/trainingGroup";
+import { TrainingGroupId, TRAINING_GROUPS, providersInTrainingGroup, isExcludedFromTraining } from "@/lib/trainingGroup";
+import { Provider } from "@/lib/types";
 
 export interface TrainingTopic {
   id: string;
@@ -80,4 +81,31 @@ export function getRelevantTrainingGroups(currentGroup: TrainingGroupId | null, 
   const groupsWithCompletions = new Set(completions.map((c) => topicGroupById.get(c.topic_id)).filter((g): g is TrainingGroupId => g !== undefined));
   if (currentGroup) groupsWithCompletions.add(currentGroup);
   return TRAINING_GROUPS.map((g) => g.id).filter((id) => groupsWithCompletions.has(id));
+}
+
+/**
+ * Everyone a group's page needs to show as a column — current members (by
+ * role/tier) PLUS anyone who's moved on but has at least one completion
+ * recorded against one of this group's topics (e.g. every physio who's
+ * ever been a New Grad, not just the 1-2 currently working through it).
+ * This is the other half of getRelevantTrainingGroups' fix: that one makes
+ * sure a PERSON's own page keeps showing a group they've left; this one
+ * makes sure a GROUP's own page keeps showing a PERSON who's left it —
+ * without it, a group's "team completion" stat silently divides completions
+ * against a shrunken current-only roster and can run over 100%. Current
+ * members come first (their existing sort_order), then everyone else who
+ * has history here, also by sort_order. Michael (or anyone else in
+ * lib/trainingGroup.ts's EXCLUDED_TRAINING_FIRST_NAMES) never appears,
+ * current or historical, even if a stray completion exists for him.
+ */
+export function rosterForTrainingGroup(group: TrainingGroupId, allProviders: Provider[], completionsForGroupTopics: TrainingCompletion[]): Provider[] {
+  const current = providersInTrainingGroup(allProviders, group);
+  const currentIds = new Set(current.map((p) => p.id));
+  const providerById = new Map(allProviders.map((p) => [p.id, p]));
+  const historicalOnlyIds = [...new Set(completionsForGroupTopics.map((c) => c.provider_id))].filter((id) => !currentIds.has(id));
+  const historicalOnly = historicalOnlyIds
+    .map((id) => providerById.get(id))
+    .filter((p): p is Provider => p !== undefined && !isExcludedFromTraining(p.name))
+    .sort((a, b) => a.sort_order - b.sort_order);
+  return [...current, ...historicalOnly];
 }

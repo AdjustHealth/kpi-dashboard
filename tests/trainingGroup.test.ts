@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trainingGroupForProvider, providersInTrainingGroup, initialsForProvider, TRAINING_GROUPS } from "@/lib/trainingGroup";
+import { trainingGroupForProvider, providersInTrainingGroup, initialsForProvider, isExcludedFromTraining, TRAINING_GROUPS } from "@/lib/trainingGroup";
 import { Provider } from "@/lib/types";
 
 function provider(overrides: Partial<Provider>): Provider {
@@ -37,6 +37,19 @@ describe("trainingGroupForProvider", () => {
   it("returns null for a physio with no experience_tier set, and for admin", () => {
     expect(trainingGroupForProvider(provider({ role: "physio", targets: {} }))).toBeNull();
     expect(trainingGroupForProvider(provider({ role: "admin" }))).toBeNull();
+  });
+
+  it("excludes Michael regardless of role/tier — he's the director, not a clinician being tracked here", () => {
+    expect(trainingGroupForProvider(provider({ name: "Michael", role: "senior_physio" }))).toBeNull();
+    expect(trainingGroupForProvider(provider({ name: "Michael Harris", role: "physio", targets: { experience_tier: "new_grad" } }))).toBeNull();
+  });
+});
+
+describe("isExcludedFromTraining", () => {
+  it("matches on first name only", () => {
+    expect(isExcludedFromTraining("Michael")).toBe(true);
+    expect(isExcludedFromTraining("Michael Harris")).toBe(true);
+    expect(isExcludedFromTraining("Dean")).toBe(false);
   });
 });
 
