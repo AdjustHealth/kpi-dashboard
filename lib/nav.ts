@@ -113,7 +113,10 @@ function clinicReportsGroup(access: AccessContext): NavGroup | null {
 const TEAM_GROUP: NavGroup = {
   label: "Team",
   colorKey: "team",
-  items: [{ label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" }],
+  items: [
+    { label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" },
+    { label: "Clinical Training", href: "/training", description: "Topics by group, tracked per person" },
+  ],
 };
 
 const CONFIGURATION_GROUP: NavGroup = {
