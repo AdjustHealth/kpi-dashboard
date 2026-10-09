@@ -118,6 +118,7 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
                     key={topic.id}
                     topicId={topic.id}
                     name={topic.name}
+                    category={topic.category}
                     description={topic.description}
                     providers={rowProviders}
                     initialCompletions={completionsByTopic.get(topic.id) ?? {}}
