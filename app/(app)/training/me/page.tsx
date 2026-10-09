@@ -115,6 +115,7 @@ export default async function MyTrainingPage() {
                         key={topic.id}
                         topicId={topic.id}
                         name={topic.name}
+                        category={topic.category}
                         description={topic.description}
                         providers={self}
                         initialCompletions={completionsByTopic.has(topic.id) ? { [provider.id]: completionsByTopic.get(topic.id)! } : {}}
