@@ -8,6 +8,7 @@ export function AddTopicForm({ trainingGroup }: { trainingGroup: string }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -17,11 +18,12 @@ export function AddTopicForm({ trainingGroup }: { trainingGroup: string }) {
       const res = await fetch("/api/training/topics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trainingGroup, category: category.trim() || null, name: name.trim() }),
+        body: JSON.stringify({ trainingGroup, category: category.trim() || null, name: name.trim(), description: description.trim() || null }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add topic");
       setName("");
       setCategory("");
+      setDescription("");
       setOpen(false);
       router.refresh();
     } catch (err) {
@@ -57,6 +59,12 @@ export function AddTopicForm({ trainingGroup }: { trainingGroup: string }) {
         placeholder="Topic name"
         autoFocus
         className="w-48 rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted"
+      />
+      <input
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Resource link / note (optional)"
+        className="w-56 rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted"
       />
       <button type="button" onClick={submit} disabled={saving || !name.trim()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground disabled:opacity-50">
         Save

@@ -52,6 +52,7 @@ export function TopicRow({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editCategory, setEditCategory] = useState(category ?? "");
+  const [editDescription, setEditDescription] = useState(description ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -98,7 +99,7 @@ export function TopicRow({
       const res = await fetch(`/api/training/topics/${topicId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), category: editCategory.trim() || null }),
+        body: JSON.stringify({ name: editName.trim(), category: editCategory.trim() || null, description: editDescription.trim() || null }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save");
       setEditing(false);
@@ -139,6 +140,12 @@ export function TopicRow({
           autoFocus
           className="min-w-48 flex-1 rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted"
         />
+        <input
+          value={editDescription}
+          onChange={(e) => setEditDescription(e.target.value)}
+          placeholder="Resource link / note (optional)"
+          className="min-w-56 flex-1 rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted"
+        />
         <button type="button" onClick={saveEdit} disabled={saving || !editName.trim()} className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground disabled:opacity-50">
           Save
         </button>
@@ -148,6 +155,7 @@ export function TopicRow({
             setEditing(false);
             setEditName(name);
             setEditCategory(category ?? "");
+            setEditDescription(description ?? "");
           }}
           className="rounded-md px-3 py-1.5 text-xs font-semibold text-muted"
         >
@@ -161,7 +169,14 @@ export function TopicRow({
     <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3.5">
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-foreground">{name}</div>
-        {description && <div className="mt-0.5 text-xs text-muted">{description}</div>}
+        {description &&
+          (description.startsWith("http") ? (
+            <a href={description} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-block text-xs text-accent hover:underline">
+              Resource ↗
+            </a>
+          ) : (
+            <div className="mt-0.5 text-xs text-muted">{description}</div>
+          ))}
       </div>
       <div className="flex flex-none gap-2">
         {providers.map((p) => {
