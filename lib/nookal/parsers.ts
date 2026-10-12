@@ -364,12 +364,20 @@ export function hasRescheduleTag(note: string): boolean {
 }
 
 // Corporate Pre-Employment screening partners (Village Road Show, Move OT,
-// Biosym, Top Golf, etc.) show up in the Cancellations report like any real
-// client, but a screening no-show/reschedule isn't a real clinic retention
-// event — the director confirmed these should never count toward Retention
-// Rate (or the cancellation/reschedule stats it's derived from). Same
-// population PRE_EMPLOYMENT_PATTERN excludes from each provider's NPBR.
-const CORPORATE_SCREENING_PATTERN = /village|move\s*ot|biosym|pre[\s-]?employment/i;
+// Biosym, Top Golf, 360 Occupational Health, etc.) show up in the
+// Cancellations report like any real client, but a screening no-show/
+// reschedule isn't a real clinic retention event — the director confirmed
+// these should never count toward Retention Rate (or the cancellation/
+// reschedule stats it's derived from). Same population PRE_EMPLOYMENT_PATTERN
+// excludes from each provider's NPBR. "Occupational Health" catches cases
+// like 360 Occupational Health's own Case name ("Occupational Health
+// Assessment") that don't literally say "pre-employment" anywhere, even
+// though the appointment type itself does (confirmed real case: Dean
+// Walker / Beau Guyler, 360 Occupational Health, Oct 2026 — Case
+// "Occupational Health Assessment" slipped through the old pattern and
+// counted toward his NPBR). "Top Golf" was already named in this comment
+// but never actually in the pattern — added for real now.
+const CORPORATE_SCREENING_PATTERN = /village|move\s*ot|biosym|pre[\s-]?employment|occupational health|top\s*golf/i;
 
 // HotDoc's online booking widget can leave behind a placeholder appointment/
 // client record (e.g. before it's matched to a real client) — not a real
@@ -712,15 +720,19 @@ export function parseLastAttendancesReport(text: string): LastAttendancesReportR
 }
 
 // Corporate Pre-Employment screening visits (Village Road Show, Top Golf,
-// etc.) show up as "New Client: Yes" in Nookal like any other new client,
-// but they're one-off screenings, not a real new patient booking. Excluded
-// from every individual provider's "# New Clients" figure (confirmed against
-// two providers' real weekly numbers, both matched exactly once excluded)
-// and, per the director's decision on 2026-08-26, from the clinic-wide
-// total as well — the clinic-wide figure now reflects real new patients
-// only, not the historical "Total new clients incl Pre Employments" sheet
-// convention.
-const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment/i;
+// 360 Occupational Health, etc.) show up as "New Client: Yes" in Nookal like
+// any other new client, but they're one-off screenings, not a real new
+// patient booking. Excluded from every individual provider's "# New
+// Clients" figure (confirmed against two providers' real weekly numbers,
+// both matched exactly once excluded) and, per the director's decision on
+// 2026-08-26, from the clinic-wide total as well — the clinic-wide figure
+// now reflects real new patients only, not the historical "Total new
+// clients incl Pre Employments" sheet convention. "Occupational Health"
+// added alongside "pre-employment" — same population, but 360 Occupational
+// Health's own Case name ("Occupational Health Assessment") doesn't
+// literally say "pre-employment" (real case: Dean Walker / Beau Guyler,
+// Oct 2026, counted toward his NPBR until this was added).
+const PRE_EMPLOYMENT_PATTERN = /pre[\s-]?employment|occupational health/i;
 
 // "Bookings" cells read like "2 Complete / 7 Total" — the second number is
 // this client's total recommended/scheduled appointment count, the input to
