@@ -27,19 +27,31 @@ export async function PATCH(request: NextRequest) {
 
   const table = source === "no_future_booking" ? "no_future_booking_events" : "cancellation_events";
 
-  // A director or anyone with Meetings section access edits any row through
-  // the ordinary RLS-scoped client, same as always. Everyone else — e.g. a
-  // practitioner acting on their own Unretained section on My Dashboard, who
-  // typically has no Meetings grant at all (see lib/supabase/admin.ts) and
-  // couldn't read these tables through that client to begin with — gets the
-  // admin client instead, but only ever to touch rows that are actually
-  // theirs, verified below (same ownership-check pattern as
-  // /api/my-week-events).
-  const { isDirector, allowedSections } = await getAccessContext();
-  const hasMeetingsAccess = isDirector || allowedSections.includes("meetings");
+  // A director, or anyone with ANY provider-role access to cancellation_events
+  // — a full Meetings section grant (widens allowedProviderRoles to every
+  // role) OR the narrower per-role Meetings grant (e.g. Marcio: physio/
+  // massage/ep) — edits any row through the ordinary RLS-scoped client, same
+  // as always: can_access_provider_role() in the RLS policy itself (see
+  // migrations 0029/0039) already enforces the correct per-role scoping,
+  // including on a row that belongs to someone else's meeting they're
+  // running, not just their own. This used to check allowedSections.includes
+  // ("meetings") alone, missing Marcio's granular grant entirely — so every
+  // "Dealt with" click on a standard provider's Unretained list (e.g.
+  // Dean's, on Marcio's own provider-meeting page) fell through to the
+  // ownProviderName branch below, which only ever matches the CALLER's own
+  // name, 404'd, and bounced the optimistic UI update straight back.
+  //
+  // Everyone else — a practitioner with no provider-role access at all (e.g.
+  // only Adjust Gym/Assessment Tool grants) acting on their own Unretained
+  // section on My Dashboard — couldn't read these tables through the
+  // RLS-scoped client even for their own rows, so gets the admin client
+  // instead, but only ever to touch rows that are actually theirs, verified
+  // below (same ownership-check pattern as /api/my-week-events).
+  const { isDirector, allowedProviderRoles } = await getAccessContext();
+  const hasProviderRoleAccess = isDirector || allowedProviderRoles.length > 0;
 
   let ownProviderName: string | null = null;
-  if (!hasMeetingsAccess) {
+  if (!hasProviderRoleAccess) {
     const authedSupabase = await createClient();
     const {
       data: { user },
@@ -51,7 +63,7 @@ export async function PATCH(request: NextRequest) {
     ownProviderName = myOwnProvider.name;
   }
 
-  const supabase = hasMeetingsAccess ? await createClient() : createAdminClient();
+  const supabase = hasProviderRoleAccess ? await createClient() : createAdminClient();
 
   // "Dealt with" on the Unretained list resolves every one of this
   // client's currently-unresolved not-rebooked rows for this provider, not
