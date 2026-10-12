@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireSection, getAccessContext } from "@/lib/auth/access";
 import { firstNameFromEmail } from "@/lib/userDisplay";
 import { Provider } from "@/lib/types";
-import { TRAINING_GROUPS, providersInTrainingGroup, initialsForProvider, isExcludedFromTraining, TrainingGroupId } from "@/lib/trainingGroup";
+import { TRAINING_GROUPS, providersInTrainingGroup, initialsForProvider, isExcludedFromTraining, trainingGroupForProvider, PHYSIO_TRACK_GROUPS, TrainingGroupId } from "@/lib/trainingGroup";
 import { getTrainingTopics, getCompletionsForTopics, groupTopicsByCategory, rosterForTrainingGroup } from "@/lib/trainingData";
 import { TopicRow, TopicRowProvider } from "@/components/training/TopicRow";
 import { AddTopicForm } from "@/components/training/AddTopicForm";
@@ -40,15 +40,23 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
     completionsByTopic.get(c.topic_id)![c.provider_id] = { completed_at: c.completed_at, marked_by: c.marked_by };
   }
 
-  // The full roster is current members PLUS anyone who's moved on but has
-  // history here — without the latter, the stats below would count
-  // completions that don't belong to anyone shown, and could run over 100%.
+  // New Graduates/Associate Physio/Senior Physio: the full roster is every
+  // physio, since it's one career path everyone either hasn't reached, is
+  // on, or has already been through. EP/Massage: current members PLUS
+  // anyone who's moved on but has history here — without the latter, the
+  // stats below would count completions that don't belong to anyone shown,
+  // and could run over 100%.
   const roster = rosterForTrainingGroup(groupId, allProviders, completions);
-  const rowProviders: TopicRowProvider[] = roster.map((p) => ({
-    id: p.id,
-    initials: initialsForProvider(p.name),
-    name: currentIds.has(p.id) ? p.name : `${p.name} — no longer in this group`,
-  }));
+  const isPhysioTrack = PHYSIO_TRACK_GROUPS.includes(groupId);
+  const viewedRank = PHYSIO_TRACK_GROUPS.indexOf(groupId);
+  const rowProviders: TopicRowProvider[] = roster.map((p) => {
+    if (!isPhysioTrack) {
+      return { id: p.id, initials: initialsForProvider(p.name), name: currentIds.has(p.id) ? p.name : `${p.name} — no longer in this group` };
+    }
+    const ownRank = PHYSIO_TRACK_GROUPS.indexOf(trainingGroupForProvider(p) ?? ("" as TrainingGroupId));
+    const suffix = ownRank === -1 ? "" : ownRank < viewedRank ? " — hasn't reached this yet" : ownRank > viewedRank ? " — already past this group" : "";
+    return { id: p.id, initials: initialsForProvider(p.name), name: `${p.name}${suffix}` };
+  });
 
   const totalAssignments = topics.length * roster.length;
   const completeAssignments = completions.length;
@@ -61,7 +69,11 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
     <>
       <PageHeader
         title={group.label}
-        subtitle={`${topics.length} topic${topics.length === 1 ? "" : "s"} · ${currentProviders.length} current${roster.length > currentProviders.length ? `, ${roster.length - currentProviders.length} with history` : ""}`}
+        subtitle={
+          isPhysioTrack
+            ? `${topics.length} topic${topics.length === 1 ? "" : "s"} · ${roster.length} staff`
+            : `${topics.length} topic${topics.length === 1 ? "" : "s"} · ${currentProviders.length} current${roster.length > currentProviders.length ? `, ${roster.length - currentProviders.length} with history` : ""}`
+        }
         showWeekSelector={false}
         backTo="history"
       />
