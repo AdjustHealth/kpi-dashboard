@@ -72,6 +72,22 @@ export function providersInTrainingGroup(providers: Provider[], group: TrainingG
   return providers.filter((p) => trainingGroupForProvider(p) === group);
 }
 
+/**
+ * New Graduates, Associate Physio and Senior Physio are one career path,
+ * not three separate audiences — every physio either hasn't reached a
+ * given stage's curriculum yet, is on it now, or has already been through
+ * it (and in practice often did plenty of it, per the director's own real
+ * history). So all three pages track the SAME full roster of physios,
+ * each against that page's own curriculum — not just whoever's tier
+ * currently matches. EP and Massage have no such progression (one
+ * discipline, not a ladder), so they stay scoped to their own role.
+ */
+export const PHYSIO_TRACK_GROUPS: TrainingGroupId[] = ["new_grad", "associate", "senior_physio"];
+
+export function isPhysioTrackProvider(p: Provider): boolean {
+  return (p.role === "physio" || p.role === "senior_physio") && !isExcludedFromTraining(p.name);
+}
+
 /** "Sam Johnson" -> "SJ", "Dean" -> "DE" — the status-dot label in a group's topic grid. */
 export function initialsForProvider(name: string): string {
   const parts = name.trim().split(/\s+/);

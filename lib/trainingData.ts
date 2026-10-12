@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { TrainingGroupId, TRAINING_GROUPS, providersInTrainingGroup, isExcludedFromTraining } from "@/lib/trainingGroup";
+import { TrainingGroupId, TRAINING_GROUPS, providersInTrainingGroup, isExcludedFromTraining, PHYSIO_TRACK_GROUPS, isPhysioTrackProvider } from "@/lib/trainingGroup";
 import { Provider } from "@/lib/types";
 
 export interface TrainingTopic {
@@ -84,21 +84,31 @@ export function getRelevantTrainingGroups(currentGroup: TrainingGroupId | null, 
 }
 
 /**
- * Everyone a group's page needs to show as a column — current members (by
- * role/tier) PLUS anyone who's moved on but has at least one completion
- * recorded against one of this group's topics (e.g. every physio who's
- * ever been a New Grad, not just the 1-2 currently working through it).
- * This is the other half of getRelevantTrainingGroups' fix: that one makes
- * sure a PERSON's own page keeps showing a group they've left; this one
- * makes sure a GROUP's own page keeps showing a PERSON who's left it —
- * without it, a group's "team completion" stat silently divides completions
- * against a shrunken current-only roster and can run over 100%. Current
- * members come first (their existing sort_order), then everyone else who
- * has history here, also by sort_order. Michael (or anyone else in
- * lib/trainingGroup.ts's EXCLUDED_TRAINING_FIRST_NAMES) never appears,
- * current or historical, even if a stray completion exists for him.
+ * Everyone a group's page needs to show as a column.
+ *
+ * New Graduates, Associate Physio and Senior Physio (lib/trainingGroup.ts's
+ * PHYSIO_TRACK_GROUPS) track the SAME full roster of physios regardless of
+ * current tier — every New Grad needs to be visible on Associate Physio
+ * ahead of next year's promotion, and every Senior already has real history
+ * on both earlier curricula. Scoping any of these three to "whoever's tier
+ * currently matches" would hide the very people a director needs to see.
+ *
+ * EP and Massage have no such progression, so they stay scoped to current
+ * role PLUS anyone who's moved on (changed role) but has at least one
+ * completion recorded against one of this group's topics — without that,
+ * a group's "team completion" stat would divide completions against a
+ * shrunken current-only roster and could run over 100%. Current members
+ * come first (their existing sort_order), then everyone else who has
+ * history here, also by sort_order.
+ *
+ * Michael (or anyone else in lib/trainingGroup.ts's
+ * EXCLUDED_TRAINING_FIRST_NAMES) never appears in either case, even if a
+ * stray completion exists for him.
  */
 export function rosterForTrainingGroup(group: TrainingGroupId, allProviders: Provider[], completionsForGroupTopics: TrainingCompletion[]): Provider[] {
+  if (PHYSIO_TRACK_GROUPS.includes(group)) {
+    return allProviders.filter(isPhysioTrackProvider).sort((a, b) => a.sort_order - b.sort_order);
+  }
   const current = providersInTrainingGroup(allProviders, group);
   const currentIds = new Set(current.map((p) => p.id));
   const providerById = new Map(allProviders.map((p) => [p.id, p]));
