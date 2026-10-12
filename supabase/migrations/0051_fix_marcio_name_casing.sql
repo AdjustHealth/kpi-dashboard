@@ -1,0 +1,17 @@
+-- Marcio's provider row has carried 'Marcio dos Santos' (lowercase 'd')
+-- ever since the original seed (0001_init.sql). The real Nookal name,
+-- confirmed from the actual provider dropdown (see seed_team_and_targets.sql's
+-- comment), is 'Marcio Dos Santos' (capital 'D') -- unlike Sam/Tayla/Dean/etc,
+-- this one was never corrected.
+--
+-- Nookal-sourced tables (cancellation_events.provider,
+-- no_future_booking_events.provider) store the raw CSV string exactly as
+-- Nookal exports it, not the canonical providers.name -- so this casing
+-- mismatch breaks every exact (case-sensitive) string match against his own
+-- rows, including the RLS policies' own `p.name = cancellation_events.provider`
+-- join (migration 0029_scoped_staff_access.sql). Invisible to a director
+-- (bypasses via is_director_user()) and harmless for CSV auto-fill matching
+-- (lib/nookal/applyReport.ts's findProvider lowercases both sides), but would
+-- silently block any Meetings-scoped non-director from ever seeing or
+-- resolving his cancellation/unretained rows through the ordinary RLS client.
+update providers set name = 'Marcio Dos Santos' where name = 'Marcio dos Santos';
