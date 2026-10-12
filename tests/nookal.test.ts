@@ -73,6 +73,7 @@ Test Client One,Private - Physio,Private,Adjust Physiotherapy,Yes,Yes,No,29/06/2
 Test Client Two,Medicare 2026,Medicare,Adjust Physiotherapy,No,Yes,No,30/06/2026,Alex Example,,1 Complete / 1 Total,b@example.com,No,0400 000 002,Yes,No,1002
 Test Client Three,NDIS - Plan Managed,Provider Choice,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Jamie Sample,,1 Complete / 1 Total,c@example.com,No,0400 000 003,Yes,No,1003
 Test Client Four,Village - Pre-Employment,Village Road Show Theme Parks Pty Ltd,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Alex Example,,1 Complete / 1 Total,d@example.com,No,0400 000 004,Yes,No,1004
+Test Client Five,Occupational Health Assessment,360 Occupational Health,Adjust Physiotherapy,Yes,Yes,No,02/07/2026,Alex Example,,1 Complete / 3 Total,e@example.com,No,0400 000 005,Yes,No,1005
 
 `;
 
@@ -527,8 +528,8 @@ Closed Case Client,25/08/2026 - 14 days ago,Wilson Page,Private Subs 505,Adjust 
 describe("parseClientsAndCasesReport", () => {
   it("counts new clients and new cases per provider", () => {
     const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
-    expect(result.byProvider["Alex Example"].newClients).toBe(2);
-    expect(result.byProvider["Alex Example"].newCases).toBe(3);
+    expect(result.byProvider["Alex Example"].newClients).toBe(3);
+    expect(result.byProvider["Alex Example"].newCases).toBe(4);
     expect(result.byProvider["Jamie Sample"].newClients).toBe(1);
   });
 
@@ -539,15 +540,25 @@ describe("parseClientsAndCasesReport", () => {
     // individual "# New Clients" figure — the clinic-wide total still
     // includes them ("Total new clients incl Pre Employments").
     const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
-    expect(result.byProvider["Alex Example"].newClients).toBe(2);
+    expect(result.byProvider["Alex Example"].newClients).toBe(3);
     expect(result.byProvider["Alex Example"].newClientsExclPreEmployment).toBe(1);
     expect(result.byProvider["Jamie Sample"].newClientsExclPreEmployment).toBe(1);
   });
 
-  it("sums each new client's Bookings 'Total' count for New Patient Booking Rate, excluding Pre-Employment rows", () => {
+  it("excludes a 360 Occupational Health screening whose Case name doesn't literally say 'pre-employment', same as Dean's real NPBR case", () => {
+    // Real case: Dean Walker / Beau Guyler, Oct 2026 — Nookal's Case name was
+    // "Occupational Health Assessment", payer "360 Occupational Health",
+    // which counted toward his NPBR until PRE_EMPLOYMENT_PATTERN also
+    // matched "occupational health".
+    const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
+    expect(result.byProvider["Alex Example"].newClientNames).not.toContain("Test Client Five");
+  });
+
+  it("sums each new client's Bookings 'Total' count for New Patient Booking Rate, excluding Pre-Employment/Occupational Health rows", () => {
     // Test Client One: new, non-Pre-Employment, "1 Complete / 2 Total" -> +2.
     // Test Client Two: not a new client -> excluded entirely.
     // Test Client Four: new, but Pre-Employment -> excluded from the sum too.
+    // Test Client Five: new, but Occupational Health ("1 Complete / 3 Total") -> excluded too.
     const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
     expect(result.byProvider["Alex Example"].npbrRecommendationsTotal).toBe(2);
     expect(result.byProvider["Jamie Sample"].npbrRecommendationsTotal).toBe(1);
@@ -942,6 +953,13 @@ describe("isCancellationExcludedFromStats", () => {
 
   it("excludes a corporate screening partner case", () => {
     expect(isCancellationExcludedFromStats({ ...base, caseName: "Village - Pre-Employment" })).toBe(true);
+  });
+
+  it("excludes a 360 Occupational Health screening case whose Case name doesn't literally say 'pre-employment'", () => {
+    // Real case: Dean Walker / Beau Guyler, Oct 2026 — Nookal's own Case name
+    // was "Occupational Health Assessment", which slipped through the old
+    // pattern and counted toward Dean's NPBR.
+    expect(isCancellationExcludedFromStats({ ...base, caseName: "Occupational Health Assessment" })).toBe(true);
   });
 
   it("excludes a HotDoc placeholder record", () => {
