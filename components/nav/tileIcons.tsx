@@ -31,6 +31,7 @@ const ICONS: Record<string, ReactNode> = {
   "/senior": <><path d="m9 12 2 2 4-4" /><circle cx="12" cy="12" r="9" /></>,
   "/admin": <><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9 8h6M9 12h6M9 16h4" /></>,
   "/reviews": <><path d="M12 3v4m0 10v4M3 12h4m10 0h4" /><circle cx="12" cy="12" r="4" /></>,
+  "/training": <><path d="M4 5.5a2 2 0 0 1 2-2h5v17H6a2 2 0 0 1-2-2Z" /><path d="M20 5.5a2 2 0 0 0-2-2h-5v17h5a2 2 0 0 0 2-2Z" /></>,
   "/targets": <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="0.5" /></>,
   "/settings": (
     <>
@@ -72,6 +73,7 @@ const SECTION_ICONS: Record<Section, ReactNode> = {
   // always uses colorKey "clinic_reports" (see lib/nav.ts clinicReportsGroup),
   // present here only because SECTION_ICONS is a Record over every Section.
   specialty_services: ICONS["/clinic/specialty"],
+  clinical_training: ICONS["/training"],
 };
 
 export function SectionIcon({

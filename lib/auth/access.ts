@@ -16,6 +16,7 @@ export const SECTIONS = [
   "adjust_gym",
   "assessment_tool",
   "specialty_services",
+  "clinical_training",
 ] as const;
 export type Section = (typeof SECTIONS)[number];
 
@@ -51,7 +52,7 @@ export async function requireDirector(): Promise<void> {
   if (!isDirector) redirect("/home");
 }
 
-/** Pages behind one grantable business area (Data Entry, Clinic Reports, Team, Adjust Gym, Assessment Tool) call this first. */
+/** Pages behind one grantable business area (Data Entry, Clinic Reports, Team, Clinical Training, Adjust Gym, Assessment Tool) call this first. */
 export async function requireSection(section: Section): Promise<void> {
   const { isDirector, allowedSections } = await getAccessContext();
   if (!isDirector && !allowedSections.includes(section)) redirect("/home");

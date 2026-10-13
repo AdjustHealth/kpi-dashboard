@@ -7,7 +7,7 @@ import { TrainingTopic, TrainingCompletion, rosterForTrainingGroup } from "@/lib
 import { requireSection } from "@/lib/auth/access";
 
 export default async function ClinicalTrainingPage() {
-  await requireSection("team");
+  await requireSection("clinical_training");
   const supabase = await createClient();
   const [providersResult, topicsResult] = await Promise.all([
     supabase.from("providers").select("*").eq("active", true).order("sort_order"),

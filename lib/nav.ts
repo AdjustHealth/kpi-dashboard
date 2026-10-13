@@ -35,6 +35,11 @@ export const SECTION_COLORS: Record<Section, string> = {
   // Shares Clinic Reports' own colour — a specialty_services-only grant
   // still shows as a (narrower) Clinic Reports group, not a separate area.
   specialty_services: "#8fdf43",
+  // Its own stop along the gradient, between Team and Adjust Gym — Clinical
+  // Training is its own grantable area now (see TEAM_GROUP/CLINICAL_TRAINING_GROUP
+  // below), not a narrower view of Team the way specialty_services is of
+  // Clinic Reports, since a login can have one without the other either way.
+  clinical_training: "#57d879",
 };
 
 const ADJUST_GYM_GROUP: NavGroup = {
@@ -113,10 +118,20 @@ function clinicReportsGroup(access: AccessContext): NavGroup | null {
 const TEAM_GROUP: NavGroup = {
   label: "Team",
   colorKey: "team",
-  items: [
-    { label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" },
-    { label: "Clinical Training", href: "/training", description: "Topics by group, tracked per person" },
-  ],
+  items: [{ label: "Performance Reviews", href: "/reviews", description: "Scheduled reviews and history" }],
+};
+
+/**
+ * Split out from TEAM_GROUP into its own grantable section — Marcio and Sam
+ * (senior physios) need Clinical Training on their own dashboards without
+ * also seeing the whole team's Performance Reviews due-dates/history, which
+ * used to come bundled together under one "Team" grant. See migration
+ * 0052_clinical_training_own_section.sql.
+ */
+const CLINICAL_TRAINING_GROUP: NavGroup = {
+  label: "Clinical Training",
+  colorKey: "clinical_training",
+  items: [{ label: "Clinical Training", href: "/training", description: "Topics by group, tracked per person" }],
 };
 
 const CONFIGURATION_GROUP: NavGroup = {
@@ -184,6 +199,7 @@ export function buildNav(access: AccessContext): NavGroup[] {
   if (meetings) groups.push(meetings);
 
   if (hasSection(access, "team")) groups.push(TEAM_GROUP);
+  if (hasSection(access, "clinical_training")) groups.push(CLINICAL_TRAINING_GROUP);
   if (hasSection(access, "adjust_gym")) groups.push(ADJUST_GYM_GROUP);
   if (hasSection(access, "assessment_tool")) groups.push(ASSESSMENT_TOOL_GROUP, CONSULTATION_TEMPLATES_GROUP);
   if (access.isDirector) groups.push(CONFIGURATION_GROUP);
