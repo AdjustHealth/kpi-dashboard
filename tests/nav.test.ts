@@ -13,7 +13,18 @@ function labels(nav: ReturnType<typeof buildNav>) {
 describe("buildNav", () => {
   it("gives a director every group, including Configuration", () => {
     const nav = buildNav(access({ isDirector: true }));
-    expect(labels(nav)).toEqual(["Overview", "Data Entry", "Clinic Reports", "Meetings", "Team", "Adjust Gym", "Assessment Tool", "Consultation Templates", "Configuration"]);
+    expect(labels(nav)).toEqual([
+      "Overview",
+      "Data Entry",
+      "Clinic Reports",
+      "Meetings",
+      "Team",
+      "Clinical Training",
+      "Adjust Gym",
+      "Assessment Tool",
+      "Consultation Templates",
+      "Configuration",
+    ]);
   });
 
   it("gives a login with no grants only Overview", () => {
@@ -65,6 +76,20 @@ describe("buildNav", () => {
     const clinicReports = nav.find((g) => g.label === "Clinic Reports");
     expect(clinicReports?.items.map((i) => i.label)).toContain("Specialty Services");
     expect(clinicReports?.items.length).toBeGreaterThan(1);
+  });
+
+  it("Team and Clinical Training are granted independently — a Team-only login doesn't see Clinical Training", () => {
+    const nav = buildNav(access({ allowedSections: ["team"] }));
+    expect(labels(nav)).toContain("Team");
+    expect(labels(nav)).not.toContain("Clinical Training");
+  });
+
+  it("a clinical_training-only login (e.g. Marcio, Sam) sees Clinical Training without Team's Performance Reviews", () => {
+    const nav = buildNav(access({ allowedSections: ["clinical_training"] }));
+    expect(labels(nav)).toContain("Clinical Training");
+    expect(labels(nav)).not.toContain("Team");
+    const clinicalTraining = nav.find((g) => g.label === "Clinical Training");
+    expect(clinicalTraining?.items.map((i) => i.href)).toEqual(["/training"]);
   });
 
   it("puts the clinic-wide Dashboard under Clinic Reports, not Overview", () => {

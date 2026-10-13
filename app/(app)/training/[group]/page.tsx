@@ -11,7 +11,7 @@ import { TopicRow, TopicRowProvider } from "@/components/training/TopicRow";
 import { AddTopicForm } from "@/components/training/AddTopicForm";
 
 export default async function TrainingGroupPage({ params }: { params: Promise<{ group: string }> }) {
-  await requireSection("team");
+  await requireSection("clinical_training");
   const { group: groupParam } = await params;
   const group = TRAINING_GROUPS.find((g) => g.id === groupParam);
   if (!group) notFound();
