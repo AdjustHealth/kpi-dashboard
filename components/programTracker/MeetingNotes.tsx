@@ -20,7 +20,7 @@ const POLL_MS = 20000;
 export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }) {
   const [meetings, setMeetings] = useState(initialMeetings);
   const [activeId, setActiveId] = useState<string | null>(initialMeetings[0]?.id ?? null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<"this" | "next" | null>(null);
   const focusedIdx = useRef<number | null>(null);
   const savingIdx = useRef<Set<number>>(new Set());
 
@@ -55,10 +55,14 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
-  async function createMeeting() {
-    setCreating(true);
-    const res = await fetch("/api/program-tracker/meetings", { method: "POST" });
-    setCreating(false);
+  async function createMeeting(which: "this" | "next") {
+    setCreating(which);
+    const res = await fetch("/api/program-tracker/meetings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ which }),
+    });
+    setCreating(null);
     const json = await res.json();
     if (!res.ok) {
       alert(json.error || "Could not create meeting");
@@ -105,6 +109,8 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
     }
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
@@ -115,7 +121,12 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
               activeId === m.id ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-surface-raised/60 text-muted hover:text-foreground"
             }`}
           >
-            <button onClick={() => setActiveId(m.id)}>{fmtDate(m.meeting_date)}</button>
+            <button onClick={() => setActiveId(m.id)} className="flex items-center gap-1.5">
+              {fmtDate(m.meeting_date)}
+              {m.meeting_date > todayStr && (
+                <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">Upcoming</span>
+              )}
+            </button>
             <button
               onClick={() => deleteMeeting(m.id)}
               title="Delete this meeting"
@@ -125,13 +136,23 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
             </button>
           </div>
         ))}
-        <button
-          onClick={createMeeting}
-          disabled={creating}
-          className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-secondary disabled:opacity-50"
-        >
-          + New meeting
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => createMeeting("next")}
+            disabled={creating !== null}
+            title="Create next week's meeting now, so its agenda can be prepped ahead of time instead of waiting for that week's Wednesday"
+            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:border-accent disabled:opacity-50"
+          >
+            + Prep next week
+          </button>
+          <button
+            onClick={() => createMeeting("this")}
+            disabled={creating !== null}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-secondary disabled:opacity-50"
+          >
+            + New meeting
+          </button>
+        </div>
       </div>
 
       {!active ? (
