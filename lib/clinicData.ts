@@ -321,6 +321,7 @@ export async function getNotRebookedClientsFor(supabase: SupabaseClient, provide
     case_name: string | null;
     discussion_note: string | null;
     flagged_for_discussion: boolean;
+    week_ending: string;
   }[];
   const noFutureBooking: CancellationEventRow[] = noFutureBookingRows.map((r) => ({
     id: r.id,
@@ -334,6 +335,7 @@ export async function getNotRebookedClientsFor(supabase: SupabaseClient, provide
     modified_user: null,
     discussion_note: r.discussion_note,
     flagged_for_discussion: r.flagged_for_discussion,
+    week_ending: r.week_ending,
   }));
 
   // Merge both sources, one row per client — a client who's both cancelled
