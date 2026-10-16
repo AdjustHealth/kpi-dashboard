@@ -393,6 +393,32 @@ Evan,Village - Pre-Employment,Village Road Show Theme Parks Pty Ltd,Adjust Physi
     expect(weeklyKpis["2026-07-05"].total_nc).toBe(2);
   });
 
+  it("clients_and_cases: clears new_pt_booking_rate to null (not left stale) when reprocessing leaves zero real new clients — Dean's real bug: Beau Guyler's Occupational Health case was his ONLY 'new client' that week, so once excluded there was nothing left to average, the old code just skipped writing anything at all, and his new_pt_booking_rate kept showing whatever a PRIOR upload had left there", async () => {
+    const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "Dean Walker", role: "physio" }]);
+
+    // A normal earlier week establishes a real, nonzero rate first.
+    await applyNookalReport(
+      client as never,
+      "clients_and_cases",
+      "2026-07-05",
+      `Clients and Cases Report\n\nParameters\nDates,29/06/2026 - 05/07/2026\n\nDetails\nClient,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provider,Next,Bookings,Email,Receive Email,Mobile,Receive SMS,Followed-up,Client ID\nReal Client,Private - Physio,Private,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Dean Walker,,2 Complete / 4 Total,real@example.com,No,0400 000 002,Yes,No,1002\n\n`
+    );
+    expect(providerWeekly["p1:2026-07-05"].new_pt_booking_rate).toBeCloseTo(4, 2);
+
+    // Reprocessing that same week against the file where Beau Guyler's
+    // Occupational Health visit is the only "new client" row must NULL OUT
+    // the old rate, not leave 4 sitting there as if nothing changed.
+    await applyNookalReport(
+      client as never,
+      "clients_and_cases",
+      "2026-07-05",
+      `Clients and Cases Report\n\nParameters\nDates,29/06/2026 - 05/07/2026\n\nDetails\nClient,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provider,Next,Bookings,Email,Receive Email,Mobile,Receive SMS,Followed-up,Client ID\nBeau Guyler,Occupational Health Assessment,360 Occupational Health,Adjust Physiotherapy,Yes,Yes,No,01/07/2026,Dean Walker,,1 Complete / 1 Total,beau@example.com,No,0400 000 001,Yes,No,1001\n\n`
+    );
+    expect(providerWeekly["p1:2026-07-05"].new_patients).toBe(0);
+    expect(providerWeekly["p1:2026-07-05"].npbr_recommendations).toBe(0);
+    expect(providerWeekly["p1:2026-07-05"].new_pt_booking_rate).toBeNull();
+  });
+
   const BUSINESS_PERFORMANCE_CSV = `Business Performance Report
 
 Parameters

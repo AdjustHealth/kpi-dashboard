@@ -457,9 +457,19 @@ export async function applyNookalReport(
       // New Patient Booking Rate: each new client's own "X Complete / Y Total"
       // Bookings count, averaged across all of this provider's new clients
       // that week (see parseClientsAndCasesReport's npbrRecommendationsTotal).
+      // Explicitly null/zero (not skipped) when there are no real new clients
+      // left after exclusions — the bug that left Dean's NPBR showing a stale
+      // pre-Occupational-Health-fix number even after the regex fix shipped
+      // and the week was reprocessed: Beau Guyler was his ONLY "new client"
+      // that week, so newClientsExclPreEmployment dropped to 0 once excluded,
+      // this `if` skipped writing anything at all, and the old (wrong, Beau-
+      // inclusive) new_pt_booking_rate just sat there untouched forever.
       if (data.newClientsExclPreEmployment > 0) {
         patch.npbr_recommendations = data.npbrRecommendationsTotal;
         patch.new_pt_booking_rate = data.npbrRecommendationsTotal / data.newClientsExclPreEmployment;
+      } else {
+        patch.npbr_recommendations = 0;
+        patch.new_pt_booking_rate = null;
       }
       await upsertProviderMetrics(p.id, patch);
     }
