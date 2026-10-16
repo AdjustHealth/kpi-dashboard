@@ -10,11 +10,14 @@ import { MyStatsCharts } from "@/components/me/MyStatsCharts";
 import { MyGoalsCard } from "@/components/me/MyGoalsCard";
 import { MyCancellationsSection } from "@/components/me/MyCancellationsSection";
 import { MyActionStepsCard } from "@/components/me/MyActionStepsCard";
+import { MyClinicalTrainingCard } from "@/components/me/MyClinicalTrainingCard";
 import { NewPatientsCard } from "@/components/provider/NewPatientsCard";
 import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { Card } from "@/components/ui/Card";
 import { defaultWeekEnding, trackingHistoryWeeks } from "@/lib/week";
 import { ROLE_LABELS } from "@/lib/providerSchema";
+import { trainingGroupForProvider, trainingGroupLabel } from "@/lib/trainingGroup";
+import { getTrainingTopics, getCompletionsForProvider } from "@/lib/trainingData";
 
 export default async function MyDashboardPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const { week: weekParam } = await searchParams;
@@ -78,6 +81,23 @@ export default async function MyDashboardPage({ searchParams }: { searchParams: 
     newPatientNames = Array.isArray(thisWeekNames) ? (thisWeekNames as string[]) : [];
   }
 
+  let trainingSummary: { groupLabel: string; complete: number; total: number } | null = null;
+  if (provider) {
+    const currentTrainingGroup = trainingGroupForProvider(provider);
+    if (currentTrainingGroup) {
+      const [topics, completions] = await Promise.all([
+        getTrainingTopics(currentTrainingGroup),
+        getCompletionsForProvider(provider.id),
+      ]);
+      const completedIds = new Set(completions.map((c) => c.topic_id));
+      trainingSummary = {
+        groupLabel: trainingGroupLabel(currentTrainingGroup),
+        complete: topics.filter((t) => completedIds.has(t.id)).length,
+        total: topics.length,
+      };
+    }
+  }
+
   let gymCounts: { active: number; onHold: number; overdue: number; dueThisWeek: number } | null = null;
   let gymError: string | null = null;
   if (coach) {
@@ -117,6 +137,14 @@ export default async function MyDashboardPage({ searchParams }: { searchParams: 
               <MyGoalsCard goals={provider.goals ?? []} />
             </>
           ))}
+
+        {trainingSummary && (
+          <MyClinicalTrainingCard
+            groupLabel={trainingSummary.groupLabel}
+            complete={trainingSummary.complete}
+            total={trainingSummary.total}
+          />
+        )}
 
         {provider && <MyCancellationsSection key={week} week={week} />}
 
