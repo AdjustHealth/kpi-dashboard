@@ -29,6 +29,51 @@ interface SpecialtyMetricRow {
   label: string;
 }
 
+interface ExistingEventState {
+  not_rebooked_resolved: boolean;
+  flagged_for_discussion: boolean;
+  discussion_note: string | null;
+  dealt_with: boolean;
+}
+
+/** Join a row's identifying column values into one lookup key — null-safe, since appointment_date/provider/case_name can legitimately be null. */
+function eventStateKey(parts: (string | null | undefined)[]): string {
+  return parts.map((p) => p ?? "\u0000").join("|");
+}
+
+/**
+ * Reads back the per-row state (not_rebooked_resolved/flagged_for_discussion/
+ * discussion_note/dealt_with) a director or practitioner already set on this
+ * week's existing cancellation_events/no_future_booking_events rows, keyed
+ * by `keyColumns`, so a delete-then-insert re-upload/reprocess of the same
+ * week can carry that state forward onto the freshly inserted rows instead
+ * of silently resetting it to the column defaults. Without this, every
+ * already-"Dealt with" row in a reprocessed week reverts to unresolved —
+ * confirmed the hard way when reprocessing one provider's week to fix an
+ * unrelated NPBR bug reopened a pile of OTHER providers' already-dismissed
+ * Unretained clients, since a Cancellations Report's rows routinely carry
+ * appointment_dates from well before its own week_ending.
+ */
+async function fetchExistingEventState(
+  supabase: SupabaseClient,
+  table: "cancellation_events" | "no_future_booking_events",
+  weekEnding: string,
+  keyColumns: string[]
+): Promise<Map<string, ExistingEventState>> {
+  const { data } = await supabase.from(table).select("*").eq("week_ending", weekEnding);
+  const byKey = new Map<string, ExistingEventState>();
+  for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
+    const key = eventStateKey(keyColumns.map((c) => row[c] as string | null));
+    byKey.set(key, {
+      not_rebooked_resolved: Boolean(row.not_rebooked_resolved),
+      flagged_for_discussion: Boolean(row.flagged_for_discussion),
+      discussion_note: (row.discussion_note as string | null) ?? null,
+      dealt_with: Boolean(row.dealt_with),
+    });
+  }
+  return byKey;
+}
+
 /**
  * Maps a provider's specialty_metrics prefix (e.g. "headache") to the
  * matching key in parseActivityReport's SPECIALTY_CATEGORY_PATTERNS (e.g.
@@ -388,22 +433,48 @@ export async function applyNookalReport(
 
     // Raw per-cancellation rows for the Cancellations tab — replace this
     // week's rows entirely so re-uploading a corrected file doesn't leave
-    // stale duplicates behind.
+    // stale duplicates behind. BUT first carry over any per-row state a
+    // director/practitioner already set on the rows being replaced
+    // (not_rebooked_resolved/flagged_for_discussion/discussion_note/
+    // dealt_with) — a plain delete-then-insert discards those outright,
+    // since a freshly inserted row has no way to know it's "the same"
+    // cancellation as the one just deleted. Confirmed the hard way: Dean's
+    // week got reprocessed to fix his NPBR, and a Cancellations Report
+    // commonly carries rows with much older appointment_dates than its own
+    // week_ending (recurring/stale carry-through cancellations) — so EVERY
+    // provider's already-"Dealt with" Unretained rows that happened to
+    // appear in that one week's file reverted to unresolved at once, not
+    // just Dean's.
+    const existingCancellationState = await fetchExistingEventState(
+      supabase,
+      "cancellation_events",
+      weekEnding,
+      ["client", "provider", "appointment_date", "case_name", "status"]
+    );
     await supabase.from("cancellation_events").delete().eq("week_ending", weekEnding);
     if (result.detailRows.length > 0) {
       await supabase.from("cancellation_events").insert(
-        result.detailRows.map((row) => ({
-          week_ending: weekEnding,
-          appointment_date: row.appointmentDate,
-          client: row.client,
-          provider: row.provider,
-          case_name: row.caseName,
-          status: row.status,
-          note: row.note,
-          next_booking: row.nextBooking,
-          modified_user: row.modifiedUser,
-          modified_at: row.modifiedAt,
-        }))
+        result.detailRows.map((row) => {
+          const existing = existingCancellationState.get(
+            eventStateKey([row.client, row.provider, row.appointmentDate, row.caseName, row.status])
+          );
+          return {
+            week_ending: weekEnding,
+            appointment_date: row.appointmentDate,
+            client: row.client,
+            provider: row.provider,
+            case_name: row.caseName,
+            status: row.status,
+            note: row.note,
+            next_booking: row.nextBooking,
+            modified_user: row.modifiedUser,
+            modified_at: row.modifiedAt,
+            not_rebooked_resolved: existing?.not_rebooked_resolved ?? false,
+            flagged_for_discussion: existing?.flagged_for_discussion ?? false,
+            discussion_note: existing?.discussion_note ?? null,
+            dealt_with: existing?.dealt_with ?? false,
+          };
+        })
       );
     }
   } else if (reportType === "last_attendances") {
@@ -412,21 +483,37 @@ export async function applyNookalReport(
     // e.g. handed from one provider to another) and simply never books
     // again. Same delete-then-insert-per-week convention as
     // cancellation_events, feeding getNotRebookedClients as a second,
-    // clearly-labelled source (see lib/clinicData.ts).
+    // clearly-labelled source (see lib/clinicData.ts) — same per-row-state
+    // carry-over as cancellation_events above, for the same reason.
     const result = parseLastAttendancesReport(csvText);
     rowsFound = result.rows.length;
+    const existingFollowUpState = await fetchExistingEventState(
+      supabase,
+      "no_future_booking_events",
+      weekEnding,
+      ["client", "provider", "last_booking_date", "case_name"]
+    );
     await supabase.from("no_future_booking_events").delete().eq("week_ending", weekEnding);
     if (result.rows.length > 0) {
       await supabase.from("no_future_booking_events").insert(
-        result.rows.map((row) => ({
-          week_ending: weekEnding,
-          client: row.client,
-          provider: row.provider,
-          last_booking_date: row.lastBookingDate,
-          booking_type: row.bookingType,
-          case_name: row.caseName,
-          case_status: row.caseStatus,
-        }))
+        result.rows.map((row) => {
+          const existing = existingFollowUpState.get(
+            eventStateKey([row.client, row.provider, row.lastBookingDate, row.caseName])
+          );
+          return {
+            week_ending: weekEnding,
+            client: row.client,
+            provider: row.provider,
+            last_booking_date: row.lastBookingDate,
+            booking_type: row.bookingType,
+            case_name: row.caseName,
+            case_status: row.caseStatus,
+            not_rebooked_resolved: existing?.not_rebooked_resolved ?? false,
+            flagged_for_discussion: existing?.flagged_for_discussion ?? false,
+            discussion_note: existing?.discussion_note ?? null,
+            dealt_with: existing?.dealt_with ?? false,
+          };
+        })
       );
     }
   } else if (reportType === "clients_and_cases") {

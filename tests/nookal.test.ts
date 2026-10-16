@@ -361,6 +361,26 @@ describe("parseCancellationsReport", () => {
     expect(alex.bookedWithin7DaysPct).toBeCloseTo(1 / 3, 4);
   });
 
+  it("excludes a cancellation whose Note is just Nookal's 'error' placeholder from the per-provider stats, same as a real Neil Macnellie row", () => {
+    const csv = `Cancellations Report
+
+Parameters
+Dates,29/09/2026 - 05/10/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Edi Henderson,1,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+01/10/2026,Adjust Physiotherapy,Neil Macnellie,0400 000 020,Edi Henderson,Private - Physio,Service,Cancelled,2026-09-24 10:00:00,,error,01/10/2026,9:00am,Edi Henderson,3001
+
+`;
+    const result = parseCancellationsReport(csv);
+    expect(result.byProvider["Edi Henderson"].eventsCount).toBe(0);
+    expect(result.byProvider["Edi Henderson"].notRebooked).toBe(0);
+  });
+
   it("recognises RSX/RX tags written inline or bare, but excludes declined/offered/planned-not-done phrasing", () => {
     const csv = `Cancellations Report
 
@@ -968,6 +988,17 @@ describe("isCancellationExcludedFromStats", () => {
 
   it("excludes a Gym Supervision session", () => {
     expect(isCancellationExcludedFromStats({ ...base, caseName: "Gym Supervision" })).toBe(true);
+  });
+
+  it("excludes a cancellation whose Note is just Nookal's 'error' placeholder, in any casing/punctuation", () => {
+    expect(isCancellationExcludedFromStats({ ...base, note: "error" })).toBe(true);
+    expect(isCancellationExcludedFromStats({ ...base, note: "Error" })).toBe(true);
+    expect(isCancellationExcludedFromStats({ ...base, note: "error." })).toBe(true);
+    expect(isCancellationExcludedFromStats({ ...base, note: "  Error  " })).toBe(true);
+  });
+
+  it("does not exclude a real note that merely mentions 'error'", () => {
+    expect(isCancellationExcludedFromStats({ ...base, note: "client said there was an error with their booking, rescheduling" })).toBe(false);
   });
 
   it("excludes a stale/ghost recurring slot actioned well before the appointment", () => {
