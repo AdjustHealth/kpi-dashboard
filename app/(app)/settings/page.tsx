@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { SettingsManager } from "@/components/settings/SettingsManager";
+import { ReprocessReportsCard } from "@/components/settings/ReprocessReportsCard";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
 import { requireDirector } from "@/lib/auth/access";
@@ -17,8 +18,9 @@ export default async function SettingsPage() {
         subtitle="Manage providers and their specialty KPIs."
         showWeekSelector={false}
       />
-      <div className="p-8">
+      <div className="flex flex-col gap-6 p-8">
         <SettingsManager initialProviders={providers} />
+        <ReprocessReportsCard />
       </div>
     </>
   );
