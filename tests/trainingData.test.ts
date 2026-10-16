@@ -63,24 +63,35 @@ describe("getRelevantTrainingGroups", () => {
   }
   const newGradTopic = topic({ id: "ng1", training_group: "new_grad" });
   const associateTopic = topic({ id: "as1", training_group: "associate" });
-  const allTopics = [newGradTopic, associateTopic];
+  const seniorTopic = topic({ id: "sr1", training_group: "senior_physio" });
+  const massageTopic = topic({ id: "ma1", training_group: "massage" });
+  const allTopics = [newGradTopic, associateTopic, seniorTopic, massageTopic];
 
-  it("includes the current group even with no completions yet", () => {
-    expect(getRelevantTrainingGroups("new_grad", [], allTopics)).toEqual(["new_grad"]);
+  it("a physio sees the WHOLE physio track (New Grad, Associate, Senior Physio) even with zero completions anywhere — they should be able to see what's coming next, not just what they've started", () => {
+    expect(getRelevantTrainingGroups("new_grad", [], allTopics)).toEqual(["new_grad", "associate", "senior_physio"]);
   });
 
-  it("keeps a PREVIOUS group's history visible after moving on — the bug this exists to fix: a promoted New Grad's unfinished (or finished) topics must not vanish just because their current group changed", () => {
+  it("keeps a PREVIOUS group's history visible after moving on — the bug this exists to fix: a promoted New Grad's unfinished (or finished) topics must not vanish just because their current group changed (physio-track widening already covers this, but a real completion still must not break it)", () => {
     const groups = getRelevantTrainingGroups("associate", [completion("ng1")], allTopics);
-    expect(groups).toEqual(["new_grad", "associate"]);
+    expect(groups).toEqual(["new_grad", "associate", "senior_physio"]);
   });
 
   it("orders groups by career progression (TRAINING_GROUPS order), not completion order", () => {
     const groups = getRelevantTrainingGroups("new_grad", [completion("as1")], allTopics);
-    expect(groups).toEqual(["new_grad", "associate"]);
+    expect(groups).toEqual(["new_grad", "associate", "senior_physio"]);
   });
 
   it("returns an empty array for no current group and no completions", () => {
     expect(getRelevantTrainingGroups(null, [], allTopics)).toEqual([]);
+  });
+
+  it("massage/EP have no career-path widening — only their own current group shows, since there's nothing 'coming next' for a single-stage discipline", () => {
+    expect(getRelevantTrainingGroups("massage", [], allTopics)).toEqual(["massage"]);
+  });
+
+  it("massage/EP still keep a PREVIOUS group's history (e.g. someone who moved from EP into Massage) via the ordinary completions path, just without the physio-track widening", () => {
+    const groups = getRelevantTrainingGroups("massage", [completion("ng1")], allTopics);
+    expect(groups).toEqual(["new_grad", "massage"]);
   });
 });
 
