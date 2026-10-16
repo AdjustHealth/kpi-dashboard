@@ -75,11 +75,23 @@ export async function getCompletionsForProvider(providerId: string): Promise<Tra
  * unfinished ones (and the provider's own completed ones) silently
  * disappear from their own view the moment they're reclassified. Order
  * matches TRAINING_GROUPS (career-progression order), current group first.
+ *
+ * A physio (current group in PHYSIO_TRACK_GROUPS) additionally sees the
+ * WHOLE physio career path — New Grad, Associate, Senior Physio — even for
+ * a later stage they have zero completions in yet, same reasoning as
+ * rosterForTrainingGroup's PHYSIO_TRACK_GROUPS widening on the
+ * director-facing pages: it's one continuous path, so an Associate should
+ * be able to see what Senior Physio covers, not just what they've already
+ * started. Massage/EP have no such progression, so they keep the narrower
+ * current+completions behavior.
  */
 export function getRelevantTrainingGroups(currentGroup: TrainingGroupId | null, completions: TrainingCompletion[], allTopics: TrainingTopic[]): TrainingGroupId[] {
   const topicGroupById = new Map(allTopics.map((t) => [t.id, t.training_group]));
   const groupsWithCompletions = new Set(completions.map((c) => topicGroupById.get(c.topic_id)).filter((g): g is TrainingGroupId => g !== undefined));
   if (currentGroup) groupsWithCompletions.add(currentGroup);
+  if (currentGroup && PHYSIO_TRACK_GROUPS.includes(currentGroup)) {
+    for (const g of PHYSIO_TRACK_GROUPS) groupsWithCompletions.add(g);
+  }
   return TRAINING_GROUPS.map((g) => g.id).filter((id) => groupsWithCompletions.has(id));
 }
 

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import { myProvider } from "@/lib/providerIdentity";
-import { trainingGroupForProvider, trainingGroupLabel, initialsForProvider } from "@/lib/trainingGroup";
+import { trainingGroupForProvider, trainingGroupLabel, initialsForProvider, PHYSIO_TRACK_GROUPS } from "@/lib/trainingGroup";
 import { getAllTrainingTopics, getCompletionsForProvider, getRelevantTrainingGroups, groupTopicsByCategory } from "@/lib/trainingData";
 import { TopicRow } from "@/components/training/TopicRow";
 
@@ -93,6 +93,15 @@ export default async function MyTrainingPage() {
           const pct = topics.length > 0 ? Math.round((complete / topics.length) * 100) : null;
           const categories = groupTopicsByCategory(topics);
           const isCurrent = groupId === currentGroup;
+          // A later physio-track stage shown ahead of time (see
+          // getRelevantTrainingGroups) hasn't been reached yet — flag it as
+          // "Coming up" rather than letting a 0%/no-completions group read
+          // like something's wrong.
+          const isUpcoming =
+            !isCurrent &&
+            currentGroup !== null &&
+            PHYSIO_TRACK_GROUPS.includes(groupId) &&
+            PHYSIO_TRACK_GROUPS.indexOf(groupId) > PHYSIO_TRACK_GROUPS.indexOf(currentGroup);
 
           return (
             <div key={groupId} className="flex flex-col gap-3">
@@ -100,6 +109,7 @@ export default async function MyTrainingPage() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-display text-sm font-bold uppercase tracking-wide text-foreground">{trainingGroupLabel(groupId)}</h2>
                   {isCurrent && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">Current</span>}
+                  {isUpcoming && <span className="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">Coming up</span>}
                 </div>
                 <span className="text-xs font-semibold text-muted">
                   {complete} of {topics.length} · {pct === null ? "—" : `${pct}%`}
