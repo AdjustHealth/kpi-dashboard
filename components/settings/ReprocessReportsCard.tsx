@@ -21,17 +21,25 @@ type WeekState =
   | { status: "error"; message: string };
 
 /**
- * One-off maintenance tool: re-runs a parsing fix against every PAST week's
- * already-uploaded report files, since a parsing-logic fix only changes how
- * the next upload is read — it never touches numbers a past upload already
- * wrote (see app/api/nookal-reprocess/route.ts). Director-only; re-running
- * is safe (applyNookalReport is idempotent per week/report type), and
- * processes one week at a time client-side rather than one long server
- * request, so progress is visible and a slow/failing week doesn't risk the
- * whole run timing out silently.
+ * One-off maintenance tool: re-runs a parsing fix against a chosen PAST
+ * week's already-uploaded report files, since a parsing-logic fix only
+ * changes how the next upload is read — it never touches numbers a past
+ * upload already wrote (see app/api/nookal-reprocess/route.ts).
+ *
+ * Deliberately NOT a single "reprocess everything" button. Reprocessing a
+ * week re-applies EVERY current parsing/categorisation rule to it, not just
+ * whatever fix prompted the reprocess — months of accumulated refinements
+ * (payer categorisation, specialty-consult detection, JBV matching, the PVA
+ * formula, etc.) would all get re-applied to every old week at once,
+ * including ones nobody has flagged as wrong, and would silently overwrite
+ * any value a director has since corrected by hand. Weeks are picked one at
+ * a time instead, so only the weeks actually known to be affected get
+ * touched. Director-only; re-running a given week is safe (applyNookalReport
+ * is idempotent per week/report type).
  */
 export function ReprocessReportsCard() {
   const [weeks, setWeeks] = useState<string[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [weekStates, setWeekStates] = useState<Record<string, WeekState>>({});
   const [running, setRunning] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -49,17 +57,31 @@ export function ReprocessReportsCard() {
     }
   }
 
-  async function runAll() {
+  function toggleWeek(week: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(week)) next.delete(week);
+      else next.add(week);
+      return next;
+    });
+  }
+
+  async function runSelected() {
     if (!weeks) return;
+    const toRun = weeks.filter((w) => selected.has(w));
+    if (toRun.length === 0) return;
     if (
       !window.confirm(
-        `This re-reads ${weeks.length} week(s) of already-uploaded Cancellations/Clients & Cases/Activity/Last Attendances reports with the current (fixed) parsing logic, and overwrites those weeks' stats. It's the same effect as re-uploading each file by hand. Continue?`
+        `This re-reads the selected ${toRun.length} week(s) of already-uploaded Cancellations/Clients & Cases/Activity/Last Attendances reports with today's full parsing logic (not just the fix you're chasing), and overwrites those weeks' stats — the same effect as re-uploading each file by hand, and it'll undo any manual correction made since. Only continue for weeks you know are affected. Continue?`
       )
     ) {
       return;
     }
     setRunning(true);
-    for (const week of weeks) {
+    // Oldest selected week first — PVA's trailing-52-week ledger only lands
+    // on the right answer once earlier weeks are corrected before later
+    // ones sum over them.
+    for (const week of toRun) {
       setWeekStates((prev) => ({ ...prev, [week]: { status: "running" } }));
       try {
         const res = await fetch("/api/nookal-reprocess", {
@@ -84,30 +106,30 @@ export function ReprocessReportsCard() {
     <Card title="Reprocess past reports">
       <p className="text-xs text-muted">
         After a parsing fix ships (e.g. a corrected exclusion), past weeks keep their old numbers until the report
-        that produced them is re-read — this re-reads every past week&apos;s Cancellations, Clients &amp; Cases,
-        Activity, and Last Attendances files (already stored from their original upload) with today&apos;s logic, in
-        order, oldest first. Safe to run more than once.
+        that produced them is re-read. This re-reads a chosen week&apos;s Cancellations, Clients &amp; Cases,
+        Activity, and Last Attendances files (already stored from their original upload) with today&apos;s full
+        logic — not just the fix you&apos;re chasing — so{" "}
+        <span className="font-semibold text-foreground">only tick the week(s) you actually know are affected</span>,
+        not everything. It will also undo any manual correction made to that week since.
       </p>
-      <div className="mt-3 flex items-center gap-2">
-        {weeks === null ? (
-          <button
-            type="button"
-            onClick={loadWeeks}
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent"
-          >
-            Check what&apos;s available
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={runAll}
-            disabled={running || weeks.length === 0}
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent disabled:opacity-50"
-          >
-            {running ? "Reprocessing…" : `Reprocess all ${weeks.length} week(s)`}
-          </button>
-        )}
-      </div>
+      {weeks === null ? (
+        <button
+          type="button"
+          onClick={loadWeeks}
+          className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent"
+        >
+          Check what&apos;s available
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={runSelected}
+          disabled={running || selected.size === 0}
+          className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent disabled:opacity-50"
+        >
+          {running ? "Reprocessing…" : `Reprocess ${selected.size} selected week(s)`}
+        </button>
+      )}
       {loadError && <p className="mt-2 text-xs text-danger">{loadError}</p>}
       {weeks !== null && weeks.length === 0 && <p className="mt-2 text-xs text-muted">No uploaded reports found to reprocess.</p>}
       {weeks !== null && weeks.length > 0 && (
@@ -117,7 +139,16 @@ export function ReprocessReportsCard() {
             return (
               <div key={week} className="rounded-lg border border-border/60 p-2.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-foreground">Week ending {formatWeekLabel(week)}</span>
+                  <label className="flex items-center gap-2 font-medium text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(week)}
+                      onChange={() => toggleWeek(week)}
+                      disabled={running}
+                      className="h-3.5 w-3.5 rounded border-border bg-surface-raised accent-accent"
+                    />
+                    Week ending {formatWeekLabel(week)}
+                  </label>
                   {state.status === "pending" && <Badge>Pending</Badge>}
                   {state.status === "running" && <Badge tone="warning">Reprocessing…</Badge>}
                   {state.status === "done" && <Badge tone="good">Done</Badge>}
