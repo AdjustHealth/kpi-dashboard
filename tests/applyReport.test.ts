@@ -71,6 +71,14 @@ function createFakeSupabase(providers: FakeProvider[]) {
 
       if (table === "cancellation_events") {
         return {
+          select() {
+            return {
+              async eq(col: string, val: string) {
+                if (col === "week_ending") return { data: cancellationEvents.filter((r) => r.week_ending === val), error: null };
+                return { data: cancellationEvents, error: null };
+              },
+            };
+          },
           delete() {
             return {
               async eq(col: string, val: string) {
@@ -88,6 +96,14 @@ function createFakeSupabase(providers: FakeProvider[]) {
 
       if (table === "no_future_booking_events") {
         return {
+          select() {
+            return {
+              async eq(col: string, val: string) {
+                if (col === "week_ending") return { data: noFutureBookingEvents.filter((r) => r.week_ending === val), error: null };
+                return { data: noFutureBookingEvents, error: null };
+              },
+            };
+          },
           delete() {
             return {
               async eq(col: string, val: string) {
@@ -156,7 +172,13 @@ function createFakeSupabase(providers: FakeProvider[]) {
     },
   };
 
-  return { client, providerWeekly, weeklyKpis, getNoFutureBookingEvents: () => noFutureBookingEvents };
+  return {
+    client,
+    providerWeekly,
+    weeklyKpis,
+    getNoFutureBookingEvents: () => noFutureBookingEvents,
+    getCancellationEvents: () => cancellationEvents,
+  };
 }
 
 const ACTIVITY_CSV = `Activity Report
@@ -365,6 +387,44 @@ Total,120,30,,0,0,
     expect(weeklyKpis["2026-07-05"].cva_massage).toBeUndefined();
     expect(weeklyKpis["2026-07-05"].cva_ep).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Senior One"]);
+  });
+
+  it("cancellations: reprocessing a week preserves not_rebooked_resolved/flagged_for_discussion/discussion_note/dealt_with on rows that still appear — the real bug: reprocessing one provider's week to fix an unrelated issue silently reopened a pile of OTHER providers' already-'Dealt with' Unretained clients, since a plain delete-then-insert has no way to know a freshly inserted row is 'the same' cancellation as the one just deleted", async () => {
+    const CSV = `Cancellations Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Edi Henderson,1,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+28/09/2026,Adjust Physiotherapy,Sheena Mulvey,0400 000 030,Edi Henderson,Private - Physio,Service,Cancelled,2026-09-20 10:00:00,,no rebook needed,28/09/2026,9:00am,Edi Henderson,4001
+
+`;
+    const { client, getCancellationEvents } = createFakeSupabase([{ id: "p1", name: "Edi Henderson", role: "admin" }]);
+
+    await applyNookalReport(client as never, "cancellations", "2026-10-04", CSV);
+    const firstPass = getCancellationEvents().find((r) => r.client === "Sheena Mulvey")!;
+    expect(firstPass.not_rebooked_resolved).toBe(false);
+
+    // A director dismisses her from the Unretained list — same effect as
+    // clicking "Dealt with" via /api/cancellation-events.
+    firstPass.not_rebooked_resolved = true;
+    firstPass.discussion_note = "called, rebooking next month";
+    firstPass.flagged_for_discussion = true;
+    firstPass.dealt_with = true;
+
+    // Reprocessing the SAME week (e.g. to fix a different provider's NPBR
+    // that week) re-reads this exact same file again.
+    await applyNookalReport(client as never, "cancellations", "2026-10-04", CSV);
+    const secondPass = getCancellationEvents().find((r) => r.client === "Sheena Mulvey")!;
+    expect(secondPass.not_rebooked_resolved).toBe(true);
+    expect(secondPass.discussion_note).toBe("called, rebooking next month");
+    expect(secondPass.flagged_for_discussion).toBe(true);
+    expect(secondPass.dealt_with).toBe(true);
   });
 
   it("clients_and_cases: computes New Patient Booking Rate from each new client's own Bookings 'Total' count, excluding Pre-Employment", async () => {

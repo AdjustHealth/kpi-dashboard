@@ -391,6 +391,15 @@ const HOTDOC_PLACEHOLDER_PATTERN = /hotdoc/i;
 // appointments count or list.
 const GYM_SUPERVISION_PATTERN = /gym\s*supervision/i;
 
+// A Note that reads literally "error" (sometimes "error." or "Error -") is
+// Nookal's own placeholder for a cancellation whose real note never saved —
+// not a staff-written reason, and not something to chase up — so it
+// shouldn't appear on the Unretained list or count toward cancellation
+// stats. Deliberately anchored to the WHOLE note (not just containing the
+// word), so a genuine note like "client said there was an error with their
+// booking, rescheduling" still counts normally.
+const ERROR_PLACEHOLDER_NOTE_PATTERN = /^error[.\-\s]*$/i;
+
 // Notes matching these patterns mean the whole booking plan was cancelled
 // in bulk (e.g. a client leaving, or an admin bulk action) — Nookal can
 // produce one Details row per future appointment in that plan, which would
@@ -453,6 +462,7 @@ export function isCancellationExcludedFromStats(row: {
   if (CORPORATE_SCREENING_PATTERN.test(row.caseName ?? "")) return true;
   if (HOTDOC_PLACEHOLDER_PATTERN.test(row.caseName ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(row.client)) return true;
   if (GYM_SUPERVISION_PATTERN.test(row.caseName ?? "")) return true;
+  if (ERROR_PLACEHOLDER_NOTE_PATTERN.test((row.note ?? "").trim())) return true;
   const apptDate = row.appointmentDate ? new Date(row.appointmentDate) : null;
   const modifiedDate = row.modifiedAt ? new Date(row.modifiedAt) : null;
   if (isStaleCancellation(apptDate, modifiedDate)) return true;
@@ -559,6 +569,7 @@ export function parseCancellationsReport(
       if (CORPORATE_SCREENING_PATTERN.test(r["Case"] ?? "")) continue;
       if (HOTDOC_PLACEHOLDER_PATTERN.test(r["Case"] ?? "") || HOTDOC_PLACEHOLDER_PATTERN.test(client ?? "")) continue;
       if (GYM_SUPERVISION_PATTERN.test(r["Case"] ?? "")) continue;
+      if (ERROR_PLACEHOLDER_NOTE_PATTERN.test((note ?? "").trim())) continue;
       const apptDate = parseNookalDate(r["Appointment Date"]);
       const modifiedDate = parseNookalDate(r["Modifed Date"]);
       if (isStaleCancellation(apptDate, modifiedDate)) continue;
