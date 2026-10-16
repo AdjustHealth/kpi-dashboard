@@ -10,6 +10,8 @@ export interface CancellationEventRow {
   client: string;
   provider: string | null;
   case_name: string | null;
+  /** Which Nookal upload wrote this row — shown (small, muted) on the Unretained list so a bulk re-upload/reprocess of one specific week is easy to spot among older carry-through rows. */
+  week_ending?: string;
   /** "No Future Booking" is not a cancellation at all — the client attended a real appointment and simply never booked again, from the Last Attendances Report (see lib/clinicData.ts getNotRebookedClients). Both this and "Cancelled" display as "Unretained" on the Unretained list (showResolveAction) — see the status badge below. */
   status: "Cancelled" | "Did Not Arrive" | "No Future Booking";
   note: string | null;
@@ -75,6 +77,11 @@ export function CancellationsTable({
   // Default sort matches the server's own order (date, then client).
   const [sortKey, setSortKey] = useState<SortKey>("appointment_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Bulk-select for showResolveAction — lets a director clear a whole batch
+  // of already-known-handled rows in one action instead of one click each,
+  // e.g. after a reprocess momentarily reopened a pile of them at once.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkResolving, setBulkResolving] = useState(false);
 
   // The Unretained list (showResolveAction) merges rows sourced from
   // cancellation_events and no_future_booking_events (see
@@ -98,10 +105,7 @@ export function CancellationsTable({
     }
   }
 
-  async function resolveRow(row: CancellationEventRow) {
-    // Optimistically drop it from view — this is a dismiss, not an edit, so
-    // there's no "current" value to show while the request is in flight.
-    setLocalRows((prev) => prev.filter((r) => r.id !== row.id));
+  async function resolveOnServer(row: CancellationEventRow): Promise<boolean> {
     // Resolve by client+provider (not just this one row's id) — a client
     // who's cancelled repeatedly without rebooking can have several
     // separate cancellation_events rows across different weeks, and
@@ -116,10 +120,47 @@ export function CancellationsTable({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) {
+    return res.ok;
+  }
+
+  async function resolveRow(row: CancellationEventRow) {
+    // Optimistically drop it from view — this is a dismiss, not an edit, so
+    // there's no "current" value to show while the request is in flight.
+    setLocalRows((prev) => prev.filter((r) => r.id !== row.id));
+    const ok = await resolveOnServer(row);
+    if (!ok) {
       // Revert on failure — put it back so it isn't silently lost.
       setLocalRows((prev) => [...prev, row]);
     }
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function resolveSelected() {
+    const toResolve = localRows.filter((r) => selectedIds.has(r.id));
+    if (toResolve.length === 0) return;
+    if (!window.confirm(`Mark ${toResolve.length} selected client(s) as dealt with? This removes them from the Unretained list.`)) {
+      return;
+    }
+    setBulkResolving(true);
+    // Optimistically drop them all, then revert any that actually failed —
+    // same reasoning as resolveRow, just batched.
+    setLocalRows((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+    const failed: CancellationEventRow[] = [];
+    for (const row of toResolve) {
+      const ok = await resolveOnServer(row);
+      if (!ok) failed.push(row);
+    }
+    if (failed.length > 0) setLocalRows((prev) => [...prev, ...failed]);
+    setSelectedIds(new Set());
+    setBulkResolving(false);
   }
 
   async function toggleDealtWith(row: CancellationEventRow) {
@@ -163,11 +204,45 @@ export function CancellationsTable({
     return sortDir === "asc" ? sorted : sorted.reverse();
   }, [localRows, sortKey, sortDir]);
 
+  const allSelected = showResolveAction && sortedRows.length > 0 && sortedRows.every((r) => selectedIds.has(r.id));
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(sortedRows.map((r) => r.id)));
+  }
+
   return (
     <div className="overflow-x-auto">
+      {showResolveAction && (
+        <div className="mb-2 flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={resolveSelected}
+            disabled={selectedIds.size === 0 || bulkResolving}
+            className="rounded-md border border-border px-2.5 py-1 font-medium text-foreground hover:border-accent disabled:opacity-50"
+          >
+            {bulkResolving ? "Marking as dealt with…" : `Dealt with (${selectedIds.size} selected)`}
+          </button>
+          {selectedIds.size > 0 && (
+            <button type="button" onClick={() => setSelectedIds(new Set())} className="text-muted hover:text-foreground">
+              Clear selection
+            </button>
+          )}
+        </div>
+      )}
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+            {showResolveAction && (
+              <th className="w-8 py-2 pl-0 pr-1 font-medium">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  title="Select all"
+                  className="h-3.5 w-3.5 rounded border-border bg-surface-raised accent-accent"
+                />
+              </th>
+            )}
             <th className="w-8 py-2 pl-0 pr-1 font-medium" title="Flag for discussion" />
             {COLUMNS.map((col) => (
               <th key={col.key} className="py-2 px-3 font-medium whitespace-nowrap first:pl-0">
@@ -207,6 +282,16 @@ export function CancellationsTable({
             };
             return (
             <tr key={row.id} className="border-b border-border/60 last:border-0 align-top" style={rowStyle}>
+              {showResolveAction && (
+                <td className="w-8 py-2 pl-0 pr-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(row.id)}
+                    onChange={() => toggleSelected(row.id)}
+                    className="h-3.5 w-3.5 rounded border-border bg-surface-raised accent-accent"
+                  />
+                </td>
+              )}
               <td className="w-8 py-2 pl-0 pr-1">
                 <button
                   type="button"
@@ -220,6 +305,11 @@ export function CancellationsTable({
               </td>
               <td className="py-2 pr-3 pl-0 whitespace-nowrap text-muted">
                 {row.appointment_date ? formatWeekLabel(row.appointment_date) : "—"}
+                {showResolveAction && row.week_ending && (
+                  <div className="text-[10px] text-muted/70" title="Which week's upload wrote this row">
+                    upload {formatWeekLabel(row.week_ending)}
+                  </div>
+                )}
               </td>
               <td
                 className="py-2 px-3 whitespace-nowrap text-foreground"
