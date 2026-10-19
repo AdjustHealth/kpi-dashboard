@@ -1007,7 +1007,11 @@ export interface OnlineBookingsReportResult {
  * "Initial" in the Service name is the new-client signal (e.g. "Private
  * Initial 60 min 500", "MASSAGE Initial 90 min 105") — this also naturally
  * excludes Pre-Employment screenings without any extra filtering, since
- * none of their Service names contain the word "Initial".
+ * none of their Service names contain the word "Initial". HotDoc
+ * Placeholder rows need explicit filtering though — confirmed against a
+ * real export, one showed up with "Private Initial 60 min 500" as its own
+ * Service, which would otherwise count a client who was never real toward
+ * the new-client denominator.
  *
  * All statuses count (Completed, Cancelled, Pending) — this tracks booking
  * CHANNEL/behaviour (how the client chose to book), not whether the visit
@@ -1030,6 +1034,13 @@ export function parseOnlineBookingsReport(text: string): OnlineBookingsReportRes
     const client = (row[3] ?? "").trim();
     const service = (row[4] ?? "").trim();
     if (!client || !service) continue;
+    // Not a real person — HotDoc's own online booking widget can leave
+    // behind a placeholder appointment/client record before it's matched to
+    // a real one (same exclusion every other report in this file applies).
+    // Confirmed against a real export: a "HotDoc Placeholder" row can carry
+    // "Private Initial..." as its Service, which would otherwise inflate
+    // the new-client denominator by one client who was never actually new.
+    if (HOTDOC_PLACEHOLDER_PATTERN.test(client)) continue;
 
     const deviceCells = row.slice(7, row.length - 1);
     const bookedOnline = deviceCells.some((c) => (c ?? "").trim().length > 0);
