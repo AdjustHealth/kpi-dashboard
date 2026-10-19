@@ -93,9 +93,16 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 27, id: "bookings_following_week", label: "Total Bookings for Following Week", source: "manual", type: "number", category: "Diary" },
   { idx: 28, id: "diary_mgmt_pct", label: "Diary Management %", source: "calc", type: "percent", category: "Diary" },
   // Scoped to new clients only, not every booking: of this week's new
-  // clients (excl. Pre-Employment — same population as total_nc's per-
-  // provider figure), how many booked their initial appointment online vs.
-  // by phone/in person. e.g. 14 new clients, 5 booked online -> total=14, new=5.
+  // clients, how many booked their initial appointment online vs. by phone/
+  // in person. e.g. 14 new initial bookings, 5 booked online -> total=14, new=5.
+  // Auto-counted from the real Online Bookings Report (lib/nookal/parsers.ts's
+  // parseOnlineBookingsReport — a row whose Service contains "Initial" is a
+  // new-client booking; one with device/OS/browser metadata populated was
+  // made through Nookal's own online widget, same signal the clinic-wide
+  // all_bookings_* pair below uses). Replaced the admin's old manual
+  // "Online Booking" tick on the New Client Checklist (admin_new_client_tasks)
+  // — a real signal straight from Nookal beats a human remembering to tick a
+  // box per client every week.
   { idx: 29, id: "online_bookings_total", label: "New Clients (Online Bookings denominator)", source: "calc", type: "number", category: "Diary" },
   { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "calc", type: "number", category: "Diary" },
 
@@ -176,13 +183,24 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // week without manual division/typing it twice.
   { idx: 88, id: "m_pod_fortnightly", label: "Podiatry Fortnightly Revenue (actual, entered once per fortnight)", source: "manual", type: "currency", category: "Podiatry" },
 
-  // online_bookings_total/online_bookings_new are now auto-counted from the
-  // New Client Checklist (admin_new_client_tasks — see
-  // app/api/admin-client-tasks/route.ts) instead of hand-typed; this is the
-  // derived %, a Postgres generated column same as diary_mgmt_pct. Tracked
-  // for the Clinic Health/Quarterly Review charts — not shown on the admin
-  // meeting sheet itself.
+  // online_bookings_total/online_bookings_new are auto-counted from the real
+  // Online Bookings Report now (lib/nookal/parsers.ts's
+  // parseOnlineBookingsReport — see applyReport.ts's "online_bookings"
+  // branch), not the admin's old manual tick on the New Client Checklist;
+  // this is the derived %, a Postgres generated column same as
+  // diary_mgmt_pct. Tracked for the Clinic Health/Quarterly Review charts —
+  // not shown on the admin meeting sheet itself.
   { idx: 89, id: "online_bookings_pct", label: "New Clients Booked Online %", source: "calc", type: "percent", category: "Diary" },
+
+  // Every booking this week, any service, any channel — the broader "how
+  // much of the diary fills itself in" picture the new-clients-only pair
+  // above can't show on its own. Same Online Bookings Report, same
+  // online-vs-phone signal (device/OS/browser metadata present = booked
+  // online), just unscoped to new clients. all_bookings_online_pct is the
+  // derived %, same generated-column pattern as online_bookings_pct.
+  { idx: 90, id: "all_bookings_total", label: "Bookings — All Channels", source: "calc", type: "number", category: "Diary" },
+  { idx: 91, id: "all_bookings_online", label: "Bookings — Booked Online", source: "calc", type: "number", category: "Diary" },
+  { idx: 92, id: "all_bookings_online_pct", label: "Bookings Online %", source: "calc", type: "percent", category: "Diary" },
 ];
 
 export function getClinicHeaders(): string[] {
@@ -244,6 +262,7 @@ export const NOOKAL_REPORT_TYPES = [
   "cancellations",
   "last_attendances",
   "aged_debtors",
+  "online_bookings",
 ] as const;
 
 export type NookalReportType = (typeof NOOKAL_REPORT_TYPES)[number];
@@ -258,4 +277,5 @@ export const NOOKAL_REPORT_LABELS: Record<NookalReportType, string> = {
   cancellations: "Cancellations",
   last_attendances: "Last Attendances (no future booking)",
   aged_debtors: "Aged Debtors",
+  online_bookings: "Online Bookings",
 };

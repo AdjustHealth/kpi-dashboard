@@ -7,6 +7,7 @@ import {
   parseClientsAndCasesReport,
   parseLastAttendancesReport,
   parseOccupancyReport,
+  parseOnlineBookingsReport,
   parseProvidersAndPracticeReport,
   isRescheduleNote,
   isCancellationExcludedFromStats,
@@ -1009,5 +1010,51 @@ describe("isCancellationExcludedFromStats", () => {
   it("does not exclude a cancellation actioned close to its own appointment date", () => {
     // Modified only 1 day before the appointment — a real, fresh reaction this week.
     expect(isCancellationExcludedFromStats({ ...base, appointmentDate: "2026-08-20", modifiedAt: "2026-08-19" })).toBe(false);
+  });
+});
+
+describe("parseOnlineBookingsReport", () => {
+  // Mirrors a real export's exact ragged shape: an online-booked row carries
+  // Device/OS/Browser before the trailing Client ID, a phone/admin-booked
+  // row has none of that — so each row's total column count differs.
+  const CSV = `Online Bookings Report
+
+Parameters
+Dates,12/10/2026 - 18/10/2026
+Locations,All Locations
+
+Details
+Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
+12/10/2026 - 11:00am,Adjust Physiotherapy,Jake Mitchell,Tarja Wedenberg,MASSAGE Initial 90 min 105,11/10/2026 - 5:26pm,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,51581
+12/10/2026 - 11:30am,Adjust Physiotherapy,Tayla Cattanach,Hadeel Jeewan,Private Subs 505,11/10/2026 - 9:28pm,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,68101
+12/10/2026 - 1:15pm,Adjust Physiotherapy,Wilson Page,Julie Breteau,Pre-Employment Assessment,09/10/2026 - 11:15am,Completed,,,,81666
+12/10/2026 - 2:00pm,Adjust Physiotherapy,Sam Johnston,Cooper Leemon,Private Initial 60 min 500,11/10/2026 - 4:19pm,Cancelled,Apple Macintosh,Mac OS,Chrome,,,,,,,81698
+13/10/2026 - 11:00am,Adjust Physiotherapy,Dean Walker,Sarah Jones,Private Initial 60 min 500,12/10/2026 - 3:00pm,Completed,,,,99001
+14/10/2026 - 11:00am,Adjust Physiotherapy,Jake Mitchell,Tarja Wedenberg,MASSAGE Subs 60 min 205,13/10/2026 - 9:00am,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,51581
+
+`;
+
+  it("counts every Details row as a booking, and flags one as 'booked online' only when device/OS/browser metadata is actually present", () => {
+    const result = parseOnlineBookingsReport(CSV);
+    expect(result.allBookingsTotal).toBe(6);
+    // Online: Tarja (row 1), Hadeel, Cooper (device present) = 3. Phone/admin: Julie, Sarah, Tarja's 2nd row has device too -> 4 online, 2 phone.
+    expect(result.allBookingsOnline).toBe(4);
+  });
+
+  it("counts a new/'Initial' client once even if they appear in two rows, and only via the word 'Initial' in Service — Pre-Employment never matches", () => {
+    const result = parseOnlineBookingsReport(CSV);
+    // Tarja (Initial, online), Cooper (Initial, online, even though Cancelled), Sarah (Initial, phone) = 3 distinct new clients.
+    // Hadeel (Subs, not Initial) and Julie (Pre-Employment, not Initial) don't count.
+    expect(result.newClientBookingsTotal).toBe(3);
+  });
+
+  it("counts how many of those new/'Initial' clients booked online — Sarah (phone-booked Initial) doesn't count, Cooper does even though her appointment was later cancelled", () => {
+    const result = parseOnlineBookingsReport(CSV);
+    expect(result.newClientBookingsOnline).toBe(2);
+  });
+
+  it("returns all zeros for a file with no Details section", () => {
+    const result = parseOnlineBookingsReport("Online Bookings Report\n\nParameters\nDates,12/10/2026 - 18/10/2026\n\n");
+    expect(result).toEqual({ allBookingsTotal: 0, allBookingsOnline: 0, newClientBookingsTotal: 0, newClientBookingsOnline: 0 });
   });
 });

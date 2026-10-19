@@ -10,6 +10,7 @@ import {
   parseClientsAndCasesReport,
   parseLastAttendancesReport,
   parseOccupancyReport,
+  parseOnlineBookingsReport,
   parseProvidersAndPracticeReport,
   isRescheduleNote,
   hasRescheduleTag,
@@ -646,6 +647,19 @@ export async function applyNookalReport(
     if (result.ad3rdParty90 !== null) clinicPatch.ad_3rd_party_90 = result.ad3rdParty90;
     if (result.adMedicareDva31 !== null) clinicPatch.ad_medicare_dva_31 = result.adMedicareDva31;
     if (result.adTotal !== null) clinicPatch.ad_total = result.adTotal;
+  } else if (reportType === "online_bookings") {
+    // Clinic-wide only — no per-provider breakdown is tracked for this,
+    // same as the fields it replaces (see lib/schema.ts's online_bookings_*/
+    // all_bookings_* comments). newClientBookingsTotal === 0 still writes a
+    // real 0, same "a confirmed zero is a real zero" reasoning as the other
+    // clinic-wide counts in this file — a week with genuinely no online
+    // "Initial" bookings shouldn't leave a stale number from a prior week.
+    const result = parseOnlineBookingsReport(csvText);
+    rowsFound = result.allBookingsTotal;
+    clinicPatch.online_bookings_total = result.newClientBookingsTotal;
+    clinicPatch.online_bookings_new = result.newClientBookingsOnline;
+    clinicPatch.all_bookings_total = result.allBookingsTotal;
+    clinicPatch.all_bookings_online = result.allBookingsOnline;
   }
 
   if (Object.keys(clinicPatch).length > 0) {

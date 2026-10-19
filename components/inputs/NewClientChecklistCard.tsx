@@ -9,15 +9,13 @@ interface ClientTask {
   provider_id: string;
   provider_name: string;
   client_name: string;
-  online_booking: boolean | null;
   onboarding_video_sent: boolean | null;
   followup_call_made: boolean | null;
 }
 
-type TaskKey = "online_booking" | "onboarding_video_sent" | "followup_call_made";
+type TaskKey = "onboarding_video_sent" | "followup_call_made";
 
 const TASK_COLUMNS: { key: TaskKey; label: string }[] = [
-  { key: "online_booking", label: "Online Booking" },
   { key: "onboarding_video_sent", label: "Onboarding Video Sent (OBV)" },
   { key: "followup_call_made", label: "Follow Up Call" },
 ];
@@ -25,14 +23,15 @@ const TASK_COLUMNS: { key: TaskKey; label: string }[] = [
 /**
  * Replaces Dayle's manual new-client spreadsheet — one row per new client
  * this week (auto-populated from each clinician's new patient list, already
- * excluding Pre-Employment), tick Online Booking / Onboarding Video Sent
- * (OBV) / Follow Up Call per client instead of hand-counting and typing a
- * %. The % is calculated automatically and written straight into
- * weekly_kpis (Online Bookings, Follow-up Calls, Onboarding Videos Sent),
- * so those fields on this page are now read-only "Auto" — see
- * app/api/admin-client-tasks/route.ts. Online Bookings feeds the Clinic
- * Health/Quarterly Review charts but isn't shown on the admin meeting
- * sheet itself (director's call).
+ * excluding Pre-Employment), tick Onboarding Video Sent (OBV) / Follow Up
+ * Call per client instead of hand-counting and typing a %. The % is
+ * calculated automatically and written straight into weekly_kpis
+ * (Follow-up Calls, Onboarding Videos Sent), so those fields on this page
+ * are now read-only "Auto" — see app/api/admin-client-tasks/route.ts.
+ * Online Bookings used to live here too (a manual tick) — it's now counted
+ * straight from Nookal's own Online Bookings Report instead (see
+ * lib/nookal/parsers.ts's parseOnlineBookingsReport), so there's nothing
+ * left for an admin to tick for it.
  */
 export function NewClientChecklistCard({ week }: { week: string }) {
   const [tasks, setTasks] = useState<ClientTask[] | null>(null);
@@ -91,9 +90,9 @@ export function NewClientChecklistCard({ week }: { week: string }) {
     <Card title="New Client Checklist">
       <p className="mb-4 text-xs text-muted">
         Auto-populated from this week&apos;s new clients (Pre-Employment already excluded). Tick each box as it&apos;s
-        done — Online Bookings %, Onboarding Videos Sent (OBV) %, and Follow-up Calls % below are calculated from
-        this. Onboarding Videos Sent and Follow-up Calls feed straight into the admin meeting sheets; Online
-        Bookings feeds the Clinic Health/Quarterly Review charts instead.
+        done — Onboarding Videos Sent (OBV) % and Follow-up Calls % below are calculated from this and feed straight
+        into the admin meeting sheets. Online Bookings is tracked separately now, straight from Nookal&apos;s own
+        Online Bookings Report upload — nothing to tick here for it.
       </p>
 
       {error ? (

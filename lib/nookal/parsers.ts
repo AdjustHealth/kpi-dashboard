@@ -972,3 +972,81 @@ export function parseAgedDebtorsReport(text: string): AgedDebtorsReportResult {
     adTotal,
   };
 }
+
+export interface OnlineBookingsReportResult {
+  /** Every Details row, any service, any status — raw booking volume for the week. */
+  allBookingsTotal: number;
+  /** Of those, how many carried device/OS/browser metadata (booked through Nookal's own online widget). */
+  allBookingsOnline: number;
+  /** Distinct clients with an "Initial" service this week — the new-client-only denominator. */
+  newClientBookingsTotal: number;
+  /** Of those, how many booked online. */
+  newClientBookingsOnline: number;
+}
+
+/**
+ * Online Bookings Report — despite the name, its Details section lists
+ * EVERY appointment in the date range (any channel), with device/OS/
+ * browser columns populated only when the client actually booked it
+ * through Nookal's own online widget; a phone/in-person/admin-entered
+ * appointment has those columns blank. Confirmed against a real export:
+ * Pre-Employment screenings (admin-booked, never "Initial") show up with
+ * no device info at all, sitting right alongside real online-booked
+ * clients in the same Details section.
+ *
+ * Structurally unlike every other report this file parses: Nookal appends
+ * the device/OS/browser triple (when present) BEFORE Client ID, so a row's
+ * total column count varies by booking channel instead of being
+ * fixed-width — rowToRecord's header-by-index mapping would silently read
+ * "Apple iPhone" as the Client ID on an online-booked row. Client ID is
+ * always the row's last cell regardless of length, so detection works off
+ * raw row arrays instead: anything between index 6 (Status) and the last
+ * cell that isn't blank means device metadata is present, i.e. booked
+ * online.
+ *
+ * "Initial" in the Service name is the new-client signal (e.g. "Private
+ * Initial 60 min 500", "MASSAGE Initial 90 min 105") — this also naturally
+ * excludes Pre-Employment screenings without any extra filtering, since
+ * none of their Service names contain the word "Initial".
+ *
+ * All statuses count (Completed, Cancelled, Pending) — this tracks booking
+ * CHANNEL/behaviour (how the client chose to book), not whether the visit
+ * ultimately happened, same reasoning as the Summary section's own "Total"
+ * column (Cancellations + DNA + Completed + Pending).
+ */
+export function parseOnlineBookingsReport(text: string): OnlineBookingsReportResult {
+  const rows = parseCsvRows(text);
+  const section = extractSection(rows, "Details");
+  const empty: OnlineBookingsReportResult = { allBookingsTotal: 0, allBookingsOnline: 0, newClientBookingsTotal: 0, newClientBookingsOnline: 0 };
+  if (!section) return empty;
+
+  let allBookingsTotal = 0;
+  let allBookingsOnline = 0;
+  const newClientsSeen = new Set<string>();
+  const newClientsOnlineSeen = new Set<string>();
+
+  for (const row of section.rows) {
+    if (row.length < 8) continue;
+    const client = (row[3] ?? "").trim();
+    const service = (row[4] ?? "").trim();
+    if (!client || !service) continue;
+
+    const deviceCells = row.slice(7, row.length - 1);
+    const bookedOnline = deviceCells.some((c) => (c ?? "").trim().length > 0);
+
+    allBookingsTotal += 1;
+    if (bookedOnline) allBookingsOnline += 1;
+
+    if (/initial/i.test(service)) {
+      newClientsSeen.add(client);
+      if (bookedOnline) newClientsOnlineSeen.add(client);
+    }
+  }
+
+  return {
+    allBookingsTotal,
+    allBookingsOnline,
+    newClientBookingsTotal: newClientsSeen.size,
+    newClientBookingsOnline: newClientsOnlineSeen.size,
+  };
+}
