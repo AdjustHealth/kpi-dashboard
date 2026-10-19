@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   const asOf = new Date().toISOString().slice(0, 10);
 
   const kpaFields = kpaGroupsForRole(role).flatMap((g) => g.fields);
-  const kpiRollups = computeKpiRollups(rows, metricFieldsForRole(role), asOf);
+  const kpiRollups = computeKpiRollups(rows, metricFieldsForRole(role, provider.targets), asOf);
   const kpaRollups = computeKpaRollups(rows, kpaFields, asOf);
 
   // A senior's own specialty metrics (e.g. Sam's Memberships, Marcio's

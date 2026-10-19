@@ -103,6 +103,18 @@ export const SENIOR_ONLY_METRIC_FIELDS: ProviderField[] = [
 ];
 
 /**
+ * A specific senior physio's own swap of one SENIOR_ONLY_METRIC_FIELDS box
+ * for a different one — e.g. Marcio tracks "Staff Meeting Prep" instead of
+ * "Social Media Reel Posted" (director's call, Oct 2026). Set
+ * providers.targets.swap_sm_reel_for_staff_meeting_prep = true on that
+ * provider's own row to opt in; everyone else keeps the shared set
+ * unchanged. Not a generic per-provider field-override mechanism —
+ * deliberately this narrow, single-purpose flag, since nothing else has
+ * asked for one yet.
+ */
+const STAFF_MEETING_PREP_FIELD: ProviderField = { key: "staff_meeting_prep", label: "Staff Meeting Prep", type: "boolean" };
+
+/**
  * Admin staff's KPI Scorecard — the per-admin stats that genuinely differ by
  * person. cancellations_handled through avg_days_to_next_booking auto-fill
  * from the Cancellations report grouped by "Modified User" (the admin who
@@ -149,9 +161,15 @@ export const ADMIN_COMPLIANCE_FIELDS: AdminComplianceField[] = [
   { key: "rx_notes_made_pct", label: "Rx Notes Made in Therapist Diary", type: "percent", betterWhen: "higher", source: "own" },
 ];
 
-export function metricFieldsForRole(role: ProviderRole): ProviderField[] {
+export function metricFieldsForRole(role: ProviderRole, targets?: Record<string, unknown> | null): ProviderField[] {
   if (role === "admin") return ADMIN_METRIC_FIELDS;
-  if (role === "senior_physio") return [...CLINICIAN_METRIC_FIELDS, ...SENIOR_ONLY_METRIC_FIELDS];
+  if (role === "senior_physio") {
+    const seniorOnly =
+      targets?.swap_sm_reel_for_staff_meeting_prep === true
+        ? SENIOR_ONLY_METRIC_FIELDS.map((f) => (f.key === "sm_reel" ? STAFF_MEETING_PREP_FIELD : f))
+        : SENIOR_ONLY_METRIC_FIELDS;
+    return [...CLINICIAN_METRIC_FIELDS, ...seniorOnly];
+  }
   return CLINICIAN_METRIC_FIELDS.filter((f) => !CLINICIAN_METRIC_FIELDS_EXCLUDED_FOR_STANDARD.has(f.key));
 }
 
