@@ -1057,4 +1057,21 @@ Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
     const result = parseOnlineBookingsReport("Online Bookings Report\n\nParameters\nDates,12/10/2026 - 18/10/2026\n\n");
     expect(result).toEqual({ allBookingsTotal: 0, allBookingsOnline: 0, newClientBookingsTotal: 0, newClientBookingsOnline: 0 });
   });
+
+  it("excludes a HotDoc Placeholder row entirely, even when its Service says 'Initial' — confirmed against a real export where this inflated the new-client count by one client who was never real", () => {
+    const csv = `Online Bookings Report
+
+Parameters
+Dates,28/09/2026 - 04/10/2026
+
+Details
+Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
+02/10/2026 - 3:00pm,Adjust Physiotherapy,Riley Fairhurst,HotDoc Placeholder,Private Initial 60 min 500,01/10/2026 - 11:01pm,Cancelled,,,,58490
+02/10/2026 - 3:00pm,Adjust Physiotherapy,Riley Fairhurst,Shayne Witney,Private Initial 60 min 500,02/10/2026 - 7:24am,Completed,,,,43331
+
+`;
+    const result = parseOnlineBookingsReport(csv);
+    expect(result.allBookingsTotal).toBe(1);
+    expect(result.newClientBookingsTotal).toBe(1);
+  });
 });
