@@ -248,6 +248,17 @@ export function ProviderDetailView({
       />
 
       {variant !== "admin" && (
+        <SpecialtyKpiCard
+          providerId={provider.id}
+          week={week}
+          specialtyMetrics={provider.specialty_metrics}
+          targets={provider.targets}
+          initialValues={currentMetrics}
+          history={history}
+        />
+      )}
+
+      {variant !== "admin" && (
         <NewPatientsCard
           names={Array.isArray(newPatientNames) ? (newPatientNames as string[]) : []}
           sixWeekReviewNames={sixWeekReviewNames}
