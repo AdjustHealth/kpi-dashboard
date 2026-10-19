@@ -30,6 +30,17 @@ describe("providerSchema", () => {
     expect(seniorFields.length).toBe(CLINICIAN_METRIC_FIELDS.length + SENIOR_ONLY_METRIC_FIELDS.length);
   });
 
+  it("metricFieldsForRole swaps Social Media Reel Posted for Staff Meeting Prep only for a senior physio whose own targets opt in (e.g. Marcio), leaving everyone else (e.g. Sam) with the shared set", () => {
+    const marcioFields = metricFieldsForRole("senior_physio", { swap_sm_reel_for_staff_meeting_prep: true });
+    expect(marcioFields).not.toContainEqual({ key: "sm_reel", label: "Social Media Reel Posted", type: "boolean" });
+    expect(marcioFields).toContainEqual({ key: "staff_meeting_prep", label: "Staff Meeting Prep", type: "boolean" });
+    expect(marcioFields).toContainEqual({ key: "blog", label: "Blog Posted", type: "boolean" });
+    expect(marcioFields.length).toBe(CLINICIAN_METRIC_FIELDS.length + SENIOR_ONLY_METRIC_FIELDS.length);
+
+    const samFields = metricFieldsForRole("senior_physio", { swap_sm_reel_for_staff_meeting_prep: false });
+    expect(samFields).toEqual(metricFieldsForRole("senior_physio"));
+  });
+
   it("kpaGroupsForRole splits Core Values out as its own group for every non-senior role", () => {
     expect(kpaGroupsForRole("senior_physio")).toEqual([{ title: "KPA Scorecard", fields: SENIOR_KPA_FIELDS }]);
 

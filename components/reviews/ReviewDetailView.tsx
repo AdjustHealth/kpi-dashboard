@@ -105,7 +105,7 @@ export function ReviewDetailView({
     }
   }
 
-  const metricFields = metricFieldsForRole(provider.role).filter((f) => f.key in review.kpi_rollups);
+  const metricFields = metricFieldsForRole(provider.role, provider.targets).filter((f) => f.key in review.kpi_rollups);
   const specialtyFields = (provider.specialty_metrics ?? []).filter((f) => f.key in review.kpi_rollups);
   const kpaGroups = kpaGroupsForRole(provider.role);
   const windows = ROLLING_WINDOWS.slice(0, 2); // 6mth + 1yr shown by default; data for 2yr/3yr fills in as history grows

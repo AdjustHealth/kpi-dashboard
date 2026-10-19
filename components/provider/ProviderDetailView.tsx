@@ -65,7 +65,7 @@ export function ProviderDetailView({
   generalAgendaText?: string;
   variant: "standard" | "senior" | "admin";
 }) {
-  const metricFields = metricFieldsForRole(provider.role);
+  const metricFields = metricFieldsForRole(provider.role, provider.targets);
   const effectiveTargets = getEffectiveTargets(provider, roleTargets);
   const kpaGroups = kpaGroupsForRole(provider.role);
   // Cumulative turnover must only count weeks since this senior physio
