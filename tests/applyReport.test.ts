@@ -640,4 +640,29 @@ Geraldine Agurto,27/08/2026 - 12 days ago,Imogen O'Neill,Pre-Employment Assessme
     await applyNookalReport(client as never, "last_attendances", "2026-08-30", LAST_ATTENDANCES_CSV);
     expect(getNoFutureBookingEvents()).toHaveLength(1);
   });
+
+  it("online_bookings: writes both the new-clients-only pair (online_bookings_total/new) and the all-bookings pair (all_bookings_total/online) — clinic-wide, no per-provider data", async () => {
+    const ONLINE_BOOKINGS_CSV = `Online Bookings Report
+
+Parameters
+Dates,12/10/2026 - 18/10/2026
+
+Details
+Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
+12/10/2026 - 11:00am,Adjust Physiotherapy,Jake Mitchell,Tarja Wedenberg,MASSAGE Initial 90 min 105,11/10/2026 - 5:26pm,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,51581
+12/10/2026 - 1:15pm,Adjust Physiotherapy,Wilson Page,Julie Breteau,Pre-Employment Assessment,09/10/2026 - 11:15am,Completed,,,,81666
+
+`;
+    const { client, weeklyKpis } = createFakeSupabase([]);
+    const result = await applyNookalReport(client as never, "online_bookings", "2026-10-17", ONLINE_BOOKINGS_CSV);
+
+    expect(weeklyKpis["2026-10-17"]).toMatchObject({
+      online_bookings_total: 1,
+      online_bookings_new: 1,
+      all_bookings_total: 2,
+      all_bookings_online: 1,
+    });
+    expect(result.matchedProviders).toEqual([]);
+    expect(result.warning).toBeUndefined();
+  });
 });

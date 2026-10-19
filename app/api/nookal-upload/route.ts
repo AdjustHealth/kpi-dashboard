@@ -13,6 +13,7 @@ const PARSEABLE_REPORT_TYPES: readonly NookalReportType[] = [
   "business_performance",
   "last_attendances",
   "aged_debtors",
+  "online_bookings",
 ];
 
 export async function GET(request: NextRequest) {

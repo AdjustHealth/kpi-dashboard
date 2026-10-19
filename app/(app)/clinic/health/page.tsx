@@ -115,6 +115,21 @@ export default async function ClinicHealthPage({
     };
   });
 
+  // Every booking this week, any service — the broader counterpart to
+  // newClientsOnlineData above (which is scoped to new/"Initial" clients
+  // only). Both come from the same Online Bookings Report upload (see
+  // lib/nookal/parsers.ts's parseOnlineBookingsReport).
+  const allBookingsOnlineData = history.map((h) => {
+    const total = typeof h.all_bookings_total === "number" ? h.all_bookings_total : null;
+    const online = typeof h.all_bookings_online === "number" ? h.all_bookings_online : null;
+    return {
+      label: formatWeekLabel(h.week_ending),
+      Online: online,
+      "Phone / In-Person": total !== null && online !== null ? Math.max(0, total - online) : null,
+      "Total Bookings": total,
+    };
+  });
+
   return (
     <>
       <PageHeader title="Clinic Health" subtitle="Activity, occupancy, retention, and cancellations." />
@@ -160,6 +175,12 @@ export default async function ClinicHealthPage({
               title="New Clients — Online vs. Phone / In-Person"
               data={newClientsOnlineData}
               seriesKeys={["Online", "Phone / In-Person", "Total New Patients"]}
+              format="number"
+            />
+            <MultiLineChart
+              title="All Bookings — Online vs. Phone / In-Person"
+              data={allBookingsOnlineData}
+              seriesKeys={["Online", "Phone / In-Person", "Total Bookings"]}
               format="number"
             />
           </div>

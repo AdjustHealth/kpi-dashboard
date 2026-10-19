@@ -21,7 +21,7 @@ import { NookalReportType } from "@/lib/schema";
  * exact file through the Weekly Input page, just without needing the file
  * on hand. Idempotent and safe to re-run.
  */
-const REPROCESSABLE_TYPES: NookalReportType[] = ["cancellations", "clients_and_cases", "activity", "last_attendances"];
+const REPROCESSABLE_TYPES: NookalReportType[] = ["cancellations", "clients_and_cases", "activity", "last_attendances", "online_bookings"];
 
 interface UploadRow {
   id: string;

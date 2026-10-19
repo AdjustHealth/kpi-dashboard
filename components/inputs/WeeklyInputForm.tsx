@@ -120,7 +120,16 @@ export function WeeklyInputForm({
           <Card title="Diary Management">
             <ClinicFieldGrid
               fields={getClinicFieldsByCategory("Diary").filter(
-                (f) => !["diary_mgmt_pct", "online_bookings_total", "online_bookings_new", "online_bookings_pct"].includes(f.id)
+                (f) =>
+                  ![
+                    "diary_mgmt_pct",
+                    "online_bookings_total",
+                    "online_bookings_new",
+                    "online_bookings_pct",
+                    "all_bookings_total",
+                    "all_bookings_online",
+                    "all_bookings_online_pct",
+                  ].includes(f.id)
               )}
               values={weekly}
               onChange={onChange}

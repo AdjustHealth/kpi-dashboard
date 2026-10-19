@@ -6,7 +6,6 @@ interface ClientTaskRow {
   week_ending: string;
   provider_id: string;
   client_name: string;
-  online_booking: boolean | null;
   onboarding_video_sent: boolean | null;
   followup_call_made: boolean | null;
 }
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("admin_new_client_tasks")
-    .select("id, week_ending, provider_id, client_name, online_booking, onboarding_video_sent, followup_call_made")
+    .select("id, week_ending, provider_id, client_name, onboarding_video_sent, followup_call_made")
     .eq("week_ending", week);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -61,17 +60,20 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: rows });
 }
 
-const TASK_KEYS = ["online_booking", "onboarding_video_sent", "followup_call_made"] as const;
-type TaskKey = (typeof TASK_KEYS)[number];
+type TaskKey = "onboarding_video_sent" | "followup_call_made";
 
 /**
- * PATCH { id, patch: { online_booking?, onboarding_video_sent?, followup_call_made? } }
- * — toggles one client's checklist, then recomputes that week's aggregate
- * counts/percentages and writes them into weekly_kpis (online_bookings_
- * total/new, admin_followup_calls, admin_onboarding_video_pct) so Dayle
- * never re-sums these by hand. OBV is the same task as Onboarding Video
- * Sent, not a separate column. An unset (null) box counts as "not done
- * yet" in the %, same as the task genuinely not being complete.
+ * PATCH { id, patch: { onboarding_video_sent?, followup_call_made? } } —
+ * toggles one client's checklist, then recomputes that week's aggregate
+ * percentages and writes them into weekly_kpis (admin_followup_calls,
+ * admin_onboarding_video_pct) so Dayle never re-sums these by hand. OBV is
+ * the same task as Onboarding Video Sent, not a separate column. An unset
+ * (null) box counts as "not done yet" in the %, same as the task genuinely
+ * not being complete. online_bookings_total/online_bookings_new used to be
+ * written here too (from a manual "Online Booking" tick) — that's now
+ * counted straight from Nookal's own Online Bookings Report upload instead
+ * (see lib/nookal/applyReport.ts's "online_bookings" branch), so this
+ * route no longer touches those two fields at all.
  */
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
@@ -92,7 +94,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data: weekRows, error: weekRowsError } = await supabase
     .from("admin_new_client_tasks")
-    .select("online_booking, onboarding_video_sent, followup_call_made")
+    .select("onboarding_video_sent, followup_call_made")
     .eq("week_ending", weekEnding);
   if (weekRowsError) return NextResponse.json({ error: weekRowsError.message }, { status: 500 });
 
@@ -103,8 +105,6 @@ export async function PATCH(request: NextRequest) {
   const { error: kpiError } = await supabase.from("weekly_kpis").upsert(
     {
       week_ending: weekEnding,
-      online_bookings_total: total > 0 ? total : null,
-      online_bookings_new: rows.filter((r) => r.online_booking === true).length,
       admin_followup_calls: pct("followup_call_made"),
       admin_onboarding_video_pct: pct("onboarding_video_sent"),
     },
