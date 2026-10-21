@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
+import { BarTrendChart } from "@/components/charts/BarTrendChart";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
 import { getClinicHistory, ClinicWeekRow } from "@/lib/clinicData";
 import { toTrendSeries } from "@/components/dashboard/statHelpers";
@@ -157,7 +158,7 @@ export default async function SpecialtyServicesPage({
               />
             </div>
           )}
-          <LineTrendChart title="Specialty Share of New Clients" data={specialtyNewShareData} format="percent" colorIndex={2} height={240} />
+          <BarTrendChart title="Specialty Share of New Clients" data={specialtyNewShareData} format="percent" colorIndex={2} height={240} />
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
