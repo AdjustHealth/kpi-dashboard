@@ -73,6 +73,8 @@ function createFakeSupabase(providers: FakeProvider[]) {
         return {
           select() {
             return {
+              data: cancellationEvents,
+              error: null,
               async eq(col: string, val: string) {
                 if (col === "week_ending") return { data: cancellationEvents.filter((r) => r.week_ending === val), error: null };
                 return { data: cancellationEvents, error: null };
@@ -98,6 +100,8 @@ function createFakeSupabase(providers: FakeProvider[]) {
         return {
           select() {
             return {
+              data: noFutureBookingEvents,
+              error: null,
               async eq(col: string, val: string) {
                 if (col === "week_ending") return { data: noFutureBookingEvents.filter((r) => r.week_ending === val), error: null };
                 return { data: noFutureBookingEvents, error: null };
@@ -425,6 +429,48 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(secondPass.discussion_note).toBe("called, rebooking next month");
     expect(secondPass.flagged_for_discussion).toBe(true);
     expect(secondPass.dealt_with).toBe(true);
+  });
+
+  it("cancellations: dealt_with/not_rebooked_resolved carries forward onto a LATER week's upload, not just a reprocess of the same week — the real bug: a Cancellations Report routinely re-exports the same still-unrebooked client under next week's week_ending too, which used to insert it as a brand-new, unresolved row every single week, making an already-'Dealt with' client spring back the moment the NEXT week's report was uploaded (not just on an explicit reprocess)", async () => {
+    const weekOneCsv = `Cancellations Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Marcio Dos Santos,1,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+28/09/2026,Adjust Physiotherapy,Sheena Mulvey,0400 000 030,Marcio Dos Santos,Private - Physio,Service,Cancelled,2026-09-20 10:00:00,,no rebook needed,28/09/2026,9:00am,Marcio Dos Santos,4001
+
+`;
+    // Same client/provider/appointment/case/status, just re-exported under
+    // a later week's own week_ending — exactly how a still-not-rebooked
+    // cancellation keeps reappearing in Nookal's own report week to week.
+    const weekTwoCsv = weekOneCsv;
+
+    const { client, getCancellationEvents } = createFakeSupabase([{ id: "p1", name: "Marcio Dos Santos", role: "senior_physio" }]);
+
+    await applyNookalReport(client as never, "cancellations", "2026-10-04", weekOneCsv);
+    const weekOneRow = getCancellationEvents().find((r) => r.client === "Sheena Mulvey")!;
+    expect(weekOneRow.not_rebooked_resolved).toBe(false);
+
+    // Marcio clicks "Dealt with" on his own Unretained list.
+    weekOneRow.not_rebooked_resolved = true;
+    weekOneRow.dealt_with = true;
+
+    // The following week's normal (non-reprocess) upload re-lists the same
+    // still-cancelled appointment under a brand new week_ending.
+    await applyNookalReport(client as never, "cancellations", "2026-10-11", weekTwoCsv);
+    const weekTwoRow = getCancellationEvents().find((r) => r.client === "Sheena Mulvey" && r.week_ending === "2026-10-11")!;
+    expect(weekTwoRow.not_rebooked_resolved).toBe(true);
+    expect(weekTwoRow.dealt_with).toBe(true);
+    // The original week's row is untouched by week 2's upload (delete is
+    // still scoped to its own week_ending only).
+    const weekOneRowStillThere = getCancellationEvents().find((r) => r.client === "Sheena Mulvey" && r.week_ending === "2026-10-04");
+    expect(weekOneRowStillThere).toBeDefined();
   });
 
   it("clients_and_cases: computes New Patient Booking Rate from each new client's own Bookings 'Total' count, excluding Pre-Employment", async () => {

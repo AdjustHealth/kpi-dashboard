@@ -44,32 +44,44 @@ function eventStateKey(parts: (string | null | undefined)[]): string {
 
 /**
  * Reads back the per-row state (not_rebooked_resolved/flagged_for_discussion/
- * discussion_note/dealt_with) a director or practitioner already set on this
- * week's existing cancellation_events/no_future_booking_events rows, keyed
- * by `keyColumns`, so a delete-then-insert re-upload/reprocess of the same
- * week can carry that state forward onto the freshly inserted rows instead
- * of silently resetting it to the column defaults. Without this, every
- * already-"Dealt with" row in a reprocessed week reverts to unresolved —
- * confirmed the hard way when reprocessing one provider's week to fix an
- * unrelated NPBR bug reopened a pile of OTHER providers' already-dismissed
- * Unretained clients, since a Cancellations Report's rows routinely carry
- * appointment_dates from well before its own week_ending.
+ * discussion_note/dealt_with) a director or practitioner already set on any
+ * existing cancellation_events/no_future_booking_events row, keyed by
+ * `keyColumns`, so a delete-then-insert re-upload/reprocess can carry that
+ * state forward onto the freshly inserted rows instead of silently
+ * resetting it to the column defaults.
+ *
+ * Deliberately NOT scoped to the week being written (it used to be, see git
+ * history) — a Cancellations/Last Attendances Report's rows routinely carry
+ * the SAME client/appointment forward across several weeks' files (a
+ * recurring/stale-until-rebooked cancellation gets re-exported under next
+ * week's week_ending too, not just the week it first happened), and each
+ * such upload inserts it as a brand-new row. Scoping this lookup to only
+ * the current week_ending meant a plain NEW weekly upload — not just an
+ * explicit reprocess — would quietly reopen any client already marked
+ * "Dealt with"/resolved the moment their row reappeared under a new week,
+ * since the freshly inserted row had no record of its own history. Any
+ * provider whose cancellations recur across weeks can hit this, not just
+ * whoever happens to get reported first. Searching every week and OR-ing
+ * the flags together (true wins, most recent non-null note wins) means
+ * once a row is dealt with/resolved/flagged, it stays that way for good,
+ * regardless of how many more weeks the same cancellation keeps getting
+ * exported under.
  */
 async function fetchExistingEventState(
   supabase: SupabaseClient,
   table: "cancellation_events" | "no_future_booking_events",
-  weekEnding: string,
   keyColumns: string[]
 ): Promise<Map<string, ExistingEventState>> {
-  const { data } = await supabase.from(table).select("*").eq("week_ending", weekEnding);
+  const { data } = await supabase.from(table).select("*");
   const byKey = new Map<string, ExistingEventState>();
   for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
     const key = eventStateKey(keyColumns.map((c) => row[c] as string | null));
+    const existing = byKey.get(key);
     byKey.set(key, {
-      not_rebooked_resolved: Boolean(row.not_rebooked_resolved),
-      flagged_for_discussion: Boolean(row.flagged_for_discussion),
-      discussion_note: (row.discussion_note as string | null) ?? null,
-      dealt_with: Boolean(row.dealt_with),
+      not_rebooked_resolved: Boolean(row.not_rebooked_resolved) || (existing?.not_rebooked_resolved ?? false),
+      flagged_for_discussion: Boolean(row.flagged_for_discussion) || (existing?.flagged_for_discussion ?? false),
+      discussion_note: (row.discussion_note as string | null) ?? existing?.discussion_note ?? null,
+      dealt_with: Boolean(row.dealt_with) || (existing?.dealt_with ?? false),
     });
   }
   return byKey;
@@ -449,7 +461,6 @@ export async function applyNookalReport(
     const existingCancellationState = await fetchExistingEventState(
       supabase,
       "cancellation_events",
-      weekEnding,
       ["client", "provider", "appointment_date", "case_name", "status"]
     );
     await supabase.from("cancellation_events").delete().eq("week_ending", weekEnding);
@@ -491,7 +502,6 @@ export async function applyNookalReport(
     const existingFollowUpState = await fetchExistingEventState(
       supabase,
       "no_future_booking_events",
-      weekEnding,
       ["client", "provider", "last_booking_date", "case_name"]
     );
     await supabase.from("no_future_booking_events").delete().eq("week_ending", weekEnding);
