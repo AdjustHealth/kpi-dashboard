@@ -41,6 +41,7 @@ export async function getAvailableQuarters(): Promise<string[]> {
 
 export interface QuarterlyClinicStats {
   quarter: string;
+  /** Every week in [start, end] with a weekly_kpis row at all — includes weeks still in the future (a row can exist ahead of time) and any week whose report just wasn't uploaded. Fine for "N weeks of data so far" display text and for scaling a target, but NOT a safe denominator for any of the totals below — see the avg*PerWeek fields instead. */
   weeksCount: number;
   totalRevenue: number | null;
   totalNewPatients: number | null;
@@ -57,6 +58,26 @@ export interface QuarterlyClinicStats {
   agedDebtEndOfQuarter: number | null;
   totalJbv: number | null;
   totalSpecialtyConsults: number | null;
+  /**
+   * Average per week for each total above, dividing only by the weeks that
+   * actually have a real recorded value for that specific field — NOT by
+   * weeksCount. A still-upcoming week (its weekly_kpis row already exists,
+   * e.g. the upload route creates one ahead of time) or a week whose report
+   * just wasn't uploaded has no real figure to average in, so it shouldn't
+   * count toward "how many weeks" either. Dividing by weeksCount instead
+   * silently understated every one of these — confirmed against real data:
+   * Q4 2026 had 3 real New Patients weeks (21/14/18) and one not-yet-
+   * happened week (null), and totalNewPatients/weeksCount (53/4 = 13.3)
+   * read as a sharp, confusing drop from Q1/Q2's real ~24/week, when the
+   * true in-progress average (53/3 = 17.7) wasn't actually that different.
+   */
+  avgRevenuePerWeek: number | null;
+  avgNewPatientsPerWeek: number | null;
+  avgConsultsPerWeek: number | null;
+  avgGymRevenuePerWeek: number | null;
+  avgPodiatryRevenuePerWeek: number | null;
+  avgJbvPerWeek: number | null;
+  avgSpecialtyConsultsPerWeek: number | null;
 }
 
 /** Clinic-wide quarter rollup — $/count fields summed for the quarter, rate/% fields averaged across its weeks, balances (ageing debt) taken as of the last week. */
@@ -83,9 +104,19 @@ export async function getQuarterlyClinicStats(quarterKey: string): Promise<Quart
     "specialty_womens_health_total",
     "specialty_hydro_total",
   ];
-  const totalSpecialtyConsults = rows.length
-    ? sum(rows.map((r) => specialtyKeys.reduce((acc, k) => acc + (typeof r[k] === "number" ? (r[k] as number) : 0), 0)))
-    : null;
+  // null (not 0) for a week where the Activity Report simply wasn't
+  // uploaded at all, so that week doesn't drag the average down as if it
+  // were a real zero — but a week that WAS uploaded still defaults any one
+  // missing specialty column to 0 (a real category can genuinely have no
+  // consults that week).
+  const specialtyPerWeek = rows
+    .map((r) => {
+      const values = specialtyKeys.map((k) => (typeof r[k] === "number" ? (r[k] as number) : null));
+      if (values.every((v) => v === null)) return null;
+      return values.reduce((acc: number, v) => acc + (v ?? 0), 0);
+    })
+    .filter((v): v is number => v !== null);
+  const totalSpecialtyConsults = rows.length ? sum(specialtyPerWeek) : null;
 
   return {
     quarter: quarterKey,
@@ -104,6 +135,13 @@ export async function getQuarterlyClinicStats(quarterKey: string): Promise<Quart
     totalJbv: sum(nums(rows, "jbv_total")),
     totalSpecialtyConsults,
     onlineBookingPct: onlineTotal !== null && onlineTotal > 0 && onlineNew !== null ? onlineNew / onlineTotal : null,
+    avgRevenuePerWeek: average(nums(rows, "total_rev")),
+    avgNewPatientsPerWeek: average(nums(rows, "total_nc")),
+    avgConsultsPerWeek: average(nums(rows, "total_consults")),
+    avgGymRevenuePerWeek: average(nums(rows, "gym_total")),
+    avgPodiatryRevenuePerWeek: average(nums(rows, "m_pod_rev")),
+    avgJbvPerWeek: average(nums(rows, "jbv_total")),
+    avgSpecialtyConsultsPerWeek: average(specialtyPerWeek),
   };
 }
 
