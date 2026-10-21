@@ -100,6 +100,33 @@ export default async function SpecialtyServicesPage({
   const allServicesKeys = [...SPECIALTIES.map((s) => s.name), "Women's Health"];
   const allServicesColors = [...SPECIALTIES.map((s) => s.colorIndex), 1];
 
+  // "New clients" here means each specialty's own Initial-consult count —
+  // Hydro is deliberately excluded (see SPECIALTIES above: it has no
+  // reliable Initial/Subsequent split in Nookal, so its "initial" figure
+  // would understate it). Women's Health isn't in SPECIALTIES (it gets its
+  // own Card below) but does have a reliable Initial count via the same
+  // Activity Report auto-detection as Vestibular/Headaches/Paeds.
+  const specialtyNewClientKeys = [
+    ...SPECIALTIES.filter((s) => s.hasInitialSubSplit !== false).map((s) => `${s.key}_initial`),
+    "specialty_womens_health_initial",
+  ];
+  const specialtyVsTotalNewData = clinicHistory.map((h) => {
+    const values = specialtyNewClientKeys.map((k) => (typeof h[k] === "number" ? (h[k] as number) : null));
+    // null (not 0) for a week none of these were reported at all, same
+    // "don't count an unknown week as a real zero" reasoning as the
+    // specialty consult totals elsewhere on this page.
+    const specialtyNew = values.every((v) => v === null) ? null : values.reduce((acc: number, v) => acc + (v ?? 0), 0);
+    return {
+      label: formatWeekLabel(h.week_ending),
+      "Specialty New Clients": specialtyNew,
+      "Total New Clients": typeof h.total_nc === "number" ? h.total_nc : null,
+    };
+  });
+  const latestSpecialtyNew = specialtyVsTotalNewData[specialtyVsTotalNewData.length - 1]?.["Specialty New Clients"] ?? null;
+  const latestTotalNew = specialtyVsTotalNewData[specialtyVsTotalNewData.length - 1]?.["Total New Clients"] ?? null;
+  const specialtyNewSharePct =
+    latestSpecialtyNew !== null && latestTotalNew !== null && latestTotalNew > 0 ? (latestSpecialtyNew / latestTotalNew) * 100 : null;
+
   return (
     <>
       <PageHeader title="Specialty Services" subtitle="Consults by specialty, clinic-wide." />
@@ -113,6 +140,31 @@ export default async function SpecialtyServicesPage({
             colors={allServicesColors.map((i) => CATEGORICAL[i % CATEGORICAL.length])}
             format="number"
             height={280}
+          />
+        </Card>
+
+        <Card title="Specialty New Clients vs Total New Clients">
+          <p className="mb-3 text-xs text-muted">
+            Each specialty&apos;s own Initial-consult count (Vestibular, Headaches/TMJ, Paediatrics, Women&apos;s Health —
+            Hydro excluded, no reliable Initial/Subsequent split) added together, against the clinic&apos;s total new
+            clients for the week.
+          </p>
+          {specialtyNewSharePct !== null && (
+            <div className="mb-3 flex flex-wrap gap-6">
+              <StatTile
+                label="Specialty Share of New Clients"
+                value={`${specialtyNewSharePct.toFixed(1)}%`}
+                rawValue={specialtyNewSharePct}
+                goodDirection="up"
+              />
+            </div>
+          )}
+          <MultiLineChart
+            title="Specialty New Clients vs Total New Clients"
+            data={specialtyVsTotalNewData}
+            seriesKeys={["Specialty New Clients", "Total New Clients"]}
+            format="number"
+            height={240}
           />
         </Card>
 
