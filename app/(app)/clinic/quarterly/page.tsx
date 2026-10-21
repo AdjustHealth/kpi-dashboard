@@ -22,21 +22,11 @@ function deltaPct(current: number | null, previous: number | null): number | nul
   return ((current - previous) / Math.abs(previous)) * 100;
 }
 
-/** A quarter total isn't comparable to a prior quarter's total once the two cover different week counts (e.g. this quarter is still in progress) — compare the per-week rate instead. */
-function perWeek(total: number | null, weeks: number): number | null {
-  if (total === null || weeks === 0) return null;
-  return total / weeks;
-}
-
-/** One bar per quarter — sum-type fields are shown as their per-week rate (perWeek=true) so a still-in-progress quarter is directly comparable to a completed one; rate fields (occupancy, %s) are already comparable as-is. */
-function toBars(
-  allStats: QuarterlyClinicStats[],
-  pick: (s: QuarterlyClinicStats) => number | null,
-  perWeekRate: boolean
-): TrendPoint[] {
+/** One bar per quarter. Every field `pick` reaches for is already either a rate (occupancy, %s) or one of QuarterlyClinicStats' pre-averaged avg*PerWeek fields — both are directly comparable quarter to quarter even when one quarter is still in progress, so no further division happens here. */
+function toBars(allStats: QuarterlyClinicStats[], pick: (s: QuarterlyClinicStats) => number | null): TrendPoint[] {
   return allStats.map((s) => ({
     label: quarterLabel(s.quarter),
-    value: perWeekRate ? perWeek(pick(s), s.weeksCount) : pick(s),
+    value: pick(s),
   }));
 }
 
@@ -91,20 +81,20 @@ export default async function QuarterlyReviewPage({
   const retentionTarget = 0.7;
 
   const metricCards: MetricCard[] = [
-    { title: "Total Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalRevenue, true), target: weeklyRevenueTarget, betterWhen: "higher" },
-    { title: "Gym Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalGymRevenue, true), target: weeklyGymTarget, betterWhen: "higher" },
-    { title: "Podiatry Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.totalPodiatryRevenue, true) },
-    { title: "Ageing Debt (end of quarter)", format: "currency", data: toBars(allQuarterStats, (s) => s.agedDebtEndOfQuarter, false) },
-    { title: "Occupancy", format: "percent", data: toBars(allQuarterStats, (s) => s.occupancy, false), target: clinicOccTarget, betterWhen: "higher" },
-    { title: "Retention Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.retentionRate, false), target: retentionTarget, betterWhen: "higher" },
-    { title: "Reschedule Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.rescheduleRate, false), target: rsxTarget, betterWhen: "higher" },
-    { title: "Cancellation %", format: "percent", data: toBars(allQuarterStats, (s) => s.cancellationPct, false), target: cxPctTarget, betterWhen: "lower" },
-    { title: "Diary Management", format: "percent", data: toBars(allQuarterStats, (s) => s.diaryMgmtPct, false) },
-    { title: "Online Booking %", format: "percent", data: toBars(allQuarterStats, (s) => s.onlineBookingPct, false) },
-    { title: "New Patients (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalNewPatients, true) },
-    { title: "Completed Appointments (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalConsults, true) },
-    { title: "JBV Consults (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalJbv, true) },
-    { title: "Specialty Consults Total (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.totalSpecialtyConsults, true) },
+    { title: "Total Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.avgRevenuePerWeek), target: weeklyRevenueTarget, betterWhen: "higher" },
+    { title: "Gym Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.avgGymRevenuePerWeek), target: weeklyGymTarget, betterWhen: "higher" },
+    { title: "Podiatry Revenue (avg/wk)", format: "currency", data: toBars(allQuarterStats, (s) => s.avgPodiatryRevenuePerWeek) },
+    { title: "Ageing Debt (end of quarter)", format: "currency", data: toBars(allQuarterStats, (s) => s.agedDebtEndOfQuarter) },
+    { title: "Occupancy", format: "percent", data: toBars(allQuarterStats, (s) => s.occupancy), target: clinicOccTarget, betterWhen: "higher" },
+    { title: "Retention Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.retentionRate), target: retentionTarget, betterWhen: "higher" },
+    { title: "Reschedule Rate", format: "percent", data: toBars(allQuarterStats, (s) => s.rescheduleRate), target: rsxTarget, betterWhen: "higher" },
+    { title: "Cancellation %", format: "percent", data: toBars(allQuarterStats, (s) => s.cancellationPct), target: cxPctTarget, betterWhen: "lower" },
+    { title: "Diary Management", format: "percent", data: toBars(allQuarterStats, (s) => s.diaryMgmtPct) },
+    { title: "Online Booking %", format: "percent", data: toBars(allQuarterStats, (s) => s.onlineBookingPct) },
+    { title: "New Patients (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.avgNewPatientsPerWeek) },
+    { title: "Completed Appointments (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.avgConsultsPerWeek) },
+    { title: "JBV Consults (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.avgJbvPerWeek) },
+    { title: "Specialty Consults Total (avg/wk)", format: "decimal", decimals: 1, data: toBars(allQuarterStats, (s) => s.avgSpecialtyConsultsPerWeek) },
   ];
 
   return (
@@ -139,24 +129,18 @@ export default async function QuarterlyReviewPage({
               rawValue={stats.totalRevenue}
               target={quarterlyRevenueTarget}
               betterWhen="higher"
-              deltaPct={deltaPct(perWeek(stats.totalRevenue, stats.weeksCount), perWeek(previousStats?.totalRevenue ?? null, previousStats?.weeksCount ?? 0))}
+              deltaPct={deltaPct(stats.avgRevenuePerWeek, previousStats?.avgRevenuePerWeek ?? null)}
               sublabel={quarterlyRevenueTarget !== null ? `target ${formatValue(quarterlyRevenueTarget, "currency")}` : undefined}
             />
             <StatTile
               label="Total New Patients"
               value={formatValue(stats.totalNewPatients, "number")}
-              deltaPct={deltaPct(
-                perWeek(stats.totalNewPatients, stats.weeksCount),
-                perWeek(previousStats?.totalNewPatients ?? null, previousStats?.weeksCount ?? 0)
-              )}
+              deltaPct={deltaPct(stats.avgNewPatientsPerWeek, previousStats?.avgNewPatientsPerWeek ?? null)}
             />
             <StatTile
               label="Total Completed Appointments"
               value={formatValue(stats.totalConsults, "number")}
-              deltaPct={deltaPct(
-                perWeek(stats.totalConsults, stats.weeksCount),
-                perWeek(previousStats?.totalConsults ?? null, previousStats?.weeksCount ?? 0)
-              )}
+              deltaPct={deltaPct(stats.avgConsultsPerWeek, previousStats?.avgConsultsPerWeek ?? null)}
             />
             <StatTile
               label="Occupancy (avg/wk)"
