@@ -12,6 +12,7 @@ import { JBV_PARTNERS } from "@/lib/jbvPartners";
 import { JbvPartnerGrid } from "@/components/dashboard/JbvPartnerGrid";
 import { STATUS, CATEGORICAL } from "@/components/charts/palette";
 import { requireAnySection } from "@/lib/auth/access";
+import { formatValue } from "@/lib/format";
 
 /**
  * Clinic-wide specialty consult categories, from the director's own
@@ -110,22 +111,19 @@ export default async function SpecialtyServicesPage({
     ...SPECIALTIES.filter((s) => s.hasInitialSubSplit !== false).map((s) => `${s.key}_initial`),
     "specialty_womens_health_initial",
   ];
-  const specialtyVsTotalNewData = clinicHistory.map((h) => {
+  const specialtyNewShareData = clinicHistory.map((h) => {
     const values = specialtyNewClientKeys.map((k) => (typeof h[k] === "number" ? (h[k] as number) : null));
     // null (not 0) for a week none of these were reported at all, same
     // "don't count an unknown week as a real zero" reasoning as the
     // specialty consult totals elsewhere on this page.
     const specialtyNew = values.every((v) => v === null) ? null : values.reduce((acc: number, v) => acc + (v ?? 0), 0);
-    return {
-      label: formatWeekLabel(h.week_ending),
-      "Specialty New Clients": specialtyNew,
-      "Total New Clients": typeof h.total_nc === "number" ? h.total_nc : null,
-    };
+    const totalNew = typeof h.total_nc === "number" ? h.total_nc : null;
+    // A fraction (0-1), matching every other "percent"-typed field in this
+    // app (formatValue multiplies by 100 itself) — not already *100.
+    const sharePct = specialtyNew !== null && totalNew !== null && totalNew > 0 ? specialtyNew / totalNew : null;
+    return { label: formatWeekLabel(h.week_ending), value: sharePct };
   });
-  const latestSpecialtyNew = specialtyVsTotalNewData[specialtyVsTotalNewData.length - 1]?.["Specialty New Clients"] ?? null;
-  const latestTotalNew = specialtyVsTotalNewData[specialtyVsTotalNewData.length - 1]?.["Total New Clients"] ?? null;
-  const specialtyNewSharePct =
-    latestSpecialtyNew !== null && latestTotalNew !== null && latestTotalNew > 0 ? (latestSpecialtyNew / latestTotalNew) * 100 : null;
+  const latestSpecialtyNewSharePct = specialtyNewShareData[specialtyNewShareData.length - 1]?.value ?? null;
 
   return (
     <>
@@ -143,40 +141,40 @@ export default async function SpecialtyServicesPage({
           />
         </Card>
 
-        <Card title="Specialty New Clients vs Total New Clients">
+        <Card title="Specialty Share of New Clients">
           <p className="mb-3 text-xs text-muted">
             Each specialty&apos;s own Initial-consult count (Vestibular, Headaches/TMJ, Paediatrics, Women&apos;s Health —
-            Hydro excluded, no reliable Initial/Subsequent split) added together, against the clinic&apos;s total new
+            Hydro excluded, no reliable Initial/Subsequent split) added together, as a % of the clinic&apos;s total new
             clients for the week.
           </p>
-          {specialtyNewSharePct !== null && (
+          {latestSpecialtyNewSharePct !== null && (
             <div className="mb-3 flex flex-wrap gap-6">
               <StatTile
                 label="Specialty Share of New Clients"
-                value={`${specialtyNewSharePct.toFixed(1)}%`}
-                rawValue={specialtyNewSharePct}
+                value={formatValue(latestSpecialtyNewSharePct, "percent")}
+                rawValue={latestSpecialtyNewSharePct}
                 goodDirection="up"
               />
             </div>
           )}
-          <MultiLineChart
-            title="Specialty New Clients vs Total New Clients"
-            data={specialtyVsTotalNewData}
-            seriesKeys={["Specialty New Clients", "Total New Clients"]}
-            format="number"
-            height={240}
-          />
+          <LineTrendChart title="Specialty Share of New Clients" data={specialtyNewShareData} format="percent" colorIndex={2} height={240} />
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {SPECIALTIES.map((s) => {
             const growth = totalGrowth(clinicHistory, `${s.key}_total`);
+            const hasInitial = s.hasInitialSubSplit !== false;
+            const chartData = clinicHistory.map((h) => ({
+              label: formatWeekLabel(h.week_ending),
+              "Total Consults": typeof h[`${s.key}_total`] === "number" ? h[`${s.key}_total`] : null,
+              ...(hasInitial
+                ? { "Initial Consults": typeof h[`${s.key}_initial`] === "number" ? h[`${s.key}_initial`] : null }
+                : {}),
+            }));
             return (
             <Card key={s.key} title={s.name}>
               <div className="mb-3 flex flex-wrap gap-6">
-                {s.hasInitialSubSplit !== false && (
-                  <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />
-                )}
+                {hasInitial && <StatTile {...clinicStatTile(clinicHistory, `${s.key}_initial`)} label="Initial Consults" />}
                 <StatTile {...clinicStatTile(clinicHistory, `${s.key}_total`)} label="Total Consults" />
                 {growth.weeks > 0 && (
                   <GrowthStat
@@ -186,12 +184,23 @@ export default async function SpecialtyServicesPage({
                   />
                 )}
               </div>
-              <LineTrendChart
-                title={`${s.name} — Total Consults`}
-                data={toTrendSeries(clinicHistory, `${s.key}_total`)}
-                format="number"
-                colorIndex={s.colorIndex}
-              />
+              {hasInitial ? (
+                <MultiLineChart
+                  title={`${s.name} — Total vs Initial Consults`}
+                  data={chartData}
+                  seriesKeys={["Total Consults", "Initial Consults"]}
+                  colors={[CATEGORICAL[s.colorIndex % CATEGORICAL.length], CATEGORICAL[(s.colorIndex + 4) % CATEGORICAL.length]]}
+                  format="number"
+                  trendlineKey="Initial Consults"
+                />
+              ) : (
+                <LineTrendChart
+                  title={`${s.name} — Total Consults`}
+                  data={toTrendSeries(clinicHistory, `${s.key}_total`)}
+                  format="number"
+                  colorIndex={s.colorIndex}
+                />
+              )}
             </Card>
             );
           })}
@@ -205,11 +214,17 @@ export default async function SpecialtyServicesPage({
               <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_total")} label="Total Consults" />
             </div>
             <div className="mt-3">
-              <LineTrendChart
-                title="Women's Health — Total Consults"
-                data={toTrendSeries(clinicHistory, "specialty_womens_health_total")}
+              <MultiLineChart
+                title="Women's Health — Total vs Initial Consults"
+                data={clinicHistory.map((h) => ({
+                  label: formatWeekLabel(h.week_ending),
+                  "Total Consults": typeof h.specialty_womens_health_total === "number" ? h.specialty_womens_health_total : null,
+                  "Initial Consults": typeof h.specialty_womens_health_initial === "number" ? h.specialty_womens_health_initial : null,
+                }))}
+                seriesKeys={["Total Consults", "Initial Consults"]}
+                colors={[CATEGORICAL[1], CATEGORICAL[5]]}
                 format="number"
-                colorIndex={1}
+                trendlineKey="Initial Consults"
               />
             </div>
           </Card>
