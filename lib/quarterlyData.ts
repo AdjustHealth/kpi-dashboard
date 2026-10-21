@@ -184,10 +184,11 @@ function metricValueForRows(metric: QuarterlyMetricDef, rows: Record<string, unk
 export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise<QuarterlyProviderBreakdown> {
   const { start, end } = quarterDateRange(parseQuarterKey(quarterKey));
   const supabase = await createClient();
-  const [providersResult, weeklyResult, roleTargetsResult] = await Promise.all([
+  const [providersResult, weeklyResult, roleTargetsResult, weeklyKpisResult] = await Promise.all([
     supabase.from("providers").select("*").neq("role", "admin").eq("active", true).order("sort_order", { ascending: true }),
     supabase.from("provider_weekly").select("provider_id, week_ending, metrics").gte("week_ending", start).lte("week_ending", end),
     supabase.from("role_targets").select("id, values"),
+    supabase.from("weekly_kpis").select("total_nc").gte("week_ending", start).lte("week_ending", end),
   ]);
   const providers = (providersResult.data ?? []) as Provider[];
   const weeklyRows = (weeklyResult.data ?? []) as { provider_id: string; week_ending: string; metrics: Record<string, unknown> | null }[];
@@ -195,6 +196,15 @@ export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise
   for (const row of roleTargetsResult.data ?? []) {
     roleTargets[row.id as string] = (row.values as Record<string, unknown>) ?? {};
   }
+  // New Patients is a volume count, not a rate — "Clinic Average" for it
+  // should read as the clinic's own average weekly total (same total_nc
+  // used on Clinic Health/the quarter summary above), not the average of
+  // what one individual provider brings in (clinic total ÷ headcount,
+  // which reads as a confusingly small number next to Clinic Health's
+  // per-week figure). Every other metric in PROVIDER_METRICS is a
+  // per-provider rate/KPI where averaging across providers is exactly the
+  // point, so this is the one deliberate exception.
+  const clinicWeeklyNewPatients = average(nums((weeklyKpisResult.data ?? []) as Record<string, unknown>[], "total_nc"));
 
   const rowsByProvider = new Map<string, Record<string, unknown>[]>();
   for (const row of weeklyRows) {
@@ -224,7 +234,7 @@ export async function getQuarterlyProviderBreakdown(quarterKey: string): Promise
       if (tier) tierRows[tier].push(...rows);
       col[p.id] = metricValueForRows(metric, rows);
     }
-    col.clinic = metricValueForRows(metric, allRows);
+    col.clinic = metric.key === "new_patients" ? clinicWeeklyNewPatients : metricValueForRows(metric, allRows);
     for (const tier of TIERS) col[tier.key] = metricValueForRows(metric, tierRows[tier.key]);
     values[metric.key] = col;
   }
