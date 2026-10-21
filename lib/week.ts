@@ -43,6 +43,32 @@ export function defaultWeekEnding(from: Date = todayInClinicTz()): string {
   return toDateKey(d);
 }
 
+/**
+ * Rounds any calendar date down to its own week's Saturday — same "most
+ * recent Saturday on or before" rule as defaultWeekEnding, but for an
+ * arbitrary already-known date string instead of "today". Parses Y/M/D
+ * straight out of the string rather than going through `new Date(dateStr)`
+ * and its local-timezone getters, since this is meant to be called with
+ * whatever a browser's native `<input type="date">` hands back — that
+ * value is always a plain, timezone-free "YYYY-MM-DD" (the day the person
+ * actually picked), and routing it through local-time Date getters first
+ * can silently roll it back a day depending on the browser's own timezone.
+ *
+ * Every week_ending in this app must be a Saturday (see the file comment);
+ * nothing writes one directly from a raw date picker without going through
+ * this first — see WeekSelector, the one place a person can type/pick an
+ * arbitrary date. Confirmed against real stray weekly_kpis rows this
+ * caused: a week_ending of a Sunday or Monday one or two days off the
+ * intended Saturday, left behind by an un-snapped date-picker pick.
+ */
+export function snapToWeekEnding(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d));
+  const day = utc.getUTCDay(); // 0 = Sunday .. 6 = Saturday
+  utc.setUTCDate(utc.getUTCDate() - ((day + 1) % 7));
+  return toDateKey(utc);
+}
+
 export function shiftWeek(weekEnding: string, deltaWeeks: number): string {
   const d = new Date(`${weekEnding}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + deltaWeeks * 7);

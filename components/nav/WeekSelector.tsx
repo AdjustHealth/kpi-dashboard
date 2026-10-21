@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { defaultWeekEnding, shiftWeek } from "@/lib/week";
+import { defaultWeekEnding, shiftWeek, snapToWeekEnding } from "@/lib/week";
 
 export function WeekSelector() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export function WeekSelector() {
       <input
         type="date"
         value={week}
-        onChange={(e) => e.target.value && setWeek(e.target.value)}
+        onChange={(e) => e.target.value && setWeek(snapToWeekEnding(e.target.value))}
         className="bg-transparent px-1 py-1 text-sm text-foreground outline-none [color-scheme:dark]"
       />
       <button

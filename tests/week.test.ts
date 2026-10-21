@@ -7,7 +7,24 @@ import {
   CLINIC_HISTORY_START_WEEK_ENDING,
   financialYearStartWeekEnding,
   financialYearToDateWeeks,
+  snapToWeekEnding,
 } from "@/lib/week";
+
+describe("snapToWeekEnding", () => {
+  it("leaves an already-Saturday date untouched", () => {
+    expect(snapToWeekEnding("2026-07-04")).toBe("2026-07-04");
+  });
+
+  it("rounds a Sunday/Monday pick down to the Saturday just before it — reproduces the real stray weekly_kpis rows (2026-07-05, 2026-09-21) an un-snapped WeekSelector date input left behind", () => {
+    expect(snapToWeekEnding("2026-07-05")).toBe("2026-07-04");
+    expect(snapToWeekEnding("2026-09-21")).toBe("2026-09-19");
+  });
+
+  it("rounds any other mid-week day down to that same week's Saturday", () => {
+    expect(snapToWeekEnding("2026-07-08")).toBe("2026-07-04"); // Wednesday
+    expect(snapToWeekEnding("2026-07-10")).toBe("2026-07-04"); // Friday
+  });
+});
 
 describe("trackingHistoryWeeks", () => {
   it("never includes weeks before TRACKING_START_WEEK_ENDING", () => {
