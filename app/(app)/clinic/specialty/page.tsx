@@ -80,7 +80,10 @@ export default async function SpecialtyServicesPage({
   await requireAnySection(["clinic_reports", "specialty_services"]);
   const { week: weekParam } = await searchParams;
   const week = weekParam ?? defaultWeekEnding();
-  const historyWeeks = clinicHistoryWeeks(week);
+  // A full quarter of weeks, not the default 8-week trailing window — same
+  // as Revenue, since this is a clinic-wide-only page and the specialty
+  // growth trends/trendlines here are more meaningful over a longer window.
+  const historyWeeks = clinicHistoryWeeks(week, 13);
   const clinicHistory = await getClinicHistory(week, historyWeeks);
 
   // Verified against the real senior-physio sheet's JBV Trend column
@@ -158,7 +161,14 @@ export default async function SpecialtyServicesPage({
               />
             </div>
           )}
-          <BarTrendChart title="Specialty Share of New Clients" data={specialtyNewShareData} format="percent" colorIndex={2} height={240} />
+          <BarTrendChart
+            title="Specialty Share of New Clients"
+            data={specialtyNewShareData}
+            format="percent"
+            colorIndex={2}
+            height={240}
+            showTrendline
+          />
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
