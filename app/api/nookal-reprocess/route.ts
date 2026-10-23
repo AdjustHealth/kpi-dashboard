@@ -10,7 +10,7 @@ import { NookalReportType } from "@/lib/schema";
  * upload already wrote into cancellation_events/no_future_booking_events/
  * provider_weekly.metrics/pre_employment_activity_weekly. Re-uploading
  * every affected week by hand is how that's normally fixed, but the
- * director doesn't want to do that by hand — these four report types are
+ * director doesn't want to do that by hand — these report types are
  * exactly the ones whose per-week numbers are computed ONCE at upload time
  * (see lib/nookal/applyReport.ts) rather than recomputed live from stored
  * raw rows, so they're the ones a parsing fix leaves stale.
@@ -21,7 +21,17 @@ import { NookalReportType } from "@/lib/schema";
  * exact file through the Weekly Input page, just without needing the file
  * on hand. Idempotent and safe to re-run.
  */
-const REPROCESSABLE_TYPES: NookalReportType[] = ["cancellations", "clients_and_cases", "activity", "last_attendances", "online_bookings"];
+const REPROCESSABLE_TYPES: NookalReportType[] = [
+  "cancellations",
+  "clients_and_cases",
+  "activity",
+  "last_attendances",
+  "online_bookings",
+  // Added so an NCVA formula fix (e.g. the pre-employment subtraction) can
+  // be re-applied to an already-uploaded 12-month pull without needing the
+  // file re-downloaded from Nookal and re-uploaded by hand.
+  "providers_and_practice_12mo",
+];
 
 interface UploadRow {
   id: string;
