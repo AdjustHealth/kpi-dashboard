@@ -18,6 +18,18 @@ export const PROGRAMMING_RULES: RuleSection[] = [
     ],
   },
   {
+    section: "Template Naming",
+    cols: ["Rule", "Description", "Example", "Notes"],
+    rows: [
+      ["Format", "Category – Body Part / Goal – Phase or Variant", "Rehab – Ankle – Phase 1  ·  Performance – Court – Accumulation", "No member name — a template is reusable across clients, unlike a Program"],
+      ["Category", "Same category as Mesocycle / Block Length above", "Rehab · Performance · Online · Move Strong", "Keeps the template library sorted the same way blocks are categorised"],
+      ["Rehab Phase", "Name the phase from the standard progression", "Phase 1 = Symptom Management  ·  Phase 5 = Return to Performance", "See Phase Naming & Structure below"],
+      ["Performance Phase", "Pick the sport/goal first, then the periodisation phase", "Performance – Court – Realisation", "Phase sequence is purely dependent on the sport, same as Program Naming"],
+      ["Versioning", "Append v2, v3... when a template is revised, don't overwrite it", "Rehab – ACL – Phase 2 v2", "Keep the old version live until every member on it has rolled onto the new one"],
+      ["Move Strong", "Name by block letter, not a date", "Move Strong – Block A", "All Move Strong members run the same cycle — a dated name goes stale the next time it's reused"],
+    ],
+  },
+  {
     section: "Phase Naming & Structure",
     chain: ["Symptom Management", "Strength Introduction", "Strength Accumulation", "Strength Specificity", "Return to Performance"],
     chainLabel: "Rehab block progression",
