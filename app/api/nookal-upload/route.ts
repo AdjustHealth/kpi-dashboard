@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
   if (!(file instanceof File) || typeof weekEnding !== "string" || typeof reportType !== "string") {
     return NextResponse.json({ error: "file, week_ending, and report_type are required" }, { status: 400 });
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) {
+    return NextResponse.json({ error: "week_ending must be a YYYY-MM-DD date" }, { status: 400 });
+  }
   if (!(NOOKAL_REPORT_TYPES as readonly string[]).includes(reportType)) {
     return NextResponse.json({ error: "invalid report_type" }, { status: 400 });
   }

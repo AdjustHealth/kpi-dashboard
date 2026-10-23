@@ -45,7 +45,7 @@ export async function POST(
     };
     const formData: ConsultFormData = { note, report };
 
-    await sql`update assessments set form_data = ${sql.json(JSON.parse(JSON.stringify(formData)))} where id = ${id}`;
+    await sql`update assessments set form_data = ${sql.json(JSON.parse(JSON.stringify(formData)))} where id = ${id} and assess_type = 'initial_consult'`;
     return NextResponse.json({ report });
   } catch (e) {
     return NextResponse.json(
