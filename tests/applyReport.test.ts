@@ -676,7 +676,7 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(5, 4);
   });
 
-  it("providers_and_practice_12mo + activity: computes ncva (excl. gym classes) from the 12-month pull's own Services AND New Patients columns, then subtracts gym classes once the ledger lands — the real bug this replaces: an EP coach's weekly Gym Supervision classes counted as 'Completed Services' same as a real 1:1 consult, inflating NCVA", async () => {
+  it("providers_and_practice_12mo + activity: computes ncva (excl. gym classes AND pre-employment) from the 12-month pull's own Services AND New Patients columns, then subtracts both once the ledgers land — the real bugs this replaces: an EP coach's weekly Gym Supervision classes counted as 'Completed Services' same as a real 1:1 consult (inflating NCVA), and a Pre-Employment Assessment (always exactly one consult) left in one half but not the other (dragging it the wrong way)", async () => {
     const PVA_ALL_CSV = `Providers and Practice Report
 
 Parameters
@@ -687,8 +687,9 @@ Provider,Services,Completed Consults,Unique Patients,New Patients,New Cases,Pati
 EP One,1000,1000,200,10,10,5.00,5.00,0,0,0
 
 `;
-    // A normal weekly Activity Report — one real 1:1 service and one Gym
-    // Supervision class, exactly as it comes from Nookal unfiltered.
+    // A normal weekly Activity Report — one real 1:1 service, one Gym
+    // Supervision class, and one Pre-Employment Assessment, exactly as it
+    // comes from Nookal unfiltered.
     const WEEKLY_ACTIVITY_CSV = `Activity Report
 
 Parameters
@@ -696,29 +697,31 @@ Dates,29/06/2026 - 05/07/2026
 
 Summary
 Type,Subtotal,Tax,Total
-Services,240.00,0,240.00
-Total,240.00,0,240.00
+Services,360.00,0,360.00
+Total,360.00,0,360.00
 
 Details
 Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
 01/07/2026,EP One,Adjust Physiotherapy,Real Client One,Private - EP,EP Subs,Service,1,01/07/2026,Private,,120,0,0,120,0,1
 02/07/2026,EP One,Adjust Physiotherapy,Class Client One,Gym Supervision,Gym Class,Service,2,02/07/2026,Private,,120,0,0,120,0,2
+03/07/2026,EP One,Adjust Physiotherapy,Screening Client One,Pre-Employment Assessment,Pre-Employment Assessment,Service,3,03/07/2026,Private,,120,0,0,120,0,3
 
 `;
     const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "EP One", role: "ep" }]);
 
     // The 12-month pull sets both halves at once — Services (1000) AND the
     // real rolling New Patients figure (10) — so ncva computes immediately,
-    // before any gym classes are known about: 1000 / 10 = 100.
+    // before any gym classes/pre-employment are known about: 1000 / 10 = 100.
     await applyNookalReport(client as never, "providers_and_practice_12mo", "2026-07-12", PVA_ALL_CSV);
     expect(providerWeekly["p1:2026-07-12"].pva_services_all).toBe(1000);
     expect(providerWeekly["p1:2026-07-12"].ncva_new_patients_all).toBe(10);
     expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(100, 4);
 
-    // The normal weekly Activity Report adds a gym-class ledger row and
-    // recomputes: (1000 services - 1 gym class) / 10 new patients = 99.9.
+    // The normal weekly Activity Report adds a gym-class ledger row and a
+    // pre-employment ledger row, recomputing both halves:
+    // (1000 services - 1 gym class - 1 pre-employment) / (10 new patients - 1 pre-employment client) = 998/9.
     await applyNookalReport(client as never, "activity", "2026-07-12", WEEKLY_ACTIVITY_CSV);
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo((1000 - 1) / 10, 4);
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo((1000 - 1 - 1) / (10 - 1), 4);
   });
 
   it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled — RSX-tagged, DNA excluded", async () => {

@@ -202,28 +202,44 @@ export async function applyNookalReport(
   }
 
   /**
-   * NCVA (excl. gym classes) — reuses the same rolling-12-month Services
-   * figure PVA already pulls from providers_and_practice_12mo
-   * (pva_services_all), minus a trailing-52-week sum of
-   * gym_class_activity_weekly (a ledger fed by the director's REGULAR
-   * weekly Activity Report upload, same mechanism as
-   * pre_employment_activity_weekly), divided by that SAME 12-month pull's
-   * own "New Patients" column (ncva_new_patients_all) — a genuine
-   * Nookal-computed rolling-12-month figure, not summed from this app's
-   * own weekly provider_weekly.new_patients. That was tried first and is
+   * NCVA (excl. gym classes AND pre-employment screenings) — reuses the
+   * same rolling-12-month Services figure PVA already pulls from
+   * providers_and_practice_12mo (pva_services_all), minus a trailing-
+   * 52-week sum of gym_class_activity_weekly (a ledger fed by the
+   * director's REGULAR weekly Activity Report upload, same mechanism as
+   * pre_employment_activity_weekly) AND the same ledger's pre-employment
+   * Services total, divided by that SAME 12-month pull's own "New
+   * Patients" column (ncva_new_patients_all) minus the ledger's deduped
+   * pre-employment client count — same both-halves subtraction PVA
+   * already does (pva_services_all/pva_clients_all), not just the
+   * denominator: a Pre-Employment Assessment is only ever one single
+   * consult, so leaving it in one half but not the other would drag NCVA
+   * the wrong way instead of the screening client just dropping out
+   * cleanly. Nookal's own Business Performance Report (the old source of
+   * NCVA) applies a Payers filter when generated that already excludes
+   * pre-employment/corporate-screening payers from its own "new clients"
+   * count (confirmed against Nookal's own help docs — the report's
+   * Payers parameter can be scoped to Private/Third Party/All) — but the
+   * Providers and Practice Report's "New Patients"/Services columns have
+   * no such filter (its own Parameters section has no Payers option at
+   * all), so without this subtraction a provider who runs a lot of
+   * Pre-Employment Assessments (Tayla, Riley, Imogen, Dean, Wilson all
+   * do) would have screening clients the old NCVA never counted baked
+   * into their new figure.
+   *
+   * ncva_new_patients_all is deliberately NOT summed from this app's own
+   * weekly provider_weekly.new_patients. That was tried first and is
    * wrong: provider_weekly only has real history back to July 2026's
    * rollout (~16 weeks as of Oct 2026), nowhere near a true 12 months, so
    * summing it badly undercounts the denominator and makes NCVA read
    * HIGHER than before for most providers — confirmed against real data
    * before this shipped (implied old denominators of 24-127 new patients
-   * vs. a ~16-week sum of 0-55). Replaces Nookal's own undocumented
-   * Business Performance Report NCVA, which counts a weekly gym class
-   * attendance the same as a real 1:1 consult and silently inflates NCVA
-   * for whoever runs classes (e.g. an EP coach) — same shape of problem
-   * PVA already solved for UCVA (Oct 2026). Whichever completes last (a
-   * fresh 12-month Services/New Patients pull, or this week's Activity
-   * Report landing in the gym-class ledger) triggers the recompute, same
-   * "whichever half lands second" pattern as PVA.
+   * vs. a ~16-week sum of 0-55).
+   *
+   * Whichever completes last (a fresh 12-month Services/New Patients
+   * pull, or this week's Activity Report landing in the gym-class/
+   * pre-employment ledgers) triggers the recompute, same "whichever half
+   * lands second" pattern as PVA.
    */
   async function recomputeNcvaForProvider(providerId: string) {
     const { data: existing } = await supabase
@@ -234,18 +250,39 @@ export async function applyNookalReport(
       .maybeSingle();
     const m = (existing?.metrics ?? {}) as Record<string, unknown>;
     const { pva_services_all: servicesAll, ncva_new_patients_all: newPatientsAll } = m;
-    if (typeof servicesAll !== "number" || typeof newPatientsAll !== "number" || newPatientsAll <= 0) return;
+    if (typeof servicesAll !== "number" || typeof newPatientsAll !== "number") return;
 
     const windowStart = shiftWeek(weekEnding, -51);
-    const { data: gymLedgerRows } = await supabase
-      .from("gym_class_activity_weekly")
-      .select("services")
-      .eq("provider_id", providerId)
-      .gte("week_ending", windowStart)
-      .lte("week_ending", weekEnding);
+    const [{ data: gymLedgerRows }, { data: preEmploymentLedgerRows }] = await Promise.all([
+      supabase
+        .from("gym_class_activity_weekly")
+        .select("services")
+        .eq("provider_id", providerId)
+        .gte("week_ending", windowStart)
+        .lte("week_ending", weekEnding),
+      supabase
+        .from("pre_employment_activity_weekly")
+        .select("services, client_names")
+        .eq("provider_id", providerId)
+        .gte("week_ending", windowStart)
+        .lte("week_ending", weekEnding),
+    ]);
     const servicesGym = ((gymLedgerRows ?? []) as { services: number }[]).reduce((sum, row) => sum + row.services, 0);
+    // A Pre-Employment Assessment is only ever one single consult — if it
+    // stayed in the New Patients denominator but came out of the Services
+    // numerator (or vice versa), it would drag NCVA the wrong way instead
+    // of just dropping out cleanly. Both halves come from the same ledger
+    // row, same as PVA's own pre-employment subtraction.
+    let servicesPre = 0;
+    const clientsPreSeen = new Set<string>();
+    for (const row of (preEmploymentLedgerRows ?? []) as { services: number; client_names: string[] }[]) {
+      servicesPre += row.services;
+      for (const c of row.client_names ?? []) clientsPreSeen.add(c);
+    }
 
-    await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesGym) / newPatientsAll });
+    const newPatients = newPatientsAll - clientsPreSeen.size;
+    if (newPatients <= 0) return;
+    await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesGym - servicesPre) / newPatients });
   }
 
   /** Re-derives the Clinic Analysis tier averages from whatever's currently in each provider's "ucva" field (now PVA) — run after any upload that might have changed it. */
