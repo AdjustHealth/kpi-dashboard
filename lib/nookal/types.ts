@@ -35,6 +35,18 @@ export interface ActivityReportResult {
    * filtered 12-month export every week.
    */
   preEmploymentByProvider: Record<string, { services: number; clientNames: string[] }>;
+  /**
+   * This week's Gym Supervision Services and distinct Client names per
+   * provider (same GYM_SUPERVISION_PATTERN the Cancellations Report
+   * already excludes from Unretained lists) — fed into a weekly ledger
+   * (gym_class_activity_weekly) so a trailing-52-week sum gives the
+   * rolling-12-month subtraction NCVA needs. Nookal's own "Completed
+   * Services" count doesn't distinguish a weekly gym class attendance
+   * from a real 1:1 consult, which silently inflates NCVA for whoever
+   * runs classes (e.g. an EP coach) — same shape of problem PVA already
+   * solved for pre-employment screenings inflating UCVA.
+   */
+  gymClassByProvider: Record<string, { services: number; clientNames: string[] }>;
 }
 
 export interface OccupancyReportResult {

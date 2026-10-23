@@ -147,6 +147,7 @@ export function parseActivityReport(
     clientsSeenNames: [],
     gym3pRevenue: 0,
     preEmploymentByProvider: {},
+    gymClassByProvider: {},
   };
   const section = extractSection(rows, "Details");
   if (!section) return empty;
@@ -169,6 +170,9 @@ export function parseActivityReport(
   // the rolling-12-month subtraction, so the director doesn't need a
   // separate Payers-filtered 12-month export every week for this.
   const preEmploymentByProvider: Record<string, { services: number; clientNames: Set<string> }> = {};
+  // Same reasoning, for gym classes inflating NCVA instead of pre-employment
+  // inflating UCVA — see gymClassByProvider's own doc comment in types.ts.
+  const gymClassByProvider: Record<string, { services: number; clientNames: Set<string> }> = {};
 
   for (const row of section.rows) {
     const r = rowToRecord(section.header, row);
@@ -219,6 +223,12 @@ export function parseActivityReport(
         preEmploymentByProvider[provider].services += 1;
         if (clientName) preEmploymentByProvider[provider].clientNames.add(clientName);
       }
+
+      if (GYM_SUPERVISION_PATTERN.test(r["Case"] ?? "")) {
+        if (!gymClassByProvider[provider]) gymClassByProvider[provider] = { services: 0, clientNames: new Set() };
+        gymClassByProvider[provider].services += 1;
+        if (clientName) gymClassByProvider[provider].clientNames.add(clientName);
+      }
     }
   }
 
@@ -234,6 +244,9 @@ export function parseActivityReport(
     gym3pRevenue,
     preEmploymentByProvider: Object.fromEntries(
       Object.entries(preEmploymentByProvider).map(([name, v]) => [name, { services: v.services, clientNames: Array.from(v.clientNames) }])
+    ),
+    gymClassByProvider: Object.fromEntries(
+      Object.entries(gymClassByProvider).map(([name, v]) => [name, { services: v.services, clientNames: Array.from(v.clientNames) }])
     ),
   };
 }
