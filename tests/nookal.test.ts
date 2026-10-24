@@ -827,6 +827,7 @@ describe("parseProvidersAndPracticeReport", () => {
     expect(alex.totalSales).toBeCloseTo(3510.4, 1);
     expect(alex.completedConsults).toBe(36);
     expect(alex.uniqueClients).toBe(33);
+    expect(alex.newPatients).toBe(1);
     expect(alex.cva).toBeCloseTo(1.09, 2);
     expect(alex.caseVA).toBeCloseTo(1.09, 2);
     expect(alex.forwardBookingAverage).toBeCloseTo(3.96, 2);
@@ -847,6 +848,7 @@ Erin Duthie,1161,1161,265,50,94,4.38,4.16,0,0,0
     const erin = result.byProvider["Erin Duthie"];
     expect(erin.services).toBe(1161);
     expect(erin.uniqueClients).toBe(265);
+    expect(erin.newPatients).toBe(50);
     expect(erin.cva).toBeCloseTo(4.38, 2);
   });
 });

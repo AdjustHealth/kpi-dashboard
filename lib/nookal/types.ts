@@ -130,10 +130,12 @@ export interface ProvidersAndPracticeReportResult {
   byProvider: Record<
     string,
     {
-      /** Provider Stats' "Services" column — the numerator Nookal's own Patient Visit Average formula uses (Services / Unique Patient). Usually equal to completedConsults but not always (an invoice-less service still counts here). */
+      /** Provider Stats' "Services" column — the numerator Nookal's own Patient Visit Average formula uses (Services / Unique Patient). Usually equal to completedConsults but not always (an invoice-less service still counts here). Already excludes gym Classes — those are a separate column in this same report. */
       services: number | null;
       completedConsults: number | null;
       uniqueClients: number | null;
+      /** Provider Stats' "New Patients" column — rolling-12-month count of patients new to this provider. The real NCVA denominator (Services / New Patients), minus the pre-employment ledger — see recomputeNcvaForProvider in applyReport.ts. */
+      newPatients: number | null;
       cva: number | null;
       caseVA: number | null;
       forwardBookingAverage: number | null;

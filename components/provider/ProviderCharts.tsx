@@ -54,9 +54,11 @@ export function ProviderCharts({
         <div className="flex flex-col gap-1.5">
           <MultiLineChart title="PVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["PVA", "NCVA"]} format="decimal" decimals={1} height={160} />
           <p className="text-[11px] text-muted">
-            PVA: visits per client across the whole caseload (overall efficiency), excluding pre-employment/corporate-
-            screening patients. NCVA: visits per new client only — a retention indicator. If NCVA runs below PVA, new
-            clients aren&apos;t rebooking as often as existing ones and the provider needs more new clients to sustain the same volume.
+            PVA: visits per client across the whole caseload. NCVA: visits per new client only, excluding
+            pre-employment/corporate-screening patients and gym classes — both are efficiency numbers, not retention
+            ones: a provider with few new patients and a big loyal existing base can score as high as one bringing
+            in plenty of new patients who stick. If NCVA runs well below PVA, new clients specifically aren&apos;t
+            rebooking as often as the existing caseload.
           </p>
         </div>
         <LineTrendChart

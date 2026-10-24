@@ -539,7 +539,7 @@ Physio Mid Tier,3.84,0,11.78,4.62,90.13,416.40,61.83%,105.75,28.76%,0.06%
 Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
 `;
 
-  it("business_performance: sets ncva/tpr per provider, but NOT ucva/cva-by-tier (those come from PVA now, see providers_and_practice_12mo/activity_pre_employment_12mo below)", async () => {
+  it("business_performance: sets tpr per provider, but NOT ucva/ncva/cva-by-tier (those come from the Providers and Practice Report now, see providers_and_practice_12mo below)", async () => {
     const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
       { id: "p1", name: "Senior One", role: "senior_physio" },
       { id: "p2", name: "Massage One", role: "massage" },
@@ -551,13 +551,13 @@ Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
     const result = await applyNookalReport(client as never, "business_performance", "2026-07-12", BUSINESS_PERFORMANCE_CSV);
 
     expect(providerWeekly["p1:2026-07-12"].ucva).toBeUndefined();
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(27.19, 2);
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeUndefined();
     expect(providerWeekly["p1:2026-07-12"].tpr).toBeCloseTo(615.04, 2);
     expect(weeklyKpis["2026-07-12"]?.cva_senior).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Physio Mid Tier", "Physio New Grad", "Physio Senior Tier", "Senior One"]);
   });
 
-  it("providers_and_practice_12mo + the normal weekly activity upload: computes ucva (PVA excl. pre-employment) once both halves are in, in either order, and averages CVA-by-tier from it — no separate pre-employment export needed", async () => {
+  it("providers_and_practice_12mo + the normal weekly activity upload: computes ucva/ncva (PVA/NCVA excl. pre-employment) once both halves are in, in either order, and averages CVA-by-tier from PVA — no separate pre-employment export needed", async () => {
     const PVA_ALL_CSV = `Providers and Practice Report
 
 Parameters
@@ -600,14 +600,20 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(5, 4);
     expect(providerWeekly["p1:2026-07-12"].pva_services_all).toBe(1000);
     expect(providerWeekly["p1:2026-07-12"].pva_clients_all).toBe(200);
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(100, 4);
+    expect(providerWeekly["p1:2026-07-12"].ncva_services_all).toBe(1000);
+    expect(providerWeekly["p1:2026-07-12"].ncva_new_patients_all).toBe(10);
 
     // The normal weekly Activity Report adds a real ledger row and
-    // triggers the corrected computation: Senior One: (1000-1)/(200-1) =
-    // 999/199; Massage One had zero pre-employment patients this week —
-    // still no ledger row for them, so their ucva stays the raw ratio: 5.
+    // triggers the corrected computation: Senior One PVA: (1000-1)/(200-1) =
+    // 999/199; Senior One NCVA: (1000-1)/(10-1) = 999/9. Massage One had
+    // zero pre-employment patients this week — still no ledger row for
+    // them, so their ucva/ncva stay the raw ratios: 5 and 50.
     await applyNookalReport(client as never, "activity", "2026-07-12", WEEKLY_ACTIVITY_CSV);
     expect(providerWeekly["p1:2026-07-12"].ucva).toBeCloseTo(999 / 199, 4);
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(999 / 9, 4);
     expect(providerWeekly["p2:2026-07-12"].ucva).toBeCloseTo(5, 4);
+    expect(providerWeekly["p2:2026-07-12"].ncva).toBeCloseTo(50, 4);
     expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo(999 / 199, 4);
     expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(5, 4);
   });
