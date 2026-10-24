@@ -201,6 +201,53 @@ export async function applyNookalReport(
     await upsertProviderMetrics(providerId, { ucva: (servicesAll - servicesPre) / clients });
   }
 
+  /**
+   * NCVA (excl. pre-employment) — same shape as recomputePvaForProvider
+   * above, but denominated on New Patients instead of Unique Patients
+   * (ncva_services_all/ncva_new_patients_all, also written by the
+   * providers_and_practice_12mo branch below), and reusing the SAME
+   * pre_employment_activity_weekly ledger — no second ledger needed.
+   * Validated against a real 12-month pull 24/10/26: Nookal's own NCVA (the
+   * Business Performance Report figure this replaces) bakes gym Class
+   * participants into the numerator, which is why it ran high for
+   * class-heavy providers (confirmed against Lachlan/Wilson/Sam's real
+   * Classes/Participants counts). The Providers and Practice Report's
+   * "Services" column already excludes Classes, so a WorkCover/NDIS 1:1 gym
+   * consult (billed as a Service) still counts, but a group Gym Supervision
+   * class (billed as a Class) doesn't — with no separate gym-class ledger
+   * or regex needed. Writes into the same "ncva" field every existing
+   * display/target/chart reads.
+   */
+  async function recomputeNcvaForProvider(providerId: string) {
+    const { data: existing } = await supabase
+      .from("provider_weekly")
+      .select("metrics")
+      .eq("provider_id", providerId)
+      .eq("week_ending", weekEnding)
+      .maybeSingle();
+    const m = (existing?.metrics ?? {}) as Record<string, unknown>;
+    const { ncva_services_all: servicesAll, ncva_new_patients_all: newPatientsAll } = m;
+    if (typeof servicesAll !== "number" || typeof newPatientsAll !== "number") return;
+
+    const windowStart = shiftWeek(weekEnding, -51);
+    const { data: ledgerRows } = await supabase
+      .from("pre_employment_activity_weekly")
+      .select("services, client_names")
+      .eq("provider_id", providerId)
+      .gte("week_ending", windowStart)
+      .lte("week_ending", weekEnding);
+    let servicesPre = 0;
+    const clientsPreSeen = new Set<string>();
+    for (const row of (ledgerRows ?? []) as { services: number; client_names: string[] }[]) {
+      servicesPre += row.services;
+      for (const c of row.client_names ?? []) clientsPreSeen.add(c);
+    }
+
+    const newPatients = newPatientsAll - clientsPreSeen.size;
+    if (newPatients <= 0) return;
+    await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesPre) / newPatients });
+  }
+
   /** Re-derives the Clinic Analysis tier averages from whatever's currently in each provider's "ucva" field (now PVA) — run after any upload that might have changed it. */
   async function recomputeCvaTierAverages() {
     const { data: rows } = await supabase.from("provider_weekly").select("provider_id, metrics").eq("week_ending", weekEnding);
@@ -330,6 +377,7 @@ export async function applyNookalReport(
           { onConflict: "provider_id,week_ending" }
         );
       await recomputePvaForProvider(p.id);
+      await recomputeNcvaForProvider(p.id);
     }
     for (const p of providers) {
       if (matched.has(p.name) && result.preEmploymentByProvider[p.name]) continue;
@@ -337,6 +385,7 @@ export async function applyNookalReport(
         .from("pre_employment_activity_weekly")
         .upsert({ provider_id: p.id, week_ending: weekEnding, services: 0, client_names: [] }, { onConflict: "provider_id,week_ending" });
       await recomputePvaForProvider(p.id);
+      await recomputeNcvaForProvider(p.id);
     }
     await recomputeCvaTierAverages();
   } else if (reportType === "occupancy") {
@@ -604,43 +653,40 @@ export async function applyNookalReport(
     // below. It was previously computed from this report's per-week
     // "Client Visit Average", which is a different, mismatched metric.
   } else if (reportType === "business_performance") {
-    // Source of NCVA/TPR — confirmed against a real export and the
-    // director's own "where the data comes from" sheet. Taken as Nookal's
-    // own number, no further adjustment on our end (tried deriving NCVA
-    // ourselves from providers_and_practice_12mo instead, excluding gym
-    // classes/pre-employment — reverted 24/10/26, the director wants
-    // Nookal's own figure, not a derived one). NCVA is only comparable
-    // week to week if this report is always generated with the same
-    // Payers filter — the director's own convention is "All Payers"
-    // every time. No longer the
-    // source of UCVA/the Clinic Analysis CVA-by-tier averages: as of Sept
-    // 2026 the director replaced UCVA with a true rolling-12-month Patient
-    // Visit Average excluding pre-employment/corporate-screening patients
-    // (see providers_and_practice_12mo/activity_pre_employment_12mo below
-    // and recomputePvaForProvider/recomputeCvaTierAverages above) — still
-    // written into the same "ucva" field so every existing display/target/
-    // chart/tier-average needs no further changes, it's just sourced
-    // differently now.
+    // Source of TPR only now. Used to also be the source of NCVA, but as of
+    // 24/10/26 the director replaced it with a true rolling-12-month
+    // Services/New Patients figure (see providers_and_practice_12mo below
+    // and recomputeNcvaForProvider above) — Nookal's own NCVA bakes gym
+    // Class participants into the numerator (confirmed against a real
+    // 12-month pull: Lachlan/Wilson/Sam's inflated NCVA matched almost
+    // exactly once their Classes/Participants counts were added back in),
+    // on top of whichever Payers filter happened to be selected at export
+    // time swinging the New Patients denominator. No longer the source of
+    // UCVA/the Clinic Analysis CVA-by-tier averages either — see the
+    // Sept 2026 PVA change (recomputePvaForProvider/recomputeCvaTierAverages
+    // above).
     const result = parseBusinessPerformanceReport(csvText);
     rowsFound = Object.keys(result.byProvider).length;
 
     for (const [name, data] of Object.entries(result.byProvider)) {
       const p = findProvider(name);
       if (!p) continue;
-      const patch: Record<string, unknown> = {};
-      if (data.ncva !== null) patch.ncva = data.ncva;
-      if (data.tpr !== null) patch.tpr = data.tpr;
-      if (Object.keys(patch).length > 0) await upsertProviderMetrics(p.id, patch);
+      if (data.tpr !== null) await upsertProviderMetrics(p.id, { tpr: data.tpr });
     }
   } else if (reportType === "providers_and_practice_12mo") {
-    // Real Nookal-computed rolling-12-month Services/Unique Patients per
-    // provider — the "all" half of PVA-excl-pre-employment (the pre-
-    // employment subtraction comes from the pre_employment_activity_weekly
-    // ledger instead, fed by the normal weekly Activity Report upload —
-    // see recomputePvaForProvider/the "activity" branch above). A full
-    // 12-month Providers and Practice Report doesn't hit the row-volume
-    // problem the equivalent Activity Report export does, so this one CAN
-    // just be re-run with a rolling 12-month date range every week.
+    // Real Nookal-computed rolling-12-month Services/Unique Patients/New
+    // Patients per provider — the "all" half of both PVA-excl-pre-employment
+    // and NCVA-excl-pre-employment (the pre-employment subtraction for both
+    // comes from the SAME pre_employment_activity_weekly ledger, fed by the
+    // normal weekly Activity Report upload — see recomputePvaForProvider/
+    // recomputeNcvaForProvider/the "activity" branch above). Services here
+    // already excludes gym Classes (a separate column in this same report),
+    // so NCVA needs no further gym-class exclusion of its own — a
+    // WorkCover/NDIS 1:1 gym consult still counts (it's a Service), a group
+    // Gym Supervision class doesn't (it's a Class). A full 12-month
+    // Providers and Practice Report doesn't hit the row-volume problem the
+    // equivalent Activity Report export does, so this one CAN just be
+    // re-run with a rolling 12-month date range every week.
     const result = parseProvidersAndPracticeReport(csvText);
     rowsFound = 0;
     for (const [name, data] of Object.entries(result.byProvider)) {
@@ -649,8 +695,14 @@ export async function applyNookalReport(
       const p = findProvider(name);
       if (!p) continue;
       rowsFound += 1;
-      await upsertProviderMetrics(p.id, { pva_services_all: services, pva_clients_all: data.uniqueClients });
+      const patch: Record<string, unknown> = { pva_services_all: services, pva_clients_all: data.uniqueClients };
+      if (data.newPatients !== null) {
+        patch.ncva_services_all = services;
+        patch.ncva_new_patients_all = data.newPatients;
+      }
+      await upsertProviderMetrics(p.id, patch);
       await recomputePvaForProvider(p.id);
+      if (data.newPatients !== null) await recomputeNcvaForProvider(p.id);
     }
     await recomputeCvaTierAverages();
   } else if (reportType === "aged_debtors") {

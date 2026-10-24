@@ -82,7 +82,22 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   // lib/nookal/applyReport.ts. Structurally excludes Classes, unlike the
   // old UCVA, which the director wanted specifically.
   { key: "ucva", label: "PVA", type: "decimal", decimals: 1, betterWhen: "higher" },
-  { key: "ncva", label: "NCVA", type: "decimal", decimals: 1, betterWhen: "higher" },
+  // As of 24/10/26 derived the same way as PVA (Services / New Patients,
+  // from the Providers & Practice Report, minus the same pre-employment
+  // ledger) instead of taken from the Business Performance Report — see
+  // recomputeNcvaForProvider in lib/nookal/applyReport.ts. This is a
+  // caseload-efficiency number, not a churn/retention one: a provider with
+  // very few new patients and a big loyal existing base can land at the
+  // same NCVA as one bringing in plenty of new patients who stick — compare
+  // against PVA and against raw New Patient intake to tell those apart.
+  {
+    key: "ncva",
+    label: "NCVA",
+    type: "decimal",
+    decimals: 1,
+    betterWhen: "higher",
+    sublabel: "Services per new patient (excl. pre-employment & gym classes) — caseload efficiency, not retention",
+  },
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
