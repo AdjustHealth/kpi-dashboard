@@ -144,17 +144,69 @@ export async function applyNookalReport(
     return p;
   }
 
+  /**
+   * Every provider's provider_weekly.metrics for this week, loaded ONCE up
+   * front instead of a select-then-upsert DB round trip per metric per
+   * provider. The old per-call select+upsert pattern, multiplied across
+   * upsertProviderMetrics/recomputePvaForProvider/recomputeNcvaForProvider,
+   * added up to ~10 sequential awaited queries per provider on a
+   * providers_and_practice_12mo upload — ~150 across 15 providers in one
+   * request. On a serverless function with a timeout, that silently cut off
+   * partway through, leaving later providers (by object-iteration order)
+   * with stale numbers while earlier ones updated — exactly the "some
+   * providers didn't update" symptom this was causing. Every write below
+   * mutates this cache; the one real DB write is a single batched upsert at
+   * the very end of this function.
+   */
+  const { data: weeklyRows } = await supabase.from("provider_weekly").select("provider_id, metrics").eq("week_ending", weekEnding);
+  const metricsCache = new Map<string, Record<string, unknown>>();
+  for (const row of (weeklyRows ?? []) as { provider_id: string; metrics: Record<string, unknown> | null }[]) {
+    metricsCache.set(row.provider_id, row.metrics ?? {});
+  }
+  const dirtyProviderIds = new Set<string>();
+
   async function upsertProviderMetrics(providerId: string, patch: Record<string, unknown>) {
-    const { data: existing } = await supabase
-      .from("provider_weekly")
-      .select("metrics")
-      .eq("provider_id", providerId)
-      .eq("week_ending", weekEnding)
-      .maybeSingle();
-    const merged = { ...(existing?.metrics ?? {}), ...patch };
-    await supabase
-      .from("provider_weekly")
-      .upsert({ provider_id: providerId, week_ending: weekEnding, metrics: merged }, { onConflict: "provider_id,week_ending" });
+    metricsCache.set(providerId, { ...(metricsCache.get(providerId) ?? {}), ...patch });
+    dirtyProviderIds.add(providerId);
+  }
+
+  /**
+   * Same preload-once/batch-write treatment for pre_employment_activity_weekly
+   * (PVA/NCVA's trailing-52-week pre-employment ledger) — one query covering
+   * every provider's whole window instead of a per-provider query inside
+   * every recompute call. Keyed by provider then week so writing (or
+   * reprocessing) this week's row REPLACES that week's contribution in the
+   * running sum instead of double-counting it on top of the stale preloaded
+   * value.
+   */
+  const windowStart = shiftWeek(weekEnding, -51);
+  const { data: ledgerRowsAll } = await supabase
+    .from("pre_employment_activity_weekly")
+    .select("provider_id, week_ending, services, client_names")
+    .gte("week_ending", windowStart)
+    .lte("week_ending", weekEnding);
+  const ledgerByProvider = new Map<string, Map<string, { services: number; clientNames: string[] }>>();
+  for (const row of (ledgerRowsAll ?? []) as { provider_id: string; week_ending: string; services: number; client_names: string[] }[]) {
+    if (!ledgerByProvider.has(row.provider_id)) ledgerByProvider.set(row.provider_id, new Map());
+    ledgerByProvider.get(row.provider_id)!.set(row.week_ending, { services: row.services, clientNames: row.client_names ?? [] });
+  }
+  const ledgerDirtyRows: { provider_id: string; week_ending: string; services: number; client_names: string[] }[] = [];
+
+  function setLedgerRow(providerId: string, services: number, clientNames: string[]) {
+    if (!ledgerByProvider.has(providerId)) ledgerByProvider.set(providerId, new Map());
+    ledgerByProvider.get(providerId)!.set(weekEnding, { services, clientNames });
+    ledgerDirtyRows.push({ provider_id: providerId, week_ending: weekEnding, services, client_names: clientNames });
+  }
+
+  function ledgerTrailingSum(providerId: string): { services: number; clientNames: Set<string> } {
+    let services = 0;
+    const clientNames = new Set<string>();
+    for (const [week, row] of ledgerByProvider.get(providerId) ?? []) {
+      if (week < windowStart || week > weekEnding) continue;
+      services += row.services;
+      for (const c of row.clientNames) clientNames.add(c);
+    }
+    return { services, clientNames };
   }
 
   /**
@@ -172,30 +224,11 @@ export async function applyNookalReport(
    * with PVA excl. pre-employment (Sept 2026).
    */
   async function recomputePvaForProvider(providerId: string) {
-    const { data: existing } = await supabase
-      .from("provider_weekly")
-      .select("metrics")
-      .eq("provider_id", providerId)
-      .eq("week_ending", weekEnding)
-      .maybeSingle();
-    const m = (existing?.metrics ?? {}) as Record<string, unknown>;
+    const m = metricsCache.get(providerId) ?? {};
     const { pva_services_all: servicesAll, pva_clients_all: clientsAll } = m;
     if (typeof servicesAll !== "number" || typeof clientsAll !== "number") return;
 
-    const windowStart = shiftWeek(weekEnding, -51);
-    const { data: ledgerRows } = await supabase
-      .from("pre_employment_activity_weekly")
-      .select("services, client_names")
-      .eq("provider_id", providerId)
-      .gte("week_ending", windowStart)
-      .lte("week_ending", weekEnding);
-    let servicesPre = 0;
-    const clientsPreSeen = new Set<string>();
-    for (const row of (ledgerRows ?? []) as { services: number; client_names: string[] }[]) {
-      servicesPre += row.services;
-      for (const c of row.client_names ?? []) clientsPreSeen.add(c);
-    }
-
+    const { services: servicesPre, clientNames: clientsPreSeen } = ledgerTrailingSum(providerId);
     const clients = clientsAll - clientsPreSeen.size;
     if (clients <= 0) return;
     await upsertProviderMetrics(providerId, { ucva: (servicesAll - servicesPre) / clients });
@@ -219,43 +252,28 @@ export async function applyNookalReport(
    * display/target/chart reads.
    */
   async function recomputeNcvaForProvider(providerId: string) {
-    const { data: existing } = await supabase
-      .from("provider_weekly")
-      .select("metrics")
-      .eq("provider_id", providerId)
-      .eq("week_ending", weekEnding)
-      .maybeSingle();
-    const m = (existing?.metrics ?? {}) as Record<string, unknown>;
+    const m = metricsCache.get(providerId) ?? {};
     const { ncva_services_all: servicesAll, ncva_new_patients_all: newPatientsAll } = m;
     if (typeof servicesAll !== "number" || typeof newPatientsAll !== "number") return;
 
-    const windowStart = shiftWeek(weekEnding, -51);
-    const { data: ledgerRows } = await supabase
-      .from("pre_employment_activity_weekly")
-      .select("services, client_names")
-      .eq("provider_id", providerId)
-      .gte("week_ending", windowStart)
-      .lte("week_ending", weekEnding);
-    let servicesPre = 0;
-    const clientsPreSeen = new Set<string>();
-    for (const row of (ledgerRows ?? []) as { services: number; client_names: string[] }[]) {
-      servicesPre += row.services;
-      for (const c of row.client_names ?? []) clientsPreSeen.add(c);
-    }
-
+    const { services: servicesPre, clientNames: clientsPreSeen } = ledgerTrailingSum(providerId);
     const newPatients = newPatientsAll - clientsPreSeen.size;
     if (newPatients <= 0) return;
     await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesPre) / newPatients });
   }
 
-  /** Re-derives the Clinic Analysis tier averages from whatever's currently in each provider's "ucva" field (now PVA) — run after any upload that might have changed it. */
+  /**
+   * Re-derives the Clinic Analysis tier averages from whatever's currently
+   * in each provider's "ucva" field (now PVA) — run after any upload that
+   * might have changed it. Reads metricsCache, not the DB — the batched
+   * flush at the end of this function means a DB select here would miss
+   * every write this same invocation just made.
+   */
   async function recomputeCvaTierAverages() {
-    const { data: rows } = await supabase.from("provider_weekly").select("provider_id, metrics").eq("week_ending", weekEnding);
     const byTier: Record<string, number[]> = { senior: [], massage: [], ep: [], new_grad: [], "2_5yr": [] };
-    for (const row of (rows ?? []) as { provider_id: string; metrics: Record<string, unknown> | null }[]) {
-      const p = providers.find((pp) => pp.id === row.provider_id);
-      const tier = p ? cvaTierBucket(p) : null;
-      const ucva = row.metrics?.ucva;
+    for (const p of providers) {
+      const tier = cvaTierBucket(p);
+      const ucva = metricsCache.get(p.id)?.ucva;
       if (tier && typeof ucva === "number") byTier[tier].push(ucva);
     }
     const seniorAvg = average(byTier.senior);
@@ -370,20 +388,13 @@ export async function applyNookalReport(
     for (const [name, data] of Object.entries(result.preEmploymentByProvider)) {
       const p = findProvider(name);
       if (!p) continue;
-      await supabase
-        .from("pre_employment_activity_weekly")
-        .upsert(
-          { provider_id: p.id, week_ending: weekEnding, services: data.services, client_names: data.clientNames },
-          { onConflict: "provider_id,week_ending" }
-        );
+      setLedgerRow(p.id, data.services, data.clientNames);
       await recomputePvaForProvider(p.id);
       await recomputeNcvaForProvider(p.id);
     }
     for (const p of providers) {
       if (matched.has(p.name) && result.preEmploymentByProvider[p.name]) continue;
-      await supabase
-        .from("pre_employment_activity_weekly")
-        .upsert({ provider_id: p.id, week_ending: weekEnding, services: 0, client_names: [] }, { onConflict: "provider_id,week_ending" });
+      setLedgerRow(p.id, 0, []);
       await recomputePvaForProvider(p.id);
       await recomputeNcvaForProvider(p.id);
     }
@@ -731,6 +742,18 @@ export async function applyNookalReport(
     clinicPatch.all_bookings_online = result.allBookingsOnline;
   }
 
+  // The one real write for everything upsertProviderMetrics/setLedgerRow
+  // staged above — see the comment on metricsCache near the top of this
+  // function.
+  if (dirtyProviderIds.size > 0) {
+    await supabase.from("provider_weekly").upsert(
+      Array.from(dirtyProviderIds).map((id) => ({ provider_id: id, week_ending: weekEnding, metrics: metricsCache.get(id) ?? {} })),
+      { onConflict: "provider_id,week_ending" }
+    );
+  }
+  if (ledgerDirtyRows.length > 0) {
+    await supabase.from("pre_employment_activity_weekly").upsert(ledgerDirtyRows, { onConflict: "provider_id,week_ending" });
+  }
   if (Object.keys(clinicPatch).length > 0) {
     await supabase.from("weekly_kpis").upsert({ week_ending: weekEnding, ...clinicPatch }, { onConflict: "week_ending" });
   }
