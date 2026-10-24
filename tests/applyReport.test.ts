@@ -20,7 +20,6 @@ function createFakeSupabase(providers: FakeProvider[]) {
   const weeklyKpis: Record<string, Record<string, unknown>> = {}; // key: week -> patch
   // key: `${provider_id}:${week_ending}` -> { services, client_names }
   const preEmploymentLedger: Record<string, { services: number; client_names: string[] }> = {};
-  const gymClassLedger: Record<string, { services: number; client_names: string[] }> = {};
   let cancellationEvents: Record<string, unknown>[] = [];
   let noFutureBookingEvents: Record<string, unknown>[] = [];
 
@@ -54,50 +53,6 @@ function createFakeSupabase(providers: FakeProvider[]) {
               },
               then(resolve: (v: { data: { services: number; client_names: string[] }[] }) => void) {
                 const rows = Object.entries(preEmploymentLedger)
-                  .filter(([key]) => {
-                    const [pid, week] = key.split(":");
-                    if (pid !== providerId) return false;
-                    if (gte && week < gte) return false;
-                    if (lte && week > lte) return false;
-                    return true;
-                  })
-                  .map(([, v]) => v);
-                resolve({ data: rows });
-              },
-            };
-            return builder;
-          },
-        };
-      }
-
-      if (table === "gym_class_activity_weekly") {
-        return {
-          async upsert(payload: { provider_id: string; week_ending: string; services: number; client_names: string[] }) {
-            gymClassLedger[`${payload.provider_id}:${payload.week_ending}`] = {
-              services: payload.services,
-              client_names: payload.client_names,
-            };
-            return { data: payload, error: null };
-          },
-          select() {
-            let providerId: string | undefined;
-            let gte: string | undefined;
-            let lte: string | undefined;
-            const builder = {
-              eq(col: string, val: string) {
-                if (col === "provider_id") providerId = val;
-                return builder;
-              },
-              gte(_col: string, val: string) {
-                gte = val;
-                return builder;
-              },
-              lte(_col: string, val: string) {
-                lte = val;
-                return builder;
-              },
-              then(resolve: (v: { data: { services: number; client_names: string[] }[] }) => void) {
-                const rows = Object.entries(gymClassLedger)
                   .filter(([key]) => {
                     const [pid, week] = key.split(":");
                     if (pid !== providerId) return false;
@@ -179,20 +134,10 @@ function createFakeSupabase(providers: FakeProvider[]) {
           select() {
             let providerId: string | undefined;
             let week: string | undefined;
-            let gte: string | undefined;
-            let lte: string | undefined;
             const builder = {
               eq(col: string, val: string) {
                 if (col === "provider_id") providerId = val;
                 if (col === "week_ending") week = val;
-                return builder;
-              },
-              gte(_col: string, val: string) {
-                gte = val;
-                return builder;
-              },
-              lte(_col: string, val: string) {
-                lte = val;
                 return builder;
               },
               async maybeSingle() {
@@ -200,19 +145,10 @@ function createFakeSupabase(providers: FakeProvider[]) {
                 return { data: providerWeekly[key] ? { metrics: providerWeekly[key] } : null };
               },
               // Supports recomputeCvaTierAverages' un-.maybeSingle()'d query
-              // (filtered by exact week_ending, across every provider) AND
-              // recomputeNcvaForProvider's (filtered by provider_id + a
-              // gte/lte week_ending range, across every matching week).
+              // (filtered by week_ending only, across every provider).
               then(resolve: (v: { data: { provider_id: string; metrics: Record<string, unknown> }[] }) => void) {
                 const rows = Object.entries(providerWeekly)
-                  .filter(([key]) => {
-                    const [pid, w] = key.split(":");
-                    if (week !== undefined && w !== week) return false;
-                    if (providerId !== undefined && pid !== providerId) return false;
-                    if (gte && w < gte) return false;
-                    if (lte && w > lte) return false;
-                    return true;
-                  })
+                  .filter(([key]) => key.endsWith(`:${week}`))
                   .map(([key, metrics]) => ({ provider_id: key.split(":")[0], metrics }));
                 resolve({ data: rows });
               },
@@ -603,7 +539,7 @@ Physio Mid Tier,3.84,0,11.78,4.62,90.13,416.40,61.83%,105.75,28.76%,0.06%
 Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
 `;
 
-  it("business_performance: sets tpr per provider, but NOT ucva/ncva/cva-by-tier (ucva/ncva are computed from this app's own rolling-12-month data now, see providers_and_practice_12mo below)", async () => {
+  it("business_performance: sets ncva/tpr per provider, but NOT ucva/cva-by-tier (those come from PVA now, see providers_and_practice_12mo/activity_pre_employment_12mo below)", async () => {
     const { client, providerWeekly, weeklyKpis } = createFakeSupabase([
       { id: "p1", name: "Senior One", role: "senior_physio" },
       { id: "p2", name: "Massage One", role: "massage" },
@@ -615,7 +551,7 @@ Physio New Grad,2.87,0,7.29,3.12,113.57,354.34,57.01%,87.10,34.15%,0%
     const result = await applyNookalReport(client as never, "business_performance", "2026-07-12", BUSINESS_PERFORMANCE_CSV);
 
     expect(providerWeekly["p1:2026-07-12"].ucva).toBeUndefined();
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeUndefined();
+    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo(27.19, 2);
     expect(providerWeekly["p1:2026-07-12"].tpr).toBeCloseTo(615.04, 2);
     expect(weeklyKpis["2026-07-12"]?.cva_senior).toBeUndefined();
     expect(result.matchedProviders.sort()).toEqual(["Massage One", "Physio Mid Tier", "Physio New Grad", "Physio Senior Tier", "Senior One"]);
@@ -674,66 +610,6 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(providerWeekly["p2:2026-07-12"].ucva).toBeCloseTo(5, 4);
     expect(weeklyKpis["2026-07-12"].cva_senior).toBeCloseTo(999 / 199, 4);
     expect(weeklyKpis["2026-07-12"].cva_massage).toBeCloseTo(5, 4);
-  });
-
-  it("providers_and_practice_12mo + activity + clients_and_cases: computes ncva (excl. gym classes) once all three halves are in, regardless of order — the real bug: an EP coach's weekly Gym Supervision classes counted as 'Completed Services' same as a real 1:1 consult, inflating NCVA", async () => {
-    const PVA_ALL_CSV = `Providers and Practice Report
-
-Parameters
-Dates,31/08/2025 - 30/08/2026
-
-Provider Stats
-Provider,Services,Completed Consults,Unique Patients,New Patients,New Cases,Patient Visit Average,Case Visit Average,Classes,Participants,Completed Classes
-EP One,1000,1000,200,10,10,5.00,5.00,0,0,0
-
-`;
-    // A normal weekly Activity Report — one real 1:1 service and one Gym
-    // Supervision class, exactly as it comes from Nookal unfiltered.
-    const WEEKLY_ACTIVITY_CSV = `Activity Report
-
-Parameters
-Dates,29/06/2026 - 05/07/2026
-
-Summary
-Type,Subtotal,Tax,Total
-Services,240.00,0,240.00
-Total,240.00,0,240.00
-
-Details
-Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
-01/07/2026,EP One,Adjust Physiotherapy,Real Client One,Private - EP,EP Subs,Service,1,01/07/2026,Private,,120,0,0,120,0,1
-02/07/2026,EP One,Adjust Physiotherapy,Class Client One,Gym Supervision,Gym Class,Service,2,02/07/2026,Private,,120,0,0,120,0,2
-
-`;
-    const CLIENTS_AND_CASES_CSV = `Clients and Cases Report
-
-Parameters
-Dates,29/06/2026 - 05/07/2026
-
-Details
-Client,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provider,Next,Bookings,Email,Receive Email,Mobile,Receive SMS,Followed-up,Client ID
-Alice,Private - EP,Private,Adjust Physiotherapy,Yes,Yes,No,29/06/2026,EP One,,2 Complete / 5 Total,alice@example.com,No,0400 000 001,Yes,No,1001
-Bob,Private - EP,Private,Adjust Physiotherapy,Yes,Yes,No,30/06/2026,EP One,,1 Complete / 3 Total,bob@example.com,No,0400 000 002,Yes,No,1002
-
-`;
-    const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "EP One", role: "ep" }]);
-
-    // The 12-month Services/Unique Patients half lands first — ncva can't
-    // compute yet (no new_patients known), only pva_services_all is set.
-    await applyNookalReport(client as never, "providers_and_practice_12mo", "2026-07-12", PVA_ALL_CSV);
-    expect(providerWeekly["p1:2026-07-12"].pva_services_all).toBe(1000);
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeUndefined();
-
-    // The normal weekly Activity Report adds a gym-class ledger row, but
-    // ncva still can't compute — no new_patients yet either.
-    await applyNookalReport(client as never, "activity", "2026-07-12", WEEKLY_ACTIVITY_CSV);
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeUndefined();
-
-    // Clients and Cases lands last (2 new clients this week) — now every
-    // half is in: (1000 services - 1 gym class) / 2 new clients = 499.5.
-    await applyNookalReport(client as never, "clients_and_cases", "2026-07-12", CLIENTS_AND_CASES_CSV);
-    expect(providerWeekly["p1:2026-07-12"].new_patients).toBe(2);
-    expect(providerWeekly["p1:2026-07-12"].ncva).toBeCloseTo((1000 - 1) / 2, 4);
   });
 
   it("cancellations: buckets by Modified User for admin reschedule rate / cancellations handled — RSX-tagged, DNA excluded", async () => {
