@@ -27,11 +27,17 @@ function createFakeSupabase(providers: FakeProvider[]) {
     from(table: string) {
       if (table === "pre_employment_activity_weekly") {
         return {
-          async upsert(payload: { provider_id: string; week_ending: string; services: number; client_names: string[] }) {
-            preEmploymentLedger[`${payload.provider_id}:${payload.week_ending}`] = {
-              services: payload.services,
-              client_names: payload.client_names,
-            };
+          async upsert(
+            payload:
+              | { provider_id: string; week_ending: string; services: number; client_names: string[] }
+              | { provider_id: string; week_ending: string; services: number; client_names: string[] }[]
+          ) {
+            for (const row of Array.isArray(payload) ? payload : [payload]) {
+              preEmploymentLedger[`${row.provider_id}:${row.week_ending}`] = {
+                services: row.services,
+                client_names: row.client_names,
+              };
+            }
             return { data: payload, error: null };
           },
           select() {
@@ -51,16 +57,19 @@ function createFakeSupabase(providers: FakeProvider[]) {
                 lte = val;
                 return builder;
               },
-              then(resolve: (v: { data: { services: number; client_names: string[] }[] }) => void) {
+              then(resolve: (v: { data: { provider_id: string; week_ending: string; services: number; client_names: string[] }[] }) => void) {
                 const rows = Object.entries(preEmploymentLedger)
                   .filter(([key]) => {
                     const [pid, week] = key.split(":");
-                    if (pid !== providerId) return false;
+                    if (providerId !== undefined && pid !== providerId) return false;
                     if (gte && week < gte) return false;
                     if (lte && week > lte) return false;
                     return true;
                   })
-                  .map(([, v]) => v);
+                  .map(([key, v]) => {
+                    const [pid, week] = key.split(":");
+                    return { provider_id: pid, week_ending: week, ...v };
+                  });
                 resolve({ data: rows });
               },
             };
@@ -155,8 +164,14 @@ function createFakeSupabase(providers: FakeProvider[]) {
             };
             return builder;
           },
-          async upsert(payload: { provider_id: string; week_ending: string; metrics: Record<string, unknown> }) {
-            providerWeekly[`${payload.provider_id}:${payload.week_ending}`] = payload.metrics;
+          async upsert(
+            payload:
+              | { provider_id: string; week_ending: string; metrics: Record<string, unknown> }
+              | { provider_id: string; week_ending: string; metrics: Record<string, unknown> }[]
+          ) {
+            for (const row of Array.isArray(payload) ? payload : [payload]) {
+              providerWeekly[`${row.provider_id}:${row.week_ending}`] = row.metrics;
+            }
             return { data: payload, error: null };
           },
         };
