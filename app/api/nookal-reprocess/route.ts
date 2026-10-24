@@ -27,9 +27,9 @@ const REPROCESSABLE_TYPES: NookalReportType[] = [
   "activity",
   "last_attendances",
   "online_bookings",
-  // Added so an NCVA formula fix (e.g. the pre-employment subtraction) can
-  // be re-applied to an already-uploaded 12-month pull without needing the
-  // file re-downloaded from Nookal and re-uploaded by hand.
+  // Added so a PVA (excl. pre-employment) formula fix can be re-applied to
+  // an already-uploaded 12-month pull without needing the file
+  // re-downloaded from Nookal and re-uploaded by hand.
   "providers_and_practice_12mo",
 ];
 

@@ -605,7 +605,14 @@ export async function applyNookalReport(
     // "Client Visit Average", which is a different, mismatched metric.
   } else if (reportType === "business_performance") {
     // Source of NCVA/TPR — confirmed against a real export and the
-    // director's own "where the data comes from" sheet. No longer the
+    // director's own "where the data comes from" sheet. Taken as Nookal's
+    // own number, no further adjustment on our end (tried deriving NCVA
+    // ourselves from providers_and_practice_12mo instead, excluding gym
+    // classes/pre-employment — reverted 24/10/26, the director wants
+    // Nookal's own figure, not a derived one). NCVA is only comparable
+    // week to week if this report is always generated with the same
+    // Payers filter — the director's own convention is "All Payers"
+    // every time. No longer the
     // source of UCVA/the Clinic Analysis CVA-by-tier averages: as of Sept
     // 2026 the director replaced UCVA with a true rolling-12-month Patient
     // Visit Average excluding pre-employment/corporate-screening patients
