@@ -830,7 +830,6 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
         services: null,
         completedConsults: null,
         uniqueClients: null,
-        newPatients: null,
         cva: null,
         caseVA: null,
         forwardBookingAverage: null,
@@ -868,7 +867,6 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
       // as "Client"->"Patient" elsewhere) — accept either, confirmed against
       // a real 31/08/2026 export using only the new names.
       entry.uniqueClients = parseNumber(r["Unique Patients"] ?? r["Unique Clients"]);
-      entry.newPatients = parseNumber(r["New Patients"] ?? r["New Clients"]);
       entry.cva = parseNumber(r["Patient Visit Average"] ?? r["Client Visit Average"]);
       entry.caseVA = parseNumber(r["Case Visit Average"]);
     }

@@ -146,8 +146,6 @@ export interface ProvidersAndPracticeReportResult {
       services: number | null;
       completedConsults: number | null;
       uniqueClients: number | null;
-      /** Provider Stats' "New Patients" column — when this report is the 12-month pull, this is a genuine Nookal-computed rolling-12-month new-patient count, used as NCVA's denominator (see recomputeNcvaForProvider in applyReport.ts). Deliberately NOT summed from this app's own weekly provider_weekly.new_patients — that table only has real history back to July 2026's rollout, nowhere near a true 12 months. */
-      newPatients: number | null;
       cva: number | null;
       caseVA: number | null;
       forwardBookingAverage: number | null;

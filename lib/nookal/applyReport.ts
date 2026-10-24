@@ -207,23 +207,17 @@ export async function applyNookalReport(
    * (pva_services_all), minus a trailing-52-week sum of
    * gym_class_activity_weekly (a ledger fed by the director's REGULAR
    * weekly Activity Report upload, same mechanism as
-   * pre_employment_activity_weekly), divided by that SAME 12-month pull's
-   * own "New Patients" column (ncva_new_patients_all) — a genuine
-   * Nookal-computed rolling-12-month figure, not summed from this app's
-   * own weekly provider_weekly.new_patients. That was tried first and is
-   * wrong: provider_weekly only has real history back to July 2026's
-   * rollout (~16 weeks as of Oct 2026), nowhere near a true 12 months, so
-   * summing it badly undercounts the denominator and makes NCVA read
-   * HIGHER than before for most providers — confirmed against real data
-   * before this shipped (implied old denominators of 24-127 new patients
-   * vs. a ~16-week sum of 0-55). Replaces Nookal's own undocumented
-   * Business Performance Report NCVA, which counts a weekly gym class
-   * attendance the same as a real 1:1 consult and silently inflates NCVA
-   * for whoever runs classes (e.g. an EP coach) — same shape of problem
-   * PVA already solved for UCVA (Oct 2026). Whichever completes last (a
-   * fresh 12-month Services/New Patients pull, or this week's Activity
-   * Report landing in the gym-class ledger) triggers the recompute, same
-   * "whichever half lands second" pattern as PVA.
+   * pre_employment_activity_weekly), divided by the trailing 52 weeks of
+   * this provider's own weekly new_patients figure (already excludes
+   * pre-employment — see the "clients_and_cases" branch below). Replaces
+   * Nookal's own undocumented Business Performance Report NCVA, which
+   * counts a weekly gym class attendance the same as a real 1:1 consult
+   * and silently inflates NCVA for whoever runs classes (e.g. an EP
+   * coach) — same shape of problem PVA already solved for UCVA (Oct 2026).
+   * Whichever completes last (a fresh 12-month Services pull, this week's
+   * Activity Report landing in the gym-class ledger, or this week's
+   * Clients and Cases Report updating new_patients) triggers the
+   * recompute, same "whichever half lands second" pattern as PVA.
    */
   async function recomputeNcvaForProvider(providerId: string) {
     const { data: existing } = await supabase
@@ -233,8 +227,8 @@ export async function applyNookalReport(
       .eq("week_ending", weekEnding)
       .maybeSingle();
     const m = (existing?.metrics ?? {}) as Record<string, unknown>;
-    const { pva_services_all: servicesAll, ncva_new_patients_all: newPatientsAll } = m;
-    if (typeof servicesAll !== "number" || typeof newPatientsAll !== "number" || newPatientsAll <= 0) return;
+    const servicesAll = m.pva_services_all;
+    if (typeof servicesAll !== "number") return;
 
     const windowStart = shiftWeek(weekEnding, -51);
     const { data: gymLedgerRows } = await supabase
@@ -245,7 +239,18 @@ export async function applyNookalReport(
       .lte("week_ending", weekEnding);
     const servicesGym = ((gymLedgerRows ?? []) as { services: number }[]).reduce((sum, row) => sum + row.services, 0);
 
-    await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesGym) / newPatientsAll });
+    const { data: weeklyRows } = await supabase
+      .from("provider_weekly")
+      .select("metrics")
+      .eq("provider_id", providerId)
+      .gte("week_ending", windowStart)
+      .lte("week_ending", weekEnding);
+    const newPatients = ((weeklyRows ?? []) as { metrics: Record<string, unknown> | null }[]).reduce((sum, row) => {
+      const v = row.metrics?.new_patients;
+      return sum + (typeof v === "number" ? v : 0);
+    }, 0);
+    if (newPatients <= 0) return;
+    await upsertProviderMetrics(providerId, { ncva: (servicesAll - servicesGym) / newPatients });
   }
 
   /** Re-derives the Clinic Analysis tier averages from whatever's currently in each provider's "ucva" field (now PVA) — run after any upload that might have changed it. */
@@ -638,6 +643,7 @@ export async function applyNookalReport(
         patch.new_pt_booking_rate = null;
       }
       await upsertProviderMetrics(p.id, patch);
+      await recomputeNcvaForProvider(p.id);
     }
     clinicPatch.total_nc = totalNewClients;
   } else if (reportType === "providers_and_practice") {
@@ -713,12 +719,7 @@ export async function applyNookalReport(
       const p = findProvider(name);
       if (!p) continue;
       rowsFound += 1;
-      const patch: Record<string, unknown> = { pva_services_all: services, pva_clients_all: data.uniqueClients };
-      // Only the 12-month pull's "New Patients" column is a genuine rolling-
-      // 12-month figure — see recomputeNcvaForProvider's own doc comment for
-      // why this can't be derived from provider_weekly instead.
-      if (data.newPatients !== null) patch.ncva_new_patients_all = data.newPatients;
-      await upsertProviderMetrics(p.id, patch);
+      await upsertProviderMetrics(p.id, { pva_services_all: services, pva_clients_all: data.uniqueClients });
       await recomputePvaForProvider(p.id);
       await recomputeNcvaForProvider(p.id);
     }
