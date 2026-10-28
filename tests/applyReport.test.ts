@@ -319,6 +319,46 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(providerWeekly["p2:2026-07-05"].headache_sub).toBe(2);
   });
 
+  it("activity: Women's Health auto-fills the same clinic-wide way as Headache (targets.specialty_clinic_wide_key: 'womens_health')", async () => {
+    const CLINIC_WIDE_WOMENS_HEALTH_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,200.00,0,200.00
+Total,200.00,0,200.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Imogen O'Neill,Adjust Physiotherapy,Test Client One,Private - WH Physio,Private Initial WH 60 min,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Private - Women's Health,Private Subsequent,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+
+`;
+    const { client, providerWeekly } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      {
+        id: "p2",
+        name: "Imogen O'Neill",
+        role: "physio",
+        targets: { specialty_clinic_wide_key: "womens_health" },
+        specialty_metrics: [
+          { key: "womens_health_init", label: "Women's Health Init" },
+          { key: "womens_health_sub", label: "Women's Health Sub" },
+          { key: "womens_health_total", label: "Women's Health Total" },
+        ],
+      },
+    ]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", CLINIC_WIDE_WOMENS_HEALTH_CSV);
+
+    // Imogen gets BOTH rows (her own Initial, plus Alex Example's Subsequent)
+    // since she's the clinic-wide owner — same mechanic as Marcio/headaches.
+    expect(providerWeekly["p2:2026-07-05"].womens_health_init).toBe(1);
+    expect(providerWeekly["p2:2026-07-05"].womens_health_sub).toBe(1);
+  });
+
   it("matching is case-insensitive and whitespace-tolerant", async () => {
     const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "  alex example  ", role: "physio" }]);
     await applyNookalReport(client as never, "activity", "2026-07-05", ACTIVITY_CSV);
