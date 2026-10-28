@@ -95,6 +95,7 @@ async function fetchExistingEventState(
  */
 const SPECIALTY_METRIC_PREFIX_TO_CATEGORY: Record<string, string> = {
   headache: "headaches",
+  womens_health: "womens_health",
 };
 
 interface ProviderRow {
