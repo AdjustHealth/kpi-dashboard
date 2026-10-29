@@ -76,6 +76,7 @@ export function ReviewDetailView({
     long_term: pad3(review.new_goals?.long_term, { text: "", how: "" }),
   });
   const [completing, setCompleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [completedAt, setCompletedAt] = useState(review.completed_at);
   const [kpaRollups, setKpaRollups] = useState(review.kpa_rollups);
   const [bonusSummary, setBonusSummary] = useState<Record<string, unknown>>(review.bonus_summary ?? {});
@@ -103,6 +104,23 @@ export function ReviewDetailView({
       setCompletedAt(new Date().toISOString());
       router.refresh();
     }
+  }
+
+  // Re-snapshots this draft's KPI/KPA rollups, bonus pacing and goals
+  // reflection to right now, leaving reviewer/notes/proud-of/new goals
+  // untouched — see the `refresh` branch of PATCH /api/performance-reviews.
+  // A full reload (not router.refresh()) because every number on this page
+  // is client-side state seeded once from the initial props; only a fresh
+  // server render + remount actually picks up the new snapshot.
+  async function refreshReview() {
+    setRefreshing(true);
+    const res = await fetch("/api/performance-reviews", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: review.id, refresh: true }),
+    });
+    if (res.ok) window.location.reload();
+    else setRefreshing(false);
   }
 
   const metricFields = metricFieldsForRole(provider.role, provider.targets).filter((f) => f.key in review.kpi_rollups);
@@ -183,6 +201,17 @@ export function ReviewDetailView({
         </div>
         <div className="flex items-center gap-3">
           <SaveIndicator status={status} />
+          {!completedAt && (
+            <button
+              type="button"
+              onClick={refreshReview}
+              disabled={refreshing}
+              title="Re-snapshot the KPI/KPA numbers and goals reflection to today, keeping anything already typed in"
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent disabled:opacity-50"
+            >
+              {refreshing ? "Refreshing…" : "Refresh Numbers"}
+            </button>
+          )}
           <button
             type="button"
             onClick={completeReview}

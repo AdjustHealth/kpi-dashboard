@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { PrepReviewButton } from "@/components/reviews/PrepReviewButton";
+import { RefreshDraftButton } from "@/components/reviews/RefreshDraftButton";
 import { getReviewsOverview } from "@/lib/reviewsData";
 import { ROLE_LABELS } from "@/lib/providerSchema";
 import { formatWeekLabel } from "@/lib/week";
@@ -75,12 +76,15 @@ export default async function ReviewsPage() {
                     </td>
                     <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       {row.draftReviewId ? (
-                        <Link
-                          href={`/reviews/${row.draftReviewId}`}
-                          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent"
-                        >
-                          Continue
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/reviews/${row.draftReviewId}`}
+                            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent"
+                          >
+                            Continue
+                          </Link>
+                          <RefreshDraftButton reviewId={row.draftReviewId} />
+                        </div>
                       ) : (
                         <div className="flex items-center justify-end gap-2">
                           {row.latestCompletedReviewId && (
