@@ -35,23 +35,46 @@ describe("computeKpiRollups", () => {
 describe("computeKpaRollups", () => {
   const fields: ProviderField[] = [{ key: "courage", label: "Courage", type: "rating" }];
 
-  it("picks the modal rating in the window", () => {
+  it("weighted-averages the ratings in the window, not just the most frequent one", () => {
     const rows: WeeklyRow[] = [
       { week_ending: "2026-07-04", metrics: {}, kpas: { courage: "demonstrated" } },
       { week_ending: "2026-07-11", metrics: {}, kpas: { courage: "above_and_beyond" } },
       { week_ending: "2026-07-18", metrics: {}, kpas: { courage: "above_and_beyond" } },
     ];
     const result = computeKpaRollups(rows, fields, "2026-07-25");
+    // (1 + 2 + 2) / 3 = 1.667 -> rounds to above_and_beyond
     expect(result.courage["6mth"]).toBe("above_and_beyond");
   });
 
-  it("breaks a tie in favour of the higher rating", () => {
+  it("a real mix of ratings lands in the middle instead of wherever has a plurality (4 demonstrated + 5 above_and_beyond + 3 not_met -> demonstrated, not above_and_beyond despite it having the most individual weeks)", () => {
+    const demonstrated = Array.from({ length: 4 }, (_, i) => ({
+      week_ending: `2026-01-${String(i + 1).padStart(2, "0")}`,
+      metrics: {},
+      kpas: { courage: "demonstrated" as const },
+    }));
+    const aboveAndBeyond = Array.from({ length: 5 }, (_, i) => ({
+      week_ending: `2026-02-${String(i + 1).padStart(2, "0")}`,
+      metrics: {},
+      kpas: { courage: "above_and_beyond" as const },
+    }));
+    const notMet = Array.from({ length: 3 }, (_, i) => ({
+      week_ending: `2026-03-${String(i + 1).padStart(2, "0")}`,
+      metrics: {},
+      kpas: { courage: "not_met" as const },
+    }));
+    const result = computeKpaRollups([...demonstrated, ...aboveAndBeyond, ...notMet], fields, "2026-07-25");
+    // (4*1 + 5*2 + 3*0) / 12 = 1.167 -> rounds to demonstrated
+    expect(result.courage["6mth"]).toBe("demonstrated");
+  });
+
+  it("an exact tie between two tiers resolves to the lower one, not the higher — a mix shouldn't read as better than it is", () => {
     const rows: WeeklyRow[] = [
       { week_ending: "2026-07-04", metrics: {}, kpas: { courage: "not_met" } },
       { week_ending: "2026-07-11", metrics: {}, kpas: { courage: "above_and_beyond" } },
     ];
     const result = computeKpaRollups(rows, fields, "2026-07-25");
-    expect(result.courage["6mth"]).toBe("above_and_beyond");
+    // (0 + 2) / 2 = 1.0 exactly -> rounds DOWN to demonstrated
+    expect(result.courage["6mth"]).toBe("demonstrated");
   });
 });
 
