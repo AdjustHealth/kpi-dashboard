@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { Input, Textarea } from "@/components/ui/Field";
-import { Sparkline } from "@/components/charts/Sparkline";
+import { TrendDelta } from "@/components/charts/TrendDelta";
 import { KpiProgressBar } from "@/components/charts/KpiProgressBar";
 import { STATUS } from "@/components/charts/palette";
 import { targetColor } from "@/lib/targetColor";
@@ -324,13 +324,13 @@ export function ReviewDetailView({
               </tr>
             </thead>
             <tbody>
-              {metricFields.map((field, i) => {
+              {metricFields.map((field) => {
                 const target = targets[field.key];
                 return (
                   <tr key={field.key} className="border-b border-border/60 last:border-0">
                     <td className="py-2 pr-3 text-foreground">{field.label}</td>
                     <td className="py-2 px-3">
-                      <Sparkline values={sparklineValues(field.key)} colorIndex={i} />
+                      <TrendDelta values={sparklineValues(field.key)} betterWhen={field.betterWhen} type={field.type} decimals={field.decimals} />
                     </td>
                     {windows.map((w) => {
                       const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
@@ -386,13 +386,17 @@ export function ReviewDetailView({
                 </tr>
               </thead>
               <tbody>
-                {specialtyFields.map((field, i) => {
+                {specialtyFields.map((field) => {
                   const target = provider.targets[field.key];
                   return (
                     <tr key={field.key} className="border-b border-accent-secondary/15 last:border-0">
                       <td className="py-2 pr-3 text-foreground">{field.label}</td>
                       <td className="py-2 px-3">
-                        <Sparkline values={sparklineValues(field.key)} colorIndex={i + 3} />
+                        <TrendDelta
+                          values={sparklineValues(field.key)}
+                          betterWhen="higher"
+                          type={field.type === "boolean" ? "number" : field.type}
+                        />
                       </td>
                       {windows.map((w) => {
                         const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
