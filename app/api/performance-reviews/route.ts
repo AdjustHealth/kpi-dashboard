@@ -45,19 +45,23 @@ function computeBonusSummary(
   };
 }
 
-/** Prep Review — snapshots rolling averages and current goals as of right now, into a new draft review row. */
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { provider_id, reviewer } = body as { provider_id?: string; reviewer?: string };
-  if (!provider_id) return NextResponse.json({ error: "provider_id is required" }, { status: 400 });
-
-  const supabase = await createClient();
+/**
+ * Snapshots rolling averages, current goals, and bonus pacing as of right
+ * now for a provider — the computation shared by a brand new Prep Review
+ * (POST below) and refreshing an existing draft's numbers (PATCH's
+ * `refresh` below) without touching anything the director has already
+ * typed into that draft (reviewer/notes/proud-of/new goals).
+ */
+async function buildReviewSnapshot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  providerId: string
+): Promise<{ error: string } | { kpiRollups: ReturnType<typeof computeKpiRollups>; kpaRollups: ReturnType<typeof computeKpaRollups>; bonusSummary: Record<string, unknown>; goalsReflection: { text: string; achieved: boolean; note: string }[]; asOf: string }> {
   const [{ data: provider, error: providerError }, { data: weeklyRows, error: weeklyError }] = await Promise.all([
-    supabase.from("providers").select("role, goals, targets, specialty_metrics").eq("id", provider_id).single(),
-    supabase.from("provider_weekly").select("week_ending, metrics, kpas").eq("provider_id", provider_id),
+    supabase.from("providers").select("role, goals, targets, specialty_metrics").eq("id", providerId).single(),
+    supabase.from("provider_weekly").select("week_ending, metrics, kpas").eq("provider_id", providerId),
   ]);
-  if (providerError) return NextResponse.json({ error: providerError.message }, { status: 500 });
-  if (weeklyError) return NextResponse.json({ error: weeklyError.message }, { status: 500 });
+  if (providerError) return { error: providerError.message };
+  if (weeklyError) return { error: weeklyError.message };
 
   const role = provider.role as ProviderRole;
   const rows = (weeklyRows ?? []) as WeeklyRow[];
@@ -87,6 +91,20 @@ export async function POST(request: NextRequest) {
   const goalsReflection = goals
     .filter((g) => g.text.trim().length > 0)
     .map((g) => ({ text: g.text, achieved: (g.status ?? (g.achieved ? "complete" : "not_started")) === "complete", note: "" }));
+
+  return { kpiRollups, kpaRollups, bonusSummary, goalsReflection, asOf };
+}
+
+/** Prep Review — snapshots rolling averages and current goals as of right now, into a new draft review row. */
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const { provider_id, reviewer } = body as { provider_id?: string; reviewer?: string };
+  if (!provider_id) return NextResponse.json({ error: "provider_id is required" }, { status: 400 });
+
+  const supabase = await createClient();
+  const snapshot = await buildReviewSnapshot(supabase, provider_id);
+  if ("error" in snapshot) return NextResponse.json({ error: snapshot.error }, { status: 500 });
+  const { kpiRollups, kpaRollups, bonusSummary, goalsReflection, asOf } = snapshot;
 
   const { data, error } = await supabase
     .from("performance_reviews")
@@ -132,16 +150,41 @@ function newGoalsToPersistentGoals(newGoals: NewGoals): Goal[] {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const { id, patch, complete } = body as {
+  const { id, patch, complete, refresh } = body as {
     id?: string;
     patch?: Record<string, unknown>;
     complete?: boolean;
+    refresh?: boolean;
   };
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
   const supabase = await createClient();
   const update: Record<string, unknown> = { ...(patch ?? {}) };
   if (complete) update.completed_at = new Date().toISOString();
+
+  // Re-prep: a stale draft (started months ago, never finished) gets its
+  // KPI/KPA rollups, bonus pacing and goals reflection re-snapshotted to
+  // right now, same computation as a brand new Prep Review — without
+  // touching anything already typed into this draft (reviewer, notes,
+  // proud-of, new goals) or its completed_at state. Lets the director
+  // bring an old draft up to date in one click instead of having to
+  // finish or abandon it first to start a real one.
+  if (refresh) {
+    const { data: existing, error: existingError } = await supabase
+      .from("performance_reviews")
+      .select("provider_id")
+      .eq("id", id)
+      .single();
+    if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+
+    const snapshot = await buildReviewSnapshot(supabase, existing.provider_id);
+    if ("error" in snapshot) return NextResponse.json({ error: snapshot.error }, { status: 500 });
+    update.review_date = snapshot.asOf;
+    update.kpi_rollups = snapshot.kpiRollups;
+    update.kpa_rollups = snapshot.kpaRollups;
+    update.bonus_summary = snapshot.bonusSummary;
+    update.goals_reflection = snapshot.goalsReflection;
+  }
 
   const { data, error } = await supabase.from("performance_reviews").update(update).eq("id", id).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
