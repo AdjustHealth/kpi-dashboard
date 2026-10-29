@@ -30,22 +30,27 @@ function average(values: number[]): number | null {
 /** A KPA rating that actually carries a performance signal — excludes "not_applicable", which behaves like a blank/unrated week for rollup purposes (see computeKpaRollups). */
 type ScoredRating = Exclude<KpaRating, "not_applicable">;
 
-/** Highest-rating-wins tiebreak order for the mode calculation below. */
-const RATING_RANK: Record<ScoredRating, number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
+const RATING_VALUE: Record<ScoredRating, number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
+const VALUE_TO_RATING: ScoredRating[] = ["not_met", "demonstrated", "above_and_beyond"];
 
-function modeRating(ratings: ScoredRating[]): ScoredRating | null {
+/**
+ * Weighted-average rating over the window, not the modal (most frequent)
+ * one — a count-based mode let a provider's worst weeks get drowned out by
+ * sheer volume of middling ones (5 "demonstrated" + 4 "above and beyond" +
+ * 3 "not met" used to roll up to "demonstrated" purely because it had the
+ * most votes, same as if there'd been zero "not met" weeks at all). Scoring
+ * the ratings 0/1/2, averaging, and rounding HALF DOWN instead means every
+ * week pulls the average in its direction and a genuine mix of good and bad
+ * weeks lands in the middle rather than wherever had a plurality — and a
+ * rating exactly between two tiers (e.g. one "not met" + one "above and
+ * beyond") resolves to the lower of the two, not the higher, on the
+ * director's call that a mixed result shouldn't read as better than it is.
+ */
+function averageRating(ratings: ScoredRating[]): ScoredRating | null {
   if (ratings.length === 0) return null;
-  const counts = new Map<ScoredRating, number>();
-  for (const r of ratings) counts.set(r, (counts.get(r) ?? 0) + 1);
-  let best: ScoredRating | null = null;
-  let bestCount = -1;
-  for (const [rating, count] of counts) {
-    if (count > bestCount || (count === bestCount && best !== null && RATING_RANK[rating] > RATING_RANK[best])) {
-      best = rating;
-      bestCount = count;
-    }
-  }
-  return best;
+  const mean = ratings.reduce((sum, r) => sum + RATING_VALUE[r], 0) / ratings.length;
+  const idx = Math.min(Math.max(Math.ceil(mean - 0.5), 0), VALUE_TO_RATING.length - 1);
+  return VALUE_TO_RATING[idx];
 }
 
 export interface WeeklyRow {
@@ -80,9 +85,9 @@ export function computeKpiRollups(rows: WeeklyRow[], fields: ProviderField[], as
 }
 
 /**
- * Modal (most common) rating for every KPA field over each rolling window —
- * ratings are categorical, so "average" means the representative rating for
- * that period, not a number. Ties favour the higher rating.
+ * Weighted-average rating for every KPA field over each rolling window —
+ * see averageRating above for how a mixed set of weekly ratings resolves to
+ * one representative rating.
  */
 export function computeKpaRollups(rows: WeeklyRow[], fields: ProviderField[], asOf: string): KpaRollups {
   const result: KpaRollups = {};
@@ -97,7 +102,7 @@ export function computeKpaRollups(rows: WeeklyRow[], fields: ProviderField[], as
           (v): v is ScoredRating =>
             typeof v === "string" && v !== "not_applicable" && (KPA_RATINGS as readonly string[]).includes(v)
         );
-      result[field.key][window.key] = modeRating(ratings);
+      result[field.key][window.key] = averageRating(ratings);
     }
   }
   return result;

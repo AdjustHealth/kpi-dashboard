@@ -243,7 +243,8 @@ export function ReviewDetailView({
       {kpaGroups.map((group) => (
         <Card key={group.title} title={`${group.title} — Rolling Averages`}>
           <p className="mb-3 text-xs text-muted">
-            Auto-computed from the most common weekly rating in each window — click a dot to override it.
+            Auto-computed as a weighted average of the weekly ratings in each window (ties round down) — click a dot
+            to override it.
           </p>
           <div className="flex flex-col divide-y divide-border/60">
             {group.fields.map((field) => (
@@ -522,8 +523,9 @@ export function ReviewDetailView({
 
       <Card title="New Performance Review Goals">
         <p className="mb-4 text-xs text-muted">
-          These carry over to {provider.name.split(" ")[0]}&apos;s weekly Goals card (all starting "Not Started") when
-          the review is completed — every goal set here also stays on this review record regardless.
+          These carry over to {provider.name.split(" ")[0]}&apos;s weekly Goals card (all starting &quot;Not
+          Started&quot;) when the review is completed — every goal set here also stays on this review record
+          regardless.
         </p>
         {(["short_term", "long_term"] as const).map((term) => (
           <div key={term} className={term === "long_term" ? "mt-5 border-t border-border pt-5" : ""}>

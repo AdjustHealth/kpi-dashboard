@@ -82,7 +82,17 @@ export default async function ReviewsPage() {
                           Continue
                         </Link>
                       ) : (
-                        <PrepReviewButton providerId={row.provider.id} />
+                        <div className="flex items-center justify-end gap-2">
+                          {row.latestCompletedReviewId && (
+                            <Link
+                              href={`/reviews/${row.latestCompletedReviewId}`}
+                              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent"
+                            >
+                              Edit Last
+                            </Link>
+                          )}
+                          <PrepReviewButton providerId={row.provider.id} label={row.latestCompletedReviewId ? "New Review" : "Prep Review"} />
+                        </div>
                       )}
                     </td>
                   </tr>
