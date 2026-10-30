@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/nav/PageHeader";
-import { getPerformanceReview, getProviderReviewHistory, getProviderWeeklySeries } from "@/lib/reviewsData";
+import { getPerformanceReview, getProviderReviewHistory, getProviderWeeklySeries, getPreviousReview } from "@/lib/reviewsData";
 import { getRoleTargets } from "@/lib/clinicData";
 import { ReviewDetailView } from "@/components/reviews/ReviewDetailView";
 import { ROLE_LABELS } from "@/lib/providerSchema";
@@ -14,10 +14,11 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
   const { review, provider } = await getPerformanceReview(id);
   if (!review || !provider) notFound();
 
-  const [history, roleTargets, weeklySeries] = await Promise.all([
+  const [history, roleTargets, weeklySeries, previousReview] = await Promise.all([
     getProviderReviewHistory(provider.id, id),
     getRoleTargets(),
     getProviderWeeklySeries(provider.id),
+    getPreviousReview(provider.id, id),
   ]);
   const targets = getEffectiveTargets(provider, roleTargets);
 
@@ -36,6 +37,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
         cadenceMonths={reviewCadenceMonths(provider)}
         targets={targets}
         weeklySeries={weeklySeries}
+        previousReview={previousReview}
       />
     </>
   );

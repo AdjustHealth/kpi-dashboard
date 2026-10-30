@@ -92,6 +92,35 @@ export async function getProviderWeeklySeries(providerId: string): Promise<{ wee
   return (data ?? []) as { week_ending: string; metrics: Record<string, unknown> }[];
 }
 
+/**
+ * The immediately preceding COMPLETED review's rollups for the same
+ * provider — null if this is their first review. Used to answer "how have
+ * they gone since last time": each KPI/KPA on the current review is
+ * compared against this one's 6mth-window value, the narrowest window and
+ * the only one guaranteed to exist on an imported/older review (see
+ * 0060/0061 migrations — historical imports only ever populated 6mth).
+ */
+export interface PreviousReviewRollups {
+  reviewDate: string;
+  kpiRollups: KpiRollups;
+  kpaRollups: KpaRollups;
+}
+
+export async function getPreviousReview(providerId: string, excludeId: string): Promise<PreviousReviewRollups | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("performance_reviews")
+    .select("review_date, kpi_rollups, kpa_rollups")
+    .eq("provider_id", providerId)
+    .neq("id", excludeId)
+    .not("completed_at", "is", null)
+    .order("review_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return { reviewDate: data.review_date, kpiRollups: data.kpi_rollups, kpaRollups: data.kpa_rollups };
+}
+
 export async function getPerformanceReview(id: string): Promise<{
   review: PerformanceReviewRecord | null;
   provider: Provider | null;
