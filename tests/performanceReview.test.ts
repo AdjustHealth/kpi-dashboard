@@ -79,9 +79,15 @@ describe("computeKpaRollups", () => {
 });
 
 describe("reviewCadenceMonths / nextReviewDue", () => {
-  it("gives new grads a 6-month cadence and everyone else 12", () => {
+  it("gives new grads and seniors a 6-month cadence, everyone else 12", () => {
     expect(reviewCadenceMonths({ role: "physio", targets: { experience_tier: "new_grad" } })).toBe(6);
-    expect(reviewCadenceMonths({ role: "physio", targets: { experience_tier: "senior" } })).toBe(12);
+    // A role:"physio" with experience_tier:"senior" is an experienced physio
+    // not on the Senior Physio tab (e.g. Michael, Nick) -- same "senior"
+    // definition cvaTierBucket uses, still 6-monthly.
+    expect(reviewCadenceMonths({ role: "physio", targets: { experience_tier: "senior" } })).toBe(6);
+    expect(reviewCadenceMonths({ role: "senior_physio", targets: {} })).toBe(6);
+    expect(reviewCadenceMonths({ role: "physio", targets: { experience_tier: "2_5yr" } })).toBe(12);
+    expect(reviewCadenceMonths({ role: "massage", targets: {} })).toBe(12);
     expect(reviewCadenceMonths({ role: "admin", targets: {} })).toBe(12);
   });
 

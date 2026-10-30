@@ -1,4 +1,5 @@
 import { ProviderField, ProviderRole, KpaRating, KPA_RATINGS } from "@/lib/providerSchema";
+import { cvaTierBucket } from "@/lib/cvaTier";
 
 export interface RollingWindow {
   key: string;
@@ -108,9 +109,16 @@ export function computeKpaRollups(rows: WeeklyRow[], fields: ProviderField[], as
   return result;
 }
 
-/** New grads are reviewed every 6 months; everyone else annually. */
+/**
+ * New grads and seniors (role:"senior_physio", or a role:"physio" with
+ * targets.experience_tier:"senior" — e.g. an experienced physio who isn't
+ * on the Senior Physio tab, same "senior" definition cvaTierBucket uses)
+ * are reviewed every 6 months; everyone else (massage/EP/2-5yr physios)
+ * annually. Director's call 30/10/26 — "may change later."
+ */
 export function reviewCadenceMonths(provider: { role: ProviderRole; targets: Record<string, unknown> | null }): number {
-  return provider.targets?.experience_tier === "new_grad" ? 6 : 12;
+  const tier = cvaTierBucket(provider);
+  return tier === "new_grad" || tier === "senior" ? 6 : 12;
 }
 
 /** null lastReviewDate means "never reviewed" — due now, not a future date. */
