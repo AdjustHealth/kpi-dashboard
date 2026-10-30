@@ -17,11 +17,14 @@ export function TrendDelta({
   betterWhen,
   type,
   decimals,
+  showPrevious,
 }: {
   values: (number | null)[];
   betterWhen?: ProviderField["betterWhen"];
   type: ClinicFieldType | ProviderFieldType;
   decimals?: number;
+  /** Prefix the old value itself (not just the tooltip) — for a review-to-review comparison, where "what was it last time" matters as much as the % change. */
+  showPrevious?: boolean;
 }) {
   const known = values.filter((v): v is number => v !== null);
   if (known.length < 2) return <span className="text-xs text-muted">—</span>;
@@ -42,6 +45,7 @@ export function TrendDelta({
       style={{ color }}
       title={`${formatValue(first, type, decimals)} → ${formatValue(last, type, decimals)}`}
     >
+      {showPrevious && <span className="font-normal text-muted">{formatValue(first, type, decimals)}</span>}
       {arrow} {text}
     </span>
   );

@@ -405,6 +405,7 @@ export function ReviewDetailView({
                             betterWhen={field.betterWhen}
                             type={field.type}
                             decimals={field.decimals}
+                            showPrevious
                           />
                         ) : (
                           <span className="text-xs text-muted">—</span>
@@ -483,6 +484,7 @@ export function ReviewDetailView({
                               values={[prevValue, review.kpi_rollups[field.key]?.["6mth"] ?? null]}
                               betterWhen="higher"
                               type={specialtyType}
+                              showPrevious
                             />
                           ) : (
                             <span className="text-xs text-muted">—</span>
