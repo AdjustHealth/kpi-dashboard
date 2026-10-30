@@ -17,7 +17,7 @@ import { useBatchedAutosave } from "@/lib/useBatchedAutosave";
 import { ROLLING_WINDOWS } from "@/lib/performanceReview";
 import { metricFieldsForRole, kpaGroupsForRole, KPA_RATING_LABELS, KPA_RATINGS, KpaRating } from "@/lib/providerSchema";
 import { Provider } from "@/lib/types";
-import { PerformanceReviewRecord, ReviewHistoryRow } from "@/lib/reviewsData";
+import { PerformanceReviewRecord, ReviewHistoryRow, PreviousReviewRollups } from "@/lib/reviewsData";
 
 const RATING_COLOR: Record<KpaRating, string> = {
   above_and_beyond: STATUS.good,
@@ -25,6 +25,9 @@ const RATING_COLOR: Record<KpaRating, string> = {
   not_met: STATUS.critical,
   not_applicable: "#8b93a5",
 };
+
+/** Ranks a scored rating for "did this improve since last review" — same order as the weighted-average rollup in lib/performanceReview.ts. */
+const KPA_RANK: Record<"not_met" | "demonstrated" | "above_and_beyond", number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
 
 interface NewGoal {
   text: string;
@@ -53,6 +56,7 @@ export function ReviewDetailView({
   cadenceMonths,
   targets,
   weeklySeries,
+  previousReview,
 }: {
   review: PerformanceReviewRecord;
   provider: Provider;
@@ -61,6 +65,8 @@ export function ReviewDetailView({
   targets: Record<string, unknown>;
   /** Every stored week for this provider, oldest first — for the sparkline next to each rollup number. */
   weeklySeries: { week_ending: string; metrics: Record<string, unknown> }[];
+  /** The provider's immediately preceding completed review's rollups, null if this is their first. */
+  previousReview: PreviousReviewRollups | null;
 }) {
   const router = useRouter();
   const [reviewer, setReviewer] = useState(review.reviewer ?? "");
@@ -323,6 +329,28 @@ export function ReviewDetailView({
                       </div>
                     );
                   })}
+                  {previousReview &&
+                    (() => {
+                      const prev = previousReview.kpaRollups[field.key]?.["6mth"] ?? null;
+                      if (!prev) return null;
+                      const curr = kpaRollups[field.key]?.["6mth"] ?? null;
+                      let changeLabel: string | null = null;
+                      let changeColor = "var(--color-muted)";
+                      if (curr && prev !== "not_applicable" && curr !== "not_applicable") {
+                        const delta = KPA_RANK[curr as keyof typeof KPA_RANK] - KPA_RANK[prev as keyof typeof KPA_RANK];
+                        changeLabel = delta > 0 ? "▲ improved" : delta < 0 ? "▼ declined" : "→ same";
+                        changeColor = delta > 0 ? STATUS.good : delta < 0 ? STATUS.critical : "var(--color-muted)";
+                      }
+                      return (
+                        <span
+                          className="ml-1.5 flex items-center gap-1.5 border-l border-border pl-2.5 text-[11px] font-semibold"
+                          title={`Last review (${formatWeekLabel(previousReview.reviewDate)}): ${KPA_RATING_LABELS[prev]}`}
+                        >
+                          <span className="h-2.5 w-2.5 rounded-full border-2" style={{ backgroundColor: RATING_COLOR[prev], borderColor: RATING_COLOR[prev] }} />
+                          {changeLabel && <span style={{ color: changeColor }}>{changeLabel}</span>}
+                        </span>
+                      );
+                    })()}
                 </div>
               </div>
             ))}
@@ -334,17 +362,31 @@ export function ReviewDetailView({
                 {KPA_RATING_LABELS[r]}
               </span>
             ))}
+            {previousReview && (
+              <span className="flex items-center gap-1.5 border-l border-border pl-4">
+                <span className="h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: "var(--color-muted)" }} />
+                Last review ({formatWeekLabel(previousReview.reviewDate)})
+              </span>
+            )}
           </div>
         </Card>
       ))}
 
       <Card title="KPI Scorecard — Rolling Averages">
+        {previousReview && (
+          <p className="mb-3 text-xs text-muted">
+            &quot;vs Last Review&quot; compares this review&apos;s 6-month figure against the provider&apos;s review on{" "}
+            {formatWeekLabel(previousReview.reviewDate)} — how they&apos;ve actually gone since last time, not the
+            weekly trend within this one review.
+          </p>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3 font-medium">KPI</th>
                 <th className="py-2 px-3 font-medium">Trend</th>
+                {previousReview && <th className="py-2 px-3 font-medium whitespace-nowrap">vs Last Review</th>}
                 {windows.map((w) => (
                   <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
                     {w.label}
@@ -355,12 +397,27 @@ export function ReviewDetailView({
             <tbody>
               {metricFields.map((field) => {
                 const target = targets[field.key];
+                const prevValue = previousReview?.kpiRollups[field.key]?.["6mth"] ?? null;
                 return (
                   <tr key={field.key} className="border-b border-border/60 last:border-0">
                     <td className="py-2 pr-3 text-foreground">{field.label}</td>
                     <td className="py-2 px-3">
                       <TrendDelta values={sparklineValues(field.key)} betterWhen={field.betterWhen} type={field.type} decimals={field.decimals} />
                     </td>
+                    {previousReview && (
+                      <td className="py-2 px-3">
+                        {prevValue !== null ? (
+                          <TrendDelta
+                            values={[prevValue, review.kpi_rollups[field.key]?.["6mth"] ?? null]}
+                            betterWhen={field.betterWhen}
+                            type={field.type}
+                            decimals={field.decimals}
+                          />
+                        ) : (
+                          <span className="text-xs text-muted">—</span>
+                        )}
+                      </td>
+                    )}
                     {windows.map((w) => {
                       const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
                       const color = targetColor(value, target, field.betterWhen);
@@ -407,6 +464,7 @@ export function ReviewDetailView({
                 <tr className="border-b border-accent-secondary/25 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="py-2 pr-3 font-medium">Metric</th>
                   <th className="py-2 px-3 font-medium">Trend</th>
+                  {previousReview && <th className="py-2 px-3 font-medium whitespace-nowrap">vs Last Review</th>}
                   {windows.map((w) => (
                     <th key={w.key} className="py-2 px-3 text-right font-medium whitespace-nowrap">
                       {w.label}
@@ -417,16 +475,27 @@ export function ReviewDetailView({
               <tbody>
                 {specialtyFields.map((field) => {
                   const target = provider.targets[field.key];
+                  const specialtyType = field.type === "boolean" ? "number" : field.type;
+                  const prevValue = previousReview?.kpiRollups[field.key]?.["6mth"] ?? null;
                   return (
                     <tr key={field.key} className="border-b border-accent-secondary/15 last:border-0">
                       <td className="py-2 pr-3 text-foreground">{field.label}</td>
                       <td className="py-2 px-3">
-                        <TrendDelta
-                          values={sparklineValues(field.key)}
-                          betterWhen="higher"
-                          type={field.type === "boolean" ? "number" : field.type}
-                        />
+                        <TrendDelta values={sparklineValues(field.key)} betterWhen="higher" type={specialtyType} />
                       </td>
+                      {previousReview && (
+                        <td className="py-2 px-3">
+                          {prevValue !== null ? (
+                            <TrendDelta
+                              values={[prevValue, review.kpi_rollups[field.key]?.["6mth"] ?? null]}
+                              betterWhen="higher"
+                              type={specialtyType}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                      )}
                       {windows.map((w) => {
                         const value = review.kpi_rollups[field.key]?.[w.key] ?? null;
                         const color = targetColor(value, target, "higher");
