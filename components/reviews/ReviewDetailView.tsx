@@ -26,9 +26,6 @@ const RATING_COLOR: Record<KpaRating, string> = {
   not_applicable: "#8b93a5",
 };
 
-/** Ranks a scored rating for "did this improve since last review" — same order as the weighted-average rollup in lib/performanceReview.ts. */
-const KPA_RANK: Record<"not_met" | "demonstrated" | "above_and_beyond", number> = { not_met: 0, demonstrated: 1, above_and_beyond: 2 };
-
 interface NewGoal {
   text: string;
   how: string;
@@ -333,21 +330,17 @@ export function ReviewDetailView({
                     (() => {
                       const prev = previousReview.kpaRollups[field.key]?.["6mth"] ?? null;
                       if (!prev) return null;
-                      const curr = kpaRollups[field.key]?.["6mth"] ?? null;
-                      let changeLabel: string | null = null;
-                      let changeColor = "var(--color-muted)";
-                      if (curr && prev !== "not_applicable" && curr !== "not_applicable") {
-                        const delta = KPA_RANK[curr as keyof typeof KPA_RANK] - KPA_RANK[prev as keyof typeof KPA_RANK];
-                        changeLabel = delta > 0 ? "▲ improved" : delta < 0 ? "▼ declined" : "→ same";
-                        changeColor = delta > 0 ? STATUS.good : delta < 0 ? STATUS.critical : "var(--color-muted)";
-                      }
+                      // Dot only, no "improved/same/declined" text — that text
+                      // compares the 6mth window specifically, but sits next
+                      // to whichever window dot was just clicked, so it read
+                      // as stuck/wrong whenever someone overrode a different
+                      // window. Hover for the actual last-review rating.
                       return (
                         <span
-                          className="ml-1.5 flex items-center gap-1.5 border-l border-border pl-2.5 text-[11px] font-semibold"
-                          title={`Last review (${formatWeekLabel(previousReview.reviewDate)}): ${KPA_RATING_LABELS[prev]}`}
+                          className="ml-1.5 flex items-center border-l border-border pl-2.5"
+                          title={`Last review (${formatWeekLabel(previousReview.reviewDate)}), 6-month rating: ${KPA_RATING_LABELS[prev]}`}
                         >
                           <span className="h-2.5 w-2.5 rounded-full border-2" style={{ backgroundColor: RATING_COLOR[prev], borderColor: RATING_COLOR[prev] }} />
-                          {changeLabel && <span style={{ color: changeColor }}>{changeLabel}</span>}
                         </span>
                       );
                     })()}
