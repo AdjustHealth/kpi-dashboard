@@ -104,18 +104,21 @@ export default async function ClinicHealthPage({
     },
   ];
 
-  // Online/Phone split only covers new-client BOOKINGS (Service name contains
-  // "Initial" in the Online Bookings Report) -- a much narrower count than
-  // "New Patients" above, which includes every new client seen any way
-  // (Pre-Employment Assessments, etc. included). The two never sum to each
-  // other -- don't put total_nc on this chart, it reads as if they should.
+  // Online is how many of this week's REAL new patients (total_nc, same
+  // figure as the "New Patients" chart above -- the Clients & Cases Report's
+  // own count) booked through the online widget; Phone/In-Person is always
+  // the remainder, so the three series are guaranteed to sum correctly
+  // (director's own expectation: Online + Phone/In-Person === Total New
+  // Patients, always) instead of being two independently-counted figures
+  // that can disagree.
   const newClientsOnlineData = history.map((h) => {
-    const total = typeof h.online_bookings_total === "number" ? h.online_bookings_total : null;
+    const totalNew = typeof h.total_nc === "number" ? h.total_nc : null;
     const online = typeof h.online_bookings_new === "number" ? h.online_bookings_new : null;
     return {
       label: formatWeekLabel(h.week_ending),
       Online: online,
-      "Phone / In-Person": total !== null && online !== null ? Math.max(0, total - online) : null,
+      "Phone / In-Person": totalNew !== null && online !== null ? Math.max(0, totalNew - online) : null,
+      "Total New Patients": totalNew,
     };
   });
 
@@ -161,9 +164,9 @@ export default async function ClinicHealthPage({
               colorIndex={1}
             />
             <MultiLineChart
-              title="New Client Bookings — Online vs. Phone / In-Person"
+              title="New Clients — Online vs. Phone / In-Person"
               data={newClientsOnlineData}
-              seriesKeys={["Online", "Phone / In-Person"]}
+              seriesKeys={["Online", "Phone / In-Person", "Total New Patients"]}
               format="number"
             />
           </div>

@@ -735,7 +735,22 @@ export async function applyNookalReport(
     // real 0, same "a confirmed zero is a real zero" reasoning as the other
     // clinic-wide counts in this file — a week with genuinely no online
     // "Initial" bookings shouldn't leave a stale number from a prior week.
-    const result = parseOnlineBookingsReport(csvText);
+    //
+    // Cross-reference against this week's real new-client list (already
+    // loaded into metricsCache from provider_weekly, written by the
+    // Clients & Cases Report) so the online/phone split is a true subset of
+    // the real new-patient total, not a separately-guessed "Initial"-named
+    // count that can disagree with it (see parseOnlineBookingsReport's doc
+    // comment — confirmed against a real export, an existing client's new
+    // referral episode can carry "Initial" in its service name too). Only
+    // empty if Clients & Cases hasn't been processed for this week yet, in
+    // which case parseOnlineBookingsReport falls back to the old heuristic.
+    const knownNewClientNames = new Set<string>();
+    for (const metrics of metricsCache.values()) {
+      const names = metrics.new_patient_names;
+      if (Array.isArray(names)) for (const n of names) if (typeof n === "string") knownNewClientNames.add(n);
+    }
+    const result = parseOnlineBookingsReport(csvText, knownNewClientNames);
     rowsFound = result.allBookingsTotal;
     clinicPatch.online_bookings_total = result.newClientBookingsTotal;
     clinicPatch.online_bookings_new = result.newClientBookingsOnline;
