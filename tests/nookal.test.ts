@@ -1076,4 +1076,39 @@ Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
     expect(result.allBookingsTotal).toBe(1);
     expect(result.newClientBookingsTotal).toBe(1);
   });
+
+  it("with a known new-client list, ignores 'Initial' entirely and counts only confirmed-new clients — an existing client's new-referral 'Initial' service (e.g. a new Medicare EPC episode) is excluded even though its Service name matches", () => {
+    const csv = `Online Bookings Report
+
+Parameters
+Dates,12/10/2026 - 18/10/2026
+
+Details
+Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
+12/10/2026 - 11:00am,Adjust Physiotherapy,Jake Mitchell,Tarja Wedenberg,MASSAGE Initial 90 min 105,11/10/2026 - 5:26pm,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,51581
+12/10/2026 - 2:00pm,Adjust Physiotherapy,Nick Baxter,Anthony Dolkens,TL EPC Initial 60 min 10960,11/10/2026 - 4:19pm,Completed,,,,81389
+13/10/2026 - 11:00am,Adjust Physiotherapy,Dean Walker,Sarah Jones,Private Initial 60 min 500,12/10/2026 - 3:00pm,Completed,Windows amd64,Windows,Chrome,,,,,,,99001
+
+`;
+    // Anthony Dolkens is an existing client (not in the known-new list), even though his service says "Initial".
+    const result = parseOnlineBookingsReport(csv, new Set(["Tarja Wedenberg", "Sarah Jones"]));
+    expect(result.newClientBookingsTotal).toBe(2);
+    expect(result.newClientBookingsOnline).toBe(2);
+  });
+
+  it("with a known new-client list, newClientBookingsTotal is the list's own size, not a count of matched rows — a confirmed-new client who never appears in this report at all still counts toward the total but not toward online", () => {
+    const csv = `Online Bookings Report
+
+Parameters
+Dates,12/10/2026 - 18/10/2026
+
+Details
+Appt Date,Location,Provider,Client,Service,Added,Status,Client ID
+12/10/2026 - 11:00am,Adjust Physiotherapy,Jake Mitchell,Tarja Wedenberg,MASSAGE Subs 60 min 205,11/10/2026 - 5:26pm,Completed,Apple iPhone,iOS,Mobile Safari,,,,,,,51581
+
+`;
+    const result = parseOnlineBookingsReport(csv, new Set(["Tarja Wedenberg", "Sarah Jones", "Someone Not In This Report"]));
+    expect(result.newClientBookingsTotal).toBe(3);
+    expect(result.newClientBookingsOnline).toBe(1);
+  });
 });

@@ -1006,7 +1006,7 @@ export interface OnlineBookingsReportResult {
  * cell that isn't blank means device metadata is present, i.e. booked
  * online.
  *
- * "Initial" in the Service name is the new-client signal (e.g. "Private
+ * "Initial" in the Service name is the new-client SIGNAL (e.g. "Private
  * Initial 60 min 500", "MASSAGE Initial 90 min 105") — this also naturally
  * excludes Pre-Employment screenings without any extra filtering, since
  * none of their Service names contain the word "Initial". HotDoc
@@ -1015,21 +1015,42 @@ export interface OnlineBookingsReportResult {
  * Service, which would otherwise count a client who was never real toward
  * the new-client denominator.
  *
+ * But "Initial" alone is only a proxy, not proof: an existing client
+ * starting a fresh referral/funding episode (e.g. a new Medicare EPC
+ * referral) can get an "Initial" service too, despite having a long
+ * history here already — confirmed against a real export (Anthony Dolkens,
+ * "TL EPC Initial 60 min 10960", an existing client, wrongly counted as a
+ * new-client booking by the old "Initial"-only heuristic). So "Initial" is
+ * only used as a FALLBACK now, when the real new-client list isn't
+ * available yet. When `knownNewClientNames` IS given — the real new-client
+ * list the Clients & Cases Report already produces
+ * (provider_weekly.metrics.new_patient_names, name-matched, same caveat as
+ * every other name cross-reference in this app) — newClientBookingsTotal is
+ * just that list's size, and newClientBookingsOnline counts how many of
+ * THOSE specific clients have at least one online-booked row here, service
+ * name irrelevant. This guarantees Online + Phone/In-Person always sums to
+ * the real new-patient total the rest of the app already shows (the
+ * director's own expectation) — "Initial" string-matching alone could never
+ * promise that, since it's measuring a different, narrower population.
+ *
  * All statuses count (Completed, Cancelled, Pending) — this tracks booking
  * CHANNEL/behaviour (how the client chose to book), not whether the visit
  * ultimately happened, same reasoning as the Summary section's own "Total"
  * column (Cancellations + DNA + Completed + Pending).
  */
-export function parseOnlineBookingsReport(text: string): OnlineBookingsReportResult {
+export function parseOnlineBookingsReport(text: string, knownNewClientNames?: Set<string>): OnlineBookingsReportResult {
   const rows = parseCsvRows(text);
   const section = extractSection(rows, "Details");
   const empty: OnlineBookingsReportResult = { allBookingsTotal: 0, allBookingsOnline: 0, newClientBookingsTotal: 0, newClientBookingsOnline: 0 };
   if (!section) return empty;
 
+  const confirmedList = knownNewClientNames && knownNewClientNames.size > 0 ? knownNewClientNames : null;
+
   let allBookingsTotal = 0;
   let allBookingsOnline = 0;
-  const newClientsSeen = new Set<string>();
-  const newClientsOnlineSeen = new Set<string>();
+  const initialClientsSeen = new Set<string>();
+  const initialClientsOnlineSeen = new Set<string>();
+  const confirmedClientsOnlineSeen = new Set<string>();
 
   for (const row of section.rows) {
     if (row.length < 8) continue;
@@ -1051,15 +1072,25 @@ export function parseOnlineBookingsReport(text: string): OnlineBookingsReportRes
     if (bookedOnline) allBookingsOnline += 1;
 
     if (/initial/i.test(service)) {
-      newClientsSeen.add(client);
-      if (bookedOnline) newClientsOnlineSeen.add(client);
+      initialClientsSeen.add(client);
+      if (bookedOnline) initialClientsOnlineSeen.add(client);
     }
+    if (confirmedList?.has(client) && bookedOnline) confirmedClientsOnlineSeen.add(client);
+  }
+
+  if (confirmedList) {
+    return {
+      allBookingsTotal,
+      allBookingsOnline,
+      newClientBookingsTotal: confirmedList.size,
+      newClientBookingsOnline: confirmedClientsOnlineSeen.size,
+    };
   }
 
   return {
     allBookingsTotal,
     allBookingsOnline,
-    newClientBookingsTotal: newClientsSeen.size,
-    newClientBookingsOnline: newClientsOnlineSeen.size,
+    newClientBookingsTotal: initialClientsSeen.size,
+    newClientBookingsOnline: initialClientsOnlineSeen.size,
   };
 }
