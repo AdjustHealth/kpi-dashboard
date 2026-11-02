@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/nav/PageHeader";
 import { SettingsManager } from "@/components/settings/SettingsManager";
 import { ReprocessReportsCard } from "@/components/settings/ReprocessReportsCard";
+import { OnlineBookingsPreviewCard } from "@/components/settings/OnlineBookingsPreviewCard";
 import { createClient } from "@/lib/supabase/server";
 import { Provider } from "@/lib/types";
 import { requireDirector } from "@/lib/auth/access";
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
       />
       <div className="flex flex-col gap-6 p-8">
         <SettingsManager initialProviders={providers} />
+        <OnlineBookingsPreviewCard />
         <ReprocessReportsCard />
       </div>
     </>
