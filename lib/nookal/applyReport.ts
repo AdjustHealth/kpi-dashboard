@@ -784,3 +784,80 @@ export async function applyNookalReport(
         : undefined,
   };
 }
+
+export interface OnlineBookingsPreview {
+  weekEnding: string;
+  error?: string;
+  /** What's currently stored in weekly_kpis, and what the "New Clients" chart currently computes from it. */
+  before: { onlineBookingsNew: number | null; totalNewPatients: number | null; phoneInPerson: number | null };
+  /** What the current (knownNewClientNames cross-referenced) parsing logic would produce for the SAME stored file. */
+  after: { onlineBookingsNew: number | null; totalNewPatients: number | null; phoneInPerson: number | null };
+  changed: boolean;
+}
+
+/**
+ * Read-only — does NOT write anything. Re-parses a week's already-uploaded
+ * Online Bookings Report with today's cross-reference logic and compares
+ * the result against what's currently stored, so a past week can be
+ * checked before committing to /api/nookal-reprocess (which overwrites
+ * immediately). total_nc itself never changes here — only online/phone are
+ * being re-derived; Phone/In-Person is shown both ways (old: stored
+ * online_bookings_total minus online_bookings_new; new: total_nc minus the
+ * recomputed online count) so the size of the correction is visible.
+ */
+export async function previewOnlineBookingsWeek(supabase: SupabaseClient, weekEnding: string): Promise<OnlineBookingsPreview> {
+  const notFound = (error: string): OnlineBookingsPreview => ({
+    weekEnding,
+    error,
+    before: { onlineBookingsNew: null, totalNewPatients: null, phoneInPerson: null },
+    after: { onlineBookingsNew: null, totalNewPatients: null, phoneInPerson: null },
+    changed: false,
+  });
+
+  const { data: currentKpis } = await supabase
+    .from("weekly_kpis")
+    .select("online_bookings_total, online_bookings_new, total_nc")
+    .eq("week_ending", weekEnding)
+    .maybeSingle();
+
+  const { data: upload } = await supabase
+    .from("nookal_uploads")
+    .select("storage_path")
+    .eq("week_ending", weekEnding)
+    .eq("report_type", "online_bookings")
+    .order("uploaded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!upload) return notFound("No Online Bookings Report on file for this week.");
+
+  const { data: fileBlob, error: downloadError } = await supabase.storage.from("nookal-reports").download(upload.storage_path);
+  if (downloadError || !fileBlob) return notFound("Could not download the stored file for this week.");
+  const csvText = await fileBlob.text();
+
+  const { data: weeklyRows } = await supabase.from("provider_weekly").select("metrics").eq("week_ending", weekEnding);
+  const knownNewClientNames = new Set<string>();
+  for (const row of (weeklyRows ?? []) as { metrics: Record<string, unknown> | null }[]) {
+    const names = row.metrics?.new_patient_names;
+    if (Array.isArray(names)) for (const n of names) if (typeof n === "string") knownNewClientNames.add(n);
+  }
+
+  const result = parseOnlineBookingsReport(csvText, knownNewClientNames);
+  const totalNewPatients = typeof currentKpis?.total_nc === "number" ? currentKpis.total_nc : null;
+  const oldOnline = typeof currentKpis?.online_bookings_new === "number" ? currentKpis.online_bookings_new : null;
+  const oldTotal = typeof currentKpis?.online_bookings_total === "number" ? currentKpis.online_bookings_total : null;
+
+  return {
+    weekEnding,
+    before: {
+      onlineBookingsNew: oldOnline,
+      totalNewPatients,
+      phoneInPerson: oldTotal !== null && oldOnline !== null ? Math.max(0, oldTotal - oldOnline) : null,
+    },
+    after: {
+      onlineBookingsNew: result.newClientBookingsOnline,
+      totalNewPatients,
+      phoneInPerson: totalNewPatients !== null ? Math.max(0, totalNewPatients - result.newClientBookingsOnline) : null,
+    },
+    changed: oldOnline !== result.newClientBookingsOnline,
+  };
+}
