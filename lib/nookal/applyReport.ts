@@ -96,6 +96,7 @@ async function fetchExistingEventState(
 const SPECIALTY_METRIC_PREFIX_TO_CATEGORY: Record<string, string> = {
   headache: "headaches",
   womens_health: "womens_health",
+  vestib: "vestibular",
 };
 
 interface ProviderRow {
@@ -377,6 +378,24 @@ export async function applyNookalReport(
       if (initCount > 0 || subCount > 0) {
         await upsertProviderMetrics(providerId, { [initKey]: initCount, [subKey]: subCount });
       }
+    }
+
+    // A provider responsible for a whole clinic-wide specialty whose items
+    // DON'T reliably say "Initial"/"Subsequent" (e.g. Nick for Hydro — see
+    // 0015_fix_hydro_total_not_generated.sql, where Init+Sub badly
+    // undercounted) gets the real matched-row TOTAL written straight to
+    // their own flat total field instead, via
+    // targets.specialty_clinic_wide_direct_total_key — same clinic-wide
+    // specialtyCounts this whole block already computes, just skipping the
+    // init/sub split that wouldn't work for this specialty.
+    for (const p of providers) {
+      const directTotalPrefix = typeof p.targets?.specialty_clinic_wide_direct_total_key === "string" ? p.targets.specialty_clinic_wide_direct_total_key : null;
+      if (!directTotalPrefix) continue;
+      const totalKey = `${directTotalPrefix}_total`;
+      if (!(p.specialty_metrics ?? []).some((m) => m.key === totalKey)) continue;
+      const category = SPECIALTY_METRIC_PREFIX_TO_CATEGORY[directTotalPrefix] ?? directTotalPrefix;
+      const counts = result.specialtyCounts[category];
+      if (counts) await upsertProviderMetrics(p.id, { [totalKey]: counts.total });
     }
 
     // Feeds pre_employment_activity_weekly — this week's pre-employment

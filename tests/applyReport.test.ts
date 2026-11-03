@@ -359,6 +359,83 @@ Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Acco
     expect(providerWeekly["p2:2026-07-05"].womens_health_sub).toBe(1);
   });
 
+  it("activity: Vestibular auto-fills the same clinic-wide way as Headache (targets.specialty_clinic_wide_key: 'vestib')", async () => {
+    const CLINIC_WIDE_VESTIB_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,200.00,0,200.00
+Total,200.00,0,200.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Nick Baxter,Adjust Physiotherapy,Test Client One,Private - Vestib Physio,Private Initial VESTIB 60 min,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,Private - Vestib Physio,Private Subs VESTIB 30 min,Service,1002,02/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1002
+
+`;
+    const { client, providerWeekly } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      {
+        id: "p2",
+        name: "Nick Baxter",
+        role: "physio",
+        targets: { specialty_clinic_wide_key: "vestib" },
+        specialty_metrics: [
+          { key: "vestib_init", label: "Vestibular Init" },
+          { key: "vestib_sub", label: "Vestibular Sub" },
+          { key: "vestib_total", label: "Vestibular Total" },
+        ],
+      },
+    ]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", CLINIC_WIDE_VESTIB_CSV);
+
+    // Nick gets BOTH rows (his own Initial, plus Alex Example's Subsequent)
+    // since he's the clinic-wide owner for vestibular.
+    expect(providerWeekly["p2:2026-07-05"].vestib_init).toBe(1);
+    expect(providerWeekly["p2:2026-07-05"].vestib_sub).toBe(1);
+  });
+
+  it("activity: a provider responsible for a specialty whose items don't reliably say Initial/Subsequent (targets.specialty_clinic_wide_direct_total_key: 'hydro') gets the real matched-row TOTAL written directly instead", async () => {
+    const CLINIC_WIDE_HYDRO_CSV = `Activity Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Type,Subtotal,Tax,Total
+Services,300.00,0,300.00
+Total,300.00,0,300.00
+
+Details
+Date,Staff,Location,Client,Case,Item,Type,Invoice,Invoice Date,Invoice Type,Account Code,Net,Discount,GST,Amount,Nominal,Client ID
+01/07/2026,Nick Baxter,Adjust Physiotherapy,Test Client One,WC - Hydro,Private Hydrotherapy 30 min,Service,1001,01/07/2026,Private,,100.00,0.00,0.00,100.00,0.00,1001
+02/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,DVA - Hydro,DVA Hydrotherapy PH60,Service,1002,02/07/2026,Department of Veterans Affairs,,100.00,0.00,0.00,100.00,0.00,1002
+03/07/2026,Alex Example,Adjust Physiotherapy,Test Client Two,WC - Hydro,WC Travel 30 min,Service,1003,03/07/2026,Workcover QLD,,100.00,0.00,0.00,100.00,0.00,1003
+
+`;
+    const { client, providerWeekly } = createFakeSupabase([
+      { id: "p1", name: "Alex Example", role: "physio" },
+      {
+        id: "p2",
+        name: "Nick Baxter",
+        role: "physio",
+        targets: { specialty_clinic_wide_direct_total_key: "hydro" },
+        specialty_metrics: [{ key: "hydro_total", label: "Hydro Total" }],
+      },
+    ]);
+
+    await applyNookalReport(client as never, "activity", "2026-07-05", CLINIC_WIDE_HYDRO_CSV);
+
+    // 2 real hydro rows (Nick's own + Alex Example's), the Travel row
+    // excluded (not a consult) -- written as the real matched-row total,
+    // not an Init+Sub sum (neither row says Initial/Subsequent at all).
+    expect(providerWeekly["p2:2026-07-05"].hydro_total).toBe(2);
+  });
+
   it("matching is case-insensitive and whitespace-tolerant", async () => {
     const { client, providerWeekly } = createFakeSupabase([{ id: "p1", name: "  alex example  ", role: "physio" }]);
     await applyNookalReport(client as never, "activity", "2026-07-05", ACTIVITY_CSV);

@@ -59,4 +59,23 @@ describe("providerCalc — verified against the real spreadsheet", () => {
     });
     expect(result).toEqual({ headache_total: 9 });
   });
+
+  it("computeSpecialtyCalcMetrics keeps two unrelated specialties on one provider independent (Nick Baxter: hydro + vestibular)", () => {
+    // Real bug: summing every manual field in the whole array meant
+    // vestib_total included hydro's count and vice versa.
+    const specialtyMetrics = [
+      { key: "hydro_total", type: "number", source: "manual" as const },
+      { key: "vestib_init", type: "number", source: "manual" as const },
+      { key: "vestib_sub", type: "number", source: "manual" as const },
+      { key: "vestib_total", type: "number", source: "calc" as const },
+    ];
+    const result = computeSpecialtyCalcMetrics(specialtyMetrics, {
+      hydro_total: 20,
+      vestib_init: 2,
+      vestib_sub: 7,
+    });
+    // hydro_total isn't a calc field, so it's untouched here -- only
+    // vestib_total gets computed, and only from vestib_init + vestib_sub.
+    expect(result).toEqual({ vestib_total: 9 });
+  });
 });

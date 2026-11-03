@@ -97,24 +97,32 @@ export interface SpecialtyMetricLike {
 
 /**
  * A provider's "calc"-source specialty metric (e.g. Marcio's Headache Total)
- * is the sum of that provider's manual number/currency specialty metrics
- * (e.g. Headache Init + Headache Sub). Percent-type metrics are never
- * summed. Returns { [calcKey]: total } for every calc metric found.
+ * is the sum of that SAME specialty's manual number/currency metrics (e.g.
+ * Headache Init + Headache Sub) — grouped by key prefix (the calc field's
+ * own key minus its "_total" suffix), not a sum of every manual metric in
+ * the whole array. A provider covering two unrelated specialties (e.g. Nick
+ * Baxter: hydro + vestibular) needs this — summing everything used to blend
+ * both specialties into one number for each (confirmed bug: his vestib_total
+ * would have included hydro's count and vice versa). Percent-type metrics
+ * are never summed. Returns { [calcKey]: total } for every calc metric
+ * found.
  */
 export function computeSpecialtyCalcMetrics(
   specialtyMetrics: SpecialtyMetricLike[],
   values: Record<string, unknown>
 ): Record<string, number> {
-  const manualSum = specialtyMetrics
-    .filter((m) => m.source !== "calc" && (m.type === "number" || m.type === "currency"))
-    .reduce((sum, m) => {
-      const v = values[m.key];
-      return sum + (typeof v === "number" ? v : 0);
-    }, 0);
+  const manualFields = specialtyMetrics.filter((m) => m.source !== "calc" && (m.type === "number" || m.type === "currency"));
 
   const result: Record<string, number> = {};
   for (const m of specialtyMetrics) {
-    if (m.source === "calc") result[m.key] = manualSum;
+    if (m.source !== "calc") continue;
+    const prefix = m.key.replace(/_total$/, "");
+    result[m.key] = manualFields
+      .filter((mm) => mm.key.startsWith(`${prefix}_`))
+      .reduce((sum, mm) => {
+        const v = values[mm.key];
+        return sum + (typeof v === "number" ? v : 0);
+      }, 0);
   }
   return result;
 }
