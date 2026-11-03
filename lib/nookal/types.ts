@@ -107,17 +107,27 @@ export interface ClientsAndCasesReportResult {
     {
       /** All new clients, including corporate Pre-Employment screening cases (Village Road Show, Top Golf, etc.) — the raw Nookal count before Pre-Employment is excluded. Not used to feed any KPI figure directly; kept for visibility/debugging. */
       newClients: number;
-      /** New clients excluding Pre-Employment screening cases — the real per-provider "# New Clients" figure the director's sheet tracks (confirmed: a Pre-Employment case inflates the raw count but isn't counted per-provider). */
+      /** New clients excluding Pre-Employment screening cases — the real per-provider "# New Clients" figure the director's sheet tracks (confirmed: a Pre-Employment case inflates the raw count but isn't counted per-provider). A provider's npbrExcludeKeyword (e.g. Nick Baxter's vestibular referrals) does NOT reduce this — that keyword only scopes NPBR, a new client it matches still counts as a real new patient. */
       newClientsExclPreEmployment: number;
       newCases: number;
       /**
-       * Sum, across this provider's new clients (excl. Pre-Employment), of the
-       * "Total" half of each client's "Bookings" cell (e.g. "2 Complete / 7
-       * Total" contributes 7) — the KPI Scorecard's "NPBR calc — total
-       * recommendations for new patients". Divide by newClientsExclPreEmployment
-       * for New Patient Booking Rate, matching the real Accountability Meeting
-       * template (a new client's own total recommended booking count, averaged
-       * across all of a provider's new clients that week).
+       * How many of this provider's new clients count toward the NPBR
+       * denominator — Pre-Employment excluded always, PLUS this provider's
+       * own npbrExcludeKeyword category (e.g. Nick Baxter's vestibular
+       * referrals, which have a different booking-recommendation pattern and
+       * would skew his generic NPBR, even though they're still real new
+       * patients for newClientsExclPreEmployment above).
+       */
+      newClientsForNpbr: number;
+      /**
+       * Sum, across newClientsForNpbr clients only, of the "Total" half of
+       * each client's "Bookings" cell (e.g. "2 Complete / 7 Total"
+       * contributes 7) — the KPI Scorecard's "NPBR calc — total
+       * recommendations for new patients". Divide by newClientsForNpbr for
+       * New Patient Booking Rate, matching the real Accountability Meeting
+       * template (a new client's own total recommended booking count,
+       * averaged across all of a provider's NPBR-eligible new clients that
+       * week).
        */
       npbrRecommendationsTotal: number;
       /** Names of this provider's new clients that week (excl. Pre-Employment), in report order — for the "new clients this week" review list. */

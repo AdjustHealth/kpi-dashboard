@@ -614,18 +614,22 @@ export async function applyNookalReport(
         new_patient_names: data.newClientNames,
       };
       // New Patient Booking Rate: each new client's own "X Complete / Y Total"
-      // Bookings count, averaged across all of this provider's new clients
-      // that week (see parseClientsAndCasesReport's npbrRecommendationsTotal).
-      // Explicitly null/zero (not skipped) when there are no real new clients
-      // left after exclusions — the bug that left Dean's NPBR showing a stale
-      // pre-Occupational-Health-fix number even after the regex fix shipped
-      // and the week was reprocessed: Beau Guyler was his ONLY "new client"
-      // that week, so newClientsExclPreEmployment dropped to 0 once excluded,
+      // Bookings count, averaged across this provider's NPBR-eligible new
+      // clients that week (newClientsForNpbr — Pre-Employment always
+      // excluded, PLUS this provider's own npbrExcludeKeyword category, e.g.
+      // Nick Baxter's vestibular referrals; see parseClientsAndCasesReport).
+      // Not the same denominator as new_patients above — a keyword-excluded
+      // client is still a real new patient, just not counted toward NPBR.
+      // Explicitly null/zero (not skipped) when there are no NPBR-eligible
+      // clients left after exclusions — the bug that left Dean's NPBR showing
+      // a stale pre-Occupational-Health-fix number even after the regex fix
+      // shipped and the week was reprocessed: Beau Guyler was his ONLY "new
+      // client" that week, so his eligible count dropped to 0 once excluded,
       // this `if` skipped writing anything at all, and the old (wrong, Beau-
       // inclusive) new_pt_booking_rate just sat there untouched forever.
-      if (data.newClientsExclPreEmployment > 0) {
+      if (data.newClientsForNpbr > 0) {
         patch.npbr_recommendations = data.npbrRecommendationsTotal;
-        patch.new_pt_booking_rate = data.npbrRecommendationsTotal / data.newClientsExclPreEmployment;
+        patch.new_pt_booking_rate = data.npbrRecommendationsTotal / data.newClientsForNpbr;
       } else {
         patch.npbr_recommendations = 0;
         patch.new_pt_booking_rate = null;

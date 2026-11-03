@@ -754,10 +754,15 @@ const BOOKINGS_TOTAL_PATTERN = /\/\s*(\d+)\s*Total/i;
  * Clients and Cases Report — new client / new case counts per provider.
  *
  * `npbrExcludeKeywordsByProvider` lets a specific provider's NPBR figure
- * exclude a category of new client the same way Pre-Employment is always
- * excluded — e.g. Nick Baxter's generic NPBR shouldn't include vestibular
- * referrals, which have a different booking-recommendation pattern (see
- * providers.targets.npbr_exclude_keyword).
+ * exclude a category of new client — e.g. Nick Baxter's generic NPBR
+ * shouldn't include vestibular referrals, which have a different
+ * booking-recommendation pattern (see providers.targets.npbr_exclude_keyword).
+ * This ONLY scopes NPBR (newClientsForNpbr/npbrRecommendationsTotal) — unlike
+ * Pre-Employment, which is excluded everywhere, a keyword-matched client is
+ * still a real new patient and counts toward newClientsExclPreEmployment.
+ * These two exclusions used to be the same flag, which meant Nick's
+ * vestibular referrals were silently dropped from his new-patient count too
+ * — fixed by checking them separately.
  */
 export function parseClientsAndCasesReport(
   text: string,
@@ -776,6 +781,7 @@ export function parseClientsAndCasesReport(
       byProvider[provider] = {
         newClients: 0,
         newClientsExclPreEmployment: 0,
+        newClientsForNpbr: 0,
         newCases: 0,
         npbrRecommendationsTotal: 0,
         newClientNames: [],
@@ -784,11 +790,15 @@ export function parseClientsAndCasesReport(
     if (r["New Client"]?.toLowerCase() === "yes") {
       byProvider[provider].newClients += 1;
       const caseName = r["Case"] ?? "";
+      const excludedFromNew = PRE_EMPLOYMENT_PATTERN.test(caseName);
       const excludePattern = npbrExcludeKeywordsByProvider[provider];
-      const excluded = PRE_EMPLOYMENT_PATTERN.test(caseName) || (excludePattern && excludePattern.test(caseName));
-      if (!excluded) {
+      const excludedFromNpbr = excludedFromNew || (excludePattern && excludePattern.test(caseName));
+      if (!excludedFromNew) {
         byProvider[provider].newClientsExclPreEmployment += 1;
         if (r["Client"]) byProvider[provider].newClientNames.push(r["Client"]);
+      }
+      if (!excludedFromNpbr) {
+        byProvider[provider].newClientsForNpbr += 1;
         const bookingsMatch = BOOKINGS_TOTAL_PATTERN.exec(r["Bookings"] ?? "");
         if (bookingsMatch) byProvider[provider].npbrRecommendationsTotal += Number(bookingsMatch[1]);
       }
