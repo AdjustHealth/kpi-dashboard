@@ -83,26 +83,29 @@ export default async function RevenuePage({
     ...(costFull !== null ? { "+ Loan": costFull } : {}),
   }));
 
-  // Total Gym Income = Glofox Income + 3rd Party Gym Income — both manual
-  // entries on Weekly Input, summed (not a subset of one another).
-  //
   // Break-even ladder, not one flat target — same reasoning as the clinic-
   // wide "Revenue vs Cost Lines" chart: a single target line can't show
   // WHICH costs gym income is actually covering, just whether it cleared
   // one number. Three cumulative tiers (Staff, +Rent+Glofox, +Medfin Loan)
   // show that directly.
+  //
+  // Only "Gym Total" is plotted as real data — Glofox Income and 3rd Party
+  // (its own two inputs) already have their own stat tiles just above this
+  // chart, and showing all three here just for a total that's visibly their
+  // sum added 2 more competing lines with nothing left to learn from them.
+  // The three tiers render as thin, muted reference lines (see
+  // referenceSeriesKeys below) so they read as background thresholds the one
+  // real line moves through, not as data series competing with it.
   const gymCostSeriesKeys: string[] = [];
   if (gymCostStaff !== null) gymCostSeriesKeys.push("Staff");
   if (gymCostStaffRentGlofox !== null) gymCostSeriesKeys.push("Staff + Rent + Glofox");
   if (gymCostFull !== null) gymCostSeriesKeys.push("+ Medfin Loan");
 
-  const gymSeriesKeys = ["Gym Total", "Glofox Income", "3rd Party", ...gymCostSeriesKeys];
+  const gymSeriesKeys = ["Gym Total", ...gymCostSeriesKeys];
 
   const gymData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Gym Total": h.gym_total ?? null,
-    "Glofox Income": h.m_glofox ?? null,
-    "3rd Party": h.m_gym3p ?? null,
     ...(gymCostStaff !== null ? { Staff: gymCostStaff } : {}),
     ...(gymCostStaffRentGlofox !== null ? { "Staff + Rent + Glofox": gymCostStaffRentGlofox } : {}),
     ...(gymCostFull !== null ? { "+ Medfin Loan": gymCostFull } : {}),
@@ -220,11 +223,13 @@ export default async function RevenuePage({
           <div className="mt-4">
             <Card title="Gym Income Trend vs Break-Even Tiers">
               <MultiLineChart
-                title="Gym Total = Glofox Income + 3rd Party vs Staff / Staff+Rent+Glofox / +Medfin Loan"
+                title="Gym Total vs Staff / Staff+Rent+Glofox / +Medfin Loan"
                 data={gymData}
                 seriesKeys={gymSeriesKeys}
                 format="currency"
                 height={260}
+                colors={[CATEGORICAL[0], ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
+                referenceSeriesKeys={gymCostSeriesKeys}
               />
               {gymCostSeriesKeys.length < 3 && (
                 <p className="mt-2 text-[11px] text-muted">

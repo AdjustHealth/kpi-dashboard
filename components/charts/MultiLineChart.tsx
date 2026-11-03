@@ -26,6 +26,7 @@ export function MultiLineChart({
   colors,
   pointLabelKeys,
   trendlineKey,
+  referenceSeriesKeys,
 }: {
   title: string;
   data: Record<string, unknown>[];
@@ -43,6 +44,14 @@ export function MultiLineChart({
    * undefined for a series to leave it unlabeled.
    */
   pointLabelKeys?: (string | undefined)[];
+  /**
+   * Subset of seriesKeys that are static reference/threshold lines (e.g. a
+   * break-even tier), not real trend data — rendered thinner and without
+   * per-week dot markers so they read as background context instead of
+   * competing with the actual data line(s) at equal visual weight. Doesn't
+   * change color; pass a muted color for these keys via `colors` too.
+   */
+  referenceSeriesKeys?: string[];
   /**
    * One of seriesKeys (normally the actual-value series, not a target/trend
    * reference line already on the chart) — overlays a dashed least-squares
@@ -112,14 +121,16 @@ export function MultiLineChart({
             {seriesKeys.map((key, i) => {
               const color = colors?.[i] ?? CATEGORICAL[i % CATEGORICAL.length];
               const labelKey = pointLabelKeys?.[i];
+              const isReference = referenceSeriesKeys?.includes(key) ?? false;
               return (
                 <Line
                   key={key}
                   type="monotone"
                   dataKey={key}
                   stroke={color}
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: color, strokeWidth: 0 }}
+                  strokeWidth={isReference ? 1.5 : 2}
+                  dot={isReference ? false : { r: 3, fill: color, strokeWidth: 0 }}
+                  activeDot={isReference ? false : undefined}
                   connectNulls
                   label={
                     labelKey
