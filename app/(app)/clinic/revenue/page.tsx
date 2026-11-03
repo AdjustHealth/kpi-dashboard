@@ -228,7 +228,10 @@ export default async function RevenuePage({
                 seriesKeys={gymSeriesKeys}
                 format="currency"
                 height={260}
-                colors={[CATEGORICAL[0], ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
+                colors={[
+                  targetColor(latestGymTotal, gymCostFull, "higher") ?? CATEGORICAL[0],
+                  ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk),
+                ]}
                 referenceSeriesKeys={gymCostSeriesKeys}
               />
               {gymCostSeriesKeys.length < 3 && (
