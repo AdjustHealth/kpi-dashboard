@@ -39,6 +39,9 @@ export default async function RevenuePage({
   const costStaffRentGlofox = typeof targets.cost_staff_rent_glofox === "number" ? targets.cost_staff_rent_glofox : null;
   const costFull = typeof targets.cost_staff_rent_glofox_loan === "number" ? targets.cost_staff_rent_glofox_loan : null;
   const gymTarget = typeof targets.weekly_gym_revenue_target === "number" ? targets.weekly_gym_revenue_target : null;
+  const gymCostStaff = typeof targets.gym_cost_staff === "number" ? targets.gym_cost_staff : null;
+  const gymCostStaffRentGlofox = typeof targets.gym_cost_staff_rent_glofox === "number" ? targets.gym_cost_staff_rent_glofox : null;
+  const gymCostFull = typeof targets.gym_cost_staff_rent_glofox_loan === "number" ? targets.gym_cost_staff_rent_glofox_loan : null;
   const latest = history[history.length - 1] ?? {};
   const latestRevenue = typeof latest.total_rev === "number" ? latest.total_rev : null;
   const latestAdjustPod = typeof latest.total_adjust_pod_rev === "number" ? latest.total_adjust_pod_rev : latestRevenue;
@@ -82,15 +85,27 @@ export default async function RevenuePage({
 
   // Total Gym Income = Glofox Income + 3rd Party Gym Income — both manual
   // entries on Weekly Input, summed (not a subset of one another).
-  const gymSeriesKeys = ["Gym Total", "Glofox Income", "3rd Party"];
-  if (gymTarget !== null) gymSeriesKeys.push("Target");
+  //
+  // Break-even ladder, not one flat target — same reasoning as the clinic-
+  // wide "Revenue vs Cost Lines" chart: a single target line can't show
+  // WHICH costs gym income is actually covering, just whether it cleared
+  // one number. Three cumulative tiers (Staff, +Rent+Glofox, +Medfin Loan)
+  // show that directly.
+  const gymCostSeriesKeys: string[] = [];
+  if (gymCostStaff !== null) gymCostSeriesKeys.push("Staff");
+  if (gymCostStaffRentGlofox !== null) gymCostSeriesKeys.push("Staff + Rent + Glofox");
+  if (gymCostFull !== null) gymCostSeriesKeys.push("+ Medfin Loan");
+
+  const gymSeriesKeys = ["Gym Total", "Glofox Income", "3rd Party", ...gymCostSeriesKeys];
 
   const gymData = history.map((h) => ({
     label: formatWeekLabel(h.week_ending),
     "Gym Total": h.gym_total ?? null,
     "Glofox Income": h.m_glofox ?? null,
     "3rd Party": h.m_gym3p ?? null,
-    ...(gymTarget !== null ? { Target: gymTarget } : {}),
+    ...(gymCostStaff !== null ? { Staff: gymCostStaff } : {}),
+    ...(gymCostStaffRentGlofox !== null ? { "Staff + Rent + Glofox": gymCostStaffRentGlofox } : {}),
+    ...(gymCostFull !== null ? { "+ Medfin Loan": gymCostFull } : {}),
   }));
 
   const gym3pLatest = typeof latest.m_gym3p === "number" ? latest.m_gym3p : 0;
@@ -203,22 +218,18 @@ export default async function RevenuePage({
             </div>
           </div>
           <div className="mt-4">
-            <Card title="Gym Income Trend vs Target">
+            <Card title="Gym Income Trend vs Break-Even Tiers">
               <MultiLineChart
-                title="Gym Total = Glofox Income + 3rd Party vs Target"
+                title="Gym Total = Glofox Income + 3rd Party vs Staff / Staff+Rent+Glofox / +Medfin Loan"
                 data={gymData}
                 seriesKeys={gymSeriesKeys}
                 format="currency"
-                colors={[
-                  targetColor(latestGymTotal, gymTarget, "higher") ?? CATEGORICAL[0],
-                  CATEGORICAL[4],
-                  CATEGORICAL[3],
-                  ...(gymTarget !== null ? [CHART_CHROME.mutedInk] : []),
-                ]}
+                height={260}
               />
-              {gymTarget === null && (
+              {gymCostSeriesKeys.length < 3 && (
                 <p className="mt-2 text-[11px] text-muted">
-                  Set a Weekly Gym Revenue Target on the Targets page to show it here.
+                  Set the Gym break-even tiers (Staff / Staff + Rent + Glofox / + Medfin Loan) on the Targets page to
+                  show them all here.
                 </p>
               )}
             </Card>

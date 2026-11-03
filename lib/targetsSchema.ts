@@ -22,6 +22,12 @@ export const CLINIC_TARGET_FIELDS: TargetField[] = [
   { key: "cost_staff", label: "Staff Costs (weekly)", type: "currency" },
   { key: "cost_staff_rent_glofox", label: "Staff + Rent + Glofox (weekly)", type: "currency" },
   { key: "cost_staff_rent_glofox_loan", label: "Staff + Rent + Glofox + Loan (weekly)", type: "currency" },
+  // Same break-even ladder as above, but the Gym's own cost portion — plotted
+  // as reference lines on the Gym Income Trend chart instead of one flat
+  // target, so it's visible which cost tiers gym income is actually clearing.
+  { key: "gym_cost_staff", label: "Gym: Staff Costs (weekly)", type: "currency" },
+  { key: "gym_cost_staff_rent_glofox", label: "Gym: Staff + Rent + Glofox (weekly)", type: "currency" },
+  { key: "gym_cost_staff_rent_glofox_loan", label: "Gym: Staff + Rent + Glofox + Medfin Loan (weekly)", type: "currency" },
 ];
 
 /** Fixed provider target fields, on top of any per-provider specialty_metrics targets. */
