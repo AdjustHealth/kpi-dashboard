@@ -584,6 +584,36 @@ describe("parseClientsAndCasesReport", () => {
     expect(result.byProvider["Alex Example"].npbrRecommendationsTotal).toBe(2);
     expect(result.byProvider["Jamie Sample"].npbrRecommendationsTotal).toBe(1);
   });
+
+  it("without a provider keyword, newClientsForNpbr matches newClientsExclPreEmployment exactly — Pre-Employment is the only exclusion", () => {
+    const result = parseClientsAndCasesReport(CLIENTS_AND_CASES_CSV);
+    expect(result.byProvider["Alex Example"].newClientsForNpbr).toBe(result.byProvider["Alex Example"].newClientsExclPreEmployment);
+  });
+
+  it("a provider's npbrExcludeKeyword (e.g. Nick Baxter's vestibular referrals) drops a client from NPBR only — they still count as a real new patient", () => {
+    // Real bug: this used to be one shared `excluded` flag, so a
+    // keyword-matched client was silently dropped from newClientsExclPreEmployment
+    // (and new_patients) too, not just NPBR.
+    const csv = `Clients and Cases Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Details
+Client,Case,Payer,Location,New Client,New Case,Registration Form,Initial,Provider,Next,Bookings,Email,Receive Email,Mobile,Receive SMS,Followed-up,Client ID
+Vestib Client,Private - Vestib Physio,Private,Adjust Physiotherapy,Yes,Yes,No,29/06/2026,Nick Baxter,15/07/2026,1 Complete / 5 Total,v@example.com,No,0400 000 006,Yes,No,1006
+Regular Client,Private - Physio,Private,Adjust Physiotherapy,Yes,Yes,No,30/06/2026,Nick Baxter,,1 Complete / 2 Total,r@example.com,No,0400 000 007,Yes,No,1007
+
+`;
+    const result = parseClientsAndCasesReport(csv, { "Nick Baxter": /vestib/i });
+    const nick = result.byProvider["Nick Baxter"];
+    // Still a real new patient -- both Vestib Client and Regular Client count.
+    expect(nick.newClientsExclPreEmployment).toBe(2);
+    expect(nick.newClientNames).toContain("Vestib Client");
+    // But excluded from NPBR -- only Regular Client's booking counts.
+    expect(nick.newClientsForNpbr).toBe(1);
+    expect(nick.npbrRecommendationsTotal).toBe(2);
+  });
 });
 
 describe("parseActivityReport", () => {
