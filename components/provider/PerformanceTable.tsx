@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { formatValue } from "@/lib/format";
@@ -50,6 +50,13 @@ export function WeeklyScorecardTable({
   const currentIndex = history.length - 1;
   const [current, setCurrent] = useState<Record<string, unknown>>(history[currentIndex]?.[section] ?? {});
 
+  // Opens already scrolled to the newest (rightmost, editable) week instead
+  // of making every visit scroll all the way across the table by hand.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+  }, []);
+
   const { status, set } = useBatchedAutosave(async (patch) => {
     const res = await fetch("/api/provider-weekly", {
       method: "PATCH",
@@ -84,7 +91,7 @@ export function WeeklyScorecardTable({
 
   return (
     <Card title={title} action={<SaveIndicator status={status} />}>
-      <div className="overflow-x-auto">
+      <div ref={scrollRef} className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
