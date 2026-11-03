@@ -232,7 +232,7 @@ export default async function RevenuePage({
           <div className="mt-4">
             <Card
               title="Gym Income Trend vs Break-Even Tiers"
-              action={<TargetStatusBadge value={latestGymTotal} target={gymCostFull} betterWhen="higher" hitLabel="Covering Costs" missLabel="Not Covering Costs" />}
+              action={<TargetStatusBadge value={latestGymTotal} target={gymCostStaff} betterWhen="higher" hitLabel="Above Tier 1" missLabel="Below Tier 1" />}
             >
               <MultiLineChart
                 title="Gym Total vs Staff / Staff+Rent+Glofox / +Medfin Loan"
@@ -241,7 +241,7 @@ export default async function RevenuePage({
                 format="currency"
                 height={260}
                 colors={[
-                  targetColor(latestGymTotal, gymCostFull, "higher") ?? CATEGORICAL[0],
+                  targetColor(latestGymTotal, gymCostStaff, "higher") ?? CATEGORICAL[0],
                   ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk),
                 ]}
                 referenceSeriesKeys={gymCostSeriesKeys}
