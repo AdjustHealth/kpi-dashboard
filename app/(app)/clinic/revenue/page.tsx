@@ -10,7 +10,6 @@ import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
 import { getClinicHistory, getClinicTargets, getPodiatryYtdRevenue } from "@/lib/clinicData";
 import { clinicStatTile, toTrendSeries } from "@/components/dashboard/statHelpers";
 import { formatValue } from "@/lib/format";
-import { targetColor } from "@/lib/targetColor";
 import { PAYER_CATEGORY_LABELS } from "@/lib/nookal/payerCategories";
 import { formatWeekLabel, defaultWeekEnding, clinicHistoryWeeks } from "@/lib/week";
 import { requireSection } from "@/lib/auth/access";
@@ -158,10 +157,13 @@ export default async function RevenuePage({
                 format="currency"
                 height={260}
                 colors={[
-                  targetColor(latestTurnover, weeklyTarget, "higher") ?? CATEGORICAL[0],
+                  CATEGORICAL[0],
                   ...(weeklyTarget !== null ? [CHART_CHROME.mutedInk] : []),
                   ...(breakeven !== null ? [CATEGORICAL[2]] : []),
                 ]}
+                thresholdColoring={
+                  weeklyTarget !== null ? { seriesKey: "Total Turnover", thresholdKey: "Target", betterWhen: "higher" } : undefined
+                }
               />
               {(weeklyTarget === null || breakeven === null) && (
                 <p className="mt-2 text-[11px] text-muted">
@@ -190,8 +192,9 @@ export default async function RevenuePage({
                   seriesKeys={["Total Revenue", ...costSeriesKeys]}
                   format="currency"
                   height={260}
-                  colors={[targetColor(latestRevenue, costFull, "higher") ?? CATEGORICAL[0], ...costSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
+                  colors={[CATEGORICAL[0], ...costSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
                   referenceSeriesKeys={costSeriesKeys}
+                  thresholdColoring={costFull !== null ? { seriesKey: "Total Revenue", thresholdKey: "+ Loan", betterWhen: "higher" } : undefined}
                 />
               </Card>
             )}
@@ -240,11 +243,13 @@ export default async function RevenuePage({
                 seriesKeys={gymSeriesKeys}
                 format="currency"
                 height={260}
-                colors={[
-                  targetColor(latestGymTotal, gymCostStaffRentGlofox, "higher") ?? CATEGORICAL[0],
-                  ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk),
-                ]}
+                colors={[CATEGORICAL[0], ...gymCostSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
                 referenceSeriesKeys={gymCostSeriesKeys}
+                thresholdColoring={
+                  gymCostStaffRentGlofox !== null
+                    ? { seriesKey: "Gym Total", thresholdKey: "Staff + Rent + Glofox", betterWhen: "higher" }
+                    : undefined
+                }
               />
               {gymCostSeriesKeys.length < 3 && (
                 <p className="mt-2 text-[11px] text-muted">

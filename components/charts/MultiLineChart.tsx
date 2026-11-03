@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -27,6 +28,7 @@ export function MultiLineChart({
   pointLabelKeys,
   trendlineKey,
   referenceSeriesKeys,
+  thresholdColoring,
 }: {
   title: string;
   data: Record<string, unknown>[];
@@ -60,7 +62,19 @@ export function MultiLineChart({
    * and a third overlay would just be clutter — opt in per chart.
    */
   trendlineKey?: string;
+  /**
+   * Colors ONE series point-by-point (and segment-by-segment) against a
+   * per-row threshold, instead of one flat color for the whole line — e.g.
+   * a weekly figure that was above target some weeks and below others
+   * should actually show red where it dipped, not just reflect its latest
+   * value. `thresholdKey` names another key already in `data` holding that
+   * row's threshold (so a tier/target that itself varies works too, though
+   * a flat reference line's key works just as well). Real dips disappear
+   * entirely if this is left off and a flat `colors` entry is used instead.
+   */
+  thresholdColoring?: { seriesKey: string; thresholdKey: string; betterWhen: "higher" | "lower" };
 }) {
+  const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const trend = trendlineKey
     ? trendlineSeries(data.map((d) => (typeof d[trendlineKey] === "number" ? (d[trendlineKey] as number) : null)))
     : null;
@@ -75,6 +89,33 @@ export function MultiLineChart({
   const trendPct = trendlineKey
     ? trendlinePercentChange(data.map((d) => (typeof d[trendlineKey] === "number" ? (d[trendlineKey] as number) : null)))
     : null;
+
+  // Per-point status, and hard-edged gradient stops built from it — each
+  // segment between two points takes the ARRIVING point's color, so the
+  // transition lands exactly where the real crossing happened instead of
+  // smearing across the segment.
+  const thresholdColors = thresholdColoring
+    ? chartData.map((d) => {
+        const row = d as Record<string, unknown>;
+        const v = row[thresholdColoring.seriesKey];
+        const t = row[thresholdColoring.thresholdKey];
+        if (typeof v !== "number" || typeof t !== "number") return CHART_CHROME.mutedInk;
+        const met = thresholdColoring.betterWhen === "higher" ? v >= t : v <= t;
+        return met ? STATUS.good : STATUS.critical;
+      })
+    : null;
+  const gradientStops =
+    thresholdColors && thresholdColors.length > 1
+      ? thresholdColors.flatMap((color, i) => {
+          if (i === 0) return [];
+          const start = ((i - 1) / (thresholdColors.length - 1)) * 100;
+          const end = (i / (thresholdColors.length - 1)) * 100;
+          return [
+            { offset: start, color },
+            { offset: end, color },
+          ];
+        })
+      : null;
 
   return (
     <div className="rounded-lg border border-border bg-surface-raised p-3">
@@ -93,6 +134,15 @@ export function MultiLineChart({
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            {gradientStops && (
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                  {gradientStops.map((stop, i) => (
+                    <stop key={i} offset={`${stop.offset}%`} stopColor={stop.color} />
+                  ))}
+                </linearGradient>
+              </defs>
+            )}
             <CartesianGrid stroke={CHART_CHROME.gridline} vertical={false} />
             <XAxis
               dataKey="label"
@@ -122,14 +172,25 @@ export function MultiLineChart({
               const color = colors?.[i] ?? CATEGORICAL[i % CATEGORICAL.length];
               const labelKey = pointLabelKeys?.[i];
               const isReference = referenceSeriesKeys?.includes(key) ?? false;
+              const isThresholdColored = thresholdColoring?.seriesKey === key && gradientStops;
               return (
                 <Line
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={color}
+                  stroke={isThresholdColored ? `url(#${gradientId})` : color}
                   strokeWidth={isReference ? 1.5 : 2}
-                  dot={isReference ? false : { r: 3, fill: color, strokeWidth: 0 }}
+                  dot={
+                    isReference
+                      ? false
+                      : isThresholdColored
+                        ? (props: { cx?: number; cy?: number; index?: number }) => {
+                            const { cx, cy, index } = props;
+                            if (cx == null || cy == null || index == null) return <g key={`dot-${index}`} />;
+                            return <circle key={`dot-${index}`} cx={cx} cy={cy} r={3} fill={thresholdColors![index]} stroke="none" />;
+                          }
+                        : { r: 3, fill: color, strokeWidth: 0 }
+                  }
                   activeDot={isReference ? false : undefined}
                   connectNulls
                   label={
