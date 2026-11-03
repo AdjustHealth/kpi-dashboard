@@ -1,8 +1,13 @@
 export const PROGRAM_TRACKER_COACHES = ["Dean", "Sam", "Wilson", "Michael", "Lachlan"] as const;
-export const PROGRAM_TRACKER_TYPES = ["Rehab", "Performance", "Online", "Third Party", "Sponsored", "Youth", "Move Strong"] as const;
+// "Youth Sponsored" is distinct from both "Youth" (a real paying youth
+// member, see PROGRAM_TRACKER_PAID_TYPES below) and "Sponsored" (an adult
+// free member) -- a youth member who trains for free (e.g. a family member)
+// still needs their own category for visibility/reporting, but must NOT
+// count as a paying member the way plain "Youth" does.
+export const PROGRAM_TRACKER_TYPES = ["Rehab", "Performance", "Online", "Third Party", "Sponsored", "Youth", "Youth Sponsored", "Move Strong"] as const;
 export const PROGRAM_TRACKER_STATUSES = ["Active", "Hold"] as const;
 
-/** Membership types that count toward "Total paid" on the dashboard — matches the standalone site's own paidTypes list (normalised: lowercase, spaces/hyphens stripped). */
+/** Membership types that count toward "Total paid" on the dashboard — matches the standalone site's own paidTypes list (normalised: lowercase, spaces/hyphens stripped). "Youth Sponsored" is deliberately excluded, same as "Sponsored" -- it's a free membership. */
 export const PROGRAM_TRACKER_PAID_TYPES = ["rehab", "performance", "thirdparty", "movestrong", "youth"];
 
 /** Same normalisation as the standalone site's norm() — "Move Strong" -> "movestrong" — for comparing a stored type against PROGRAM_TRACKER_PAID_TYPES or another type name. */
