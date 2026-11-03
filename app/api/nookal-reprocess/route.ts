@@ -79,7 +79,20 @@ export async function POST(request: NextRequest) {
 
   const results: { report_type: NookalReportType; file_name: string; ok: boolean; error?: string; summary?: ApplyReportResult }[] = [];
 
-  for (const upload of latestByType.values()) {
+  // Process in REPROCESSABLE_TYPES' declared order, NOT the order each type
+  // was first uploaded that week (latestByType's natural Map order) — the
+  // online_bookings branch cross-references clients_and_cases's
+  // new_patient_names (already written to provider_weekly by the time
+  // online_bookings runs, since every iteration here is awaited in
+  // sequence), and that only works if clients_and_cases actually runs
+  // first. If online_bookings happened to be the week's first-ever upload,
+  // the old Map-order iteration would run it before clients_and_cases and
+  // silently fall back to the old "Initial"-only heuristic — exactly the
+  // bug that left 31/10 still showing the wrong Online count after a
+  // reprocess that should have fixed it.
+  for (const reportType of REPROCESSABLE_TYPES) {
+    const upload = latestByType.get(reportType);
+    if (!upload) continue;
     try {
       const { data: fileBlob, error: downloadError } = await supabase.storage
         .from("nookal-reports")
