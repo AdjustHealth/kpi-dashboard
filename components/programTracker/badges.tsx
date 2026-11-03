@@ -25,13 +25,13 @@ export function CoachBadge({ coach }: { coach: string | null }) {
   );
 }
 
-/** Youth and Move Strong get the same glow treatment as the standalone site — everything else is plain text. */
+/** Youth (and Youth Sponsored, grouped visually with it — same color, just the real label) and Move Strong get the same glow treatment as the standalone site — everything else is plain text. */
 export function TypeBadge({ type }: { type: string | null }) {
   const n = normType(type);
-  if (n === "youth")
+  if (n === "youth" || n === "youthsponsored")
     return (
       <span className="rounded-full border px-2 py-0.5 text-[11px] font-semibold" style={{ color: "#a6e22e", borderColor: "#a6e22e88", backgroundColor: "#a6e22e26", boxShadow: "0 0 8px #a6e22e40" }}>
-        Youth
+        {type}
       </span>
     );
   if (n === "movestrong")
