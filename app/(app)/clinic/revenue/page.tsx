@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { ColorKpiTile, KPI_ICON_PATHS } from "@/components/ui/ColorKpiTile";
 import { MultiLineChart } from "@/components/charts/MultiLineChart";
+import { TargetStatusBadge } from "@/components/charts/TargetStatusBadge";
 import { LineTrendChart } from "@/components/charts/LineTrendChart";
 import { StackedBarChart } from "@/components/charts/StackedBarChart";
 import { CATEGORICAL, CHART_CHROME } from "@/components/charts/palette";
@@ -146,7 +147,10 @@ export default async function RevenuePage({
             <StatTile {...clinicStatTile(history, "gym_total")} label="Gym Revenue" />
           </div>
           <div className="mt-4">
-            <Card title="Total Turnover vs Target & Break-Even">
+            <Card
+              title="Total Turnover vs Target & Break-Even"
+              action={<TargetStatusBadge value={latestTurnover} target={weeklyTarget} betterWhen="higher" />}
+            >
               <MultiLineChart
                 title="Total Turnover (Adjust + Podiatry + Gym) vs Target vs Break-Even"
                 data={turnoverData}
@@ -176,13 +180,18 @@ export default async function RevenuePage({
           <h2 className="mb-3 text-sm font-semibold text-foreground">Adjust</h2>
           <div className="flex flex-col gap-4">
             {costSeriesKeys.length > 0 && (
-              <Card title="Revenue vs Cost Lines">
+              <Card
+                title="Revenue vs Cost Lines"
+                action={<TargetStatusBadge value={latestRevenue} target={costFull} betterWhen="higher" hitLabel="Covering Costs" missLabel="Not Covering Costs" />}
+              >
                 <MultiLineChart
                   title="Total Revenue vs Staff / Staff+Rent+Glofox / +Loan"
                   data={costData}
                   seriesKeys={["Total Revenue", ...costSeriesKeys]}
                   format="currency"
                   height={260}
+                  colors={[targetColor(latestRevenue, costFull, "higher") ?? CATEGORICAL[0], ...costSeriesKeys.map(() => CHART_CHROME.mutedInk)]}
+                  referenceSeriesKeys={costSeriesKeys}
                 />
               </Card>
             )}
@@ -221,7 +230,10 @@ export default async function RevenuePage({
             </div>
           </div>
           <div className="mt-4">
-            <Card title="Gym Income Trend vs Break-Even Tiers">
+            <Card
+              title="Gym Income Trend vs Break-Even Tiers"
+              action={<TargetStatusBadge value={latestGymTotal} target={gymCostFull} betterWhen="higher" hitLabel="Covering Costs" missLabel="Not Covering Costs" />}
+            >
               <MultiLineChart
                 title="Gym Total vs Staff / Staff+Rent+Glofox / +Medfin Loan"
                 data={gymData}
