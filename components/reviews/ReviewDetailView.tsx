@@ -451,7 +451,7 @@ export function ReviewDetailView({
       )}
 
       {specialtyFields.length > 0 && (
-        <Card title="⭐ Specialty KPIs - Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
+        <Card title="Specialty KPIs - Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -512,7 +512,7 @@ export function ReviewDetailView({
       )}
 
       {hasBonusSummary && (
-        <Card title="💰 Bonus &amp; Growth" className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]">
+        <Card title="Bonus &amp; Growth" className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]">
           <div className="mb-4 flex flex-wrap gap-6">
             <div>
               <div className="text-[11px] uppercase tracking-wide text-muted">Cumulative Turnover</div>

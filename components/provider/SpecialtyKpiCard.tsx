@@ -70,7 +70,7 @@ export function SpecialtyKpiCard({
 
   return (
     <Card
-      title="⭐ Specialty KPIs"
+      title="Specialty KPIs"
       action={<SaveIndicator status={status} />}
       className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]"
     >
