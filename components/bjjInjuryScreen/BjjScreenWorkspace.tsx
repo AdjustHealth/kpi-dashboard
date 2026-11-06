@@ -29,16 +29,16 @@ const MOBILITY_FIELDS: [keyof BjjScreenFormData["mobility"], string][] = [
 ];
 
 const STRENGTH_FIELDS: [keyof BjjScreenFormData["strength"], string, string?][] = [
-  ["imtp", "IMTP — Peak Force ÷ BW", "×BW, from ForceDecks"],
-  ["standingShoulderYLeft", "Standing Shoulder Y — Left (ASH-Y)", "N — dynamometer"],
-  ["standingShoulderYRight", "Standing Shoulder Y — Right (ASH-Y)", "N — dynamometer"],
+  ["imtp", "IMTP - Peak Force ÷ BW", "×BW, from ForceDecks"],
+  ["standingShoulderYLeft", "Standing Shoulder Y - Left (ASH-Y)", "N - dynamometer"],
+  ["standingShoulderYRight", "Standing Shoulder Y - Right (ASH-Y)", "N - dynamometer"],
   ["maxPullUps", "Max Pull Ups", "reps"],
   ["maxPushUps", "Max Push Ups", "reps"],
-  ["gripStrengthKg", "Grip Strength (dominant hand)", "kg — dynamometer"],
+  ["gripStrengthKg", "Grip Strength (dominant hand)", "kg - dynamometer"],
 ];
 
 const POWER_FIELDS: [keyof BjjScreenFormData["power"], string, string?][] = [
-  ["cmjHeight", "CMJ — Jump Height", "cm"],
+  ["cmjHeight", "CMJ - Jump Height", "cm"],
   ["dropJumpRsi", "RSI Mod (Drop Jump)", "unitless, 2dp"],
 ];
 
@@ -79,10 +79,10 @@ function MetricResultRow({ label, result, sex }: { label: string; result: Metric
       </div>
       {result.benchmark ? (
         <p className="text-[11px] text-muted">
-          vs {result.benchmark.value} ({result.benchmark.confidence === "combat" ? "combat-sport data" : "general elite athletes"}) — {result.benchmark.source}
+          vs {result.benchmark.value} ({result.benchmark.confidence === "combat" ? "combat-sport data" : "general elite athletes"}) - {result.benchmark.source}
         </p>
       ) : (
-        sex && <p className="text-[11px] text-muted">No {sex} reference standard available yet — value is recorded but not scored.</p>
+        sex && <p className="text-[11px] text-muted">No {sex} reference standard available yet - value is recorded but not scored.</p>
       )}
     </div>
   );
@@ -177,26 +177,26 @@ export function BjjScreenWorkspace({
         <Field label="Assessment Date">
           <Input type="date" value={data.assessmentDate} onChange={(e) => setTop("assessmentDate", e.target.value)} />
         </Field>
-        <Field label="Sex" hint="Needed for the elite comparisons below — they differ by sex.">
+        <Field label="Sex" hint="Needed for the elite comparisons below - they differ by sex.">
           <Select value={data.sex} onChange={(e) => setTop("sex", e.target.value as Sex)}>
             <option value="">Not set</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
           </Select>
         </Field>
-        <Field label="Age Group" hint="Youth = 13-18. Only CMJ has a published youth reference — every other test still uses the adult benchmark, flagged on the report.">
+        <Field label="Age Group" hint="Youth = 13-18. Only CMJ has a published youth reference - every other test still uses the adult benchmark, flagged on the report.">
           <Select value={data.ageGroup} onChange={(e) => setTop("ageGroup", e.target.value as AgeGroup)}>
             <option value="">Not set</option>
             <option value="adult">Adult</option>
             <option value="youth">Youth (13-18)</option>
           </Select>
         </Field>
-        <Field label="Bodyweight" hint="kg — needed to normalise the Watt Bike test against elite data">
+        <Field label="Bodyweight" hint="kg - needed to normalise the Watt Bike test against elite data">
           <Input value={data.bodyweightKg} onChange={(e) => setTop("bodyweightKg", e.target.value)} placeholder="e.g. 82" />
         </Field>
       </SectionCard>
 
-      <SectionCard title="Injury Screen" hint="Pass or Fail per region — same quick regional screen used on the Youth/Performance report, not scored into the 0-10 domains below.">
+      <SectionCard title="Injury Screen" hint="Pass or Fail per region - same quick regional screen used on the Youth/Performance report, not scored into the 0-10 domains below.">
         {INJURY_REGIONS.map(([key, label]) => (
           <Field key={key} label={label}>
             <Select value={data.injuryScreen[key]} onChange={(e) => setInjury(key, e.target.value as InjuryResult)}>
@@ -228,13 +228,13 @@ export function BjjScreenWorkspace({
             </Select>
           </Field>
         ))}
-        <Field label="Ankle DF — Knee to Wall (Left)" hint="cm from wall to big toe, knee touching the wall">
+        <Field label="Ankle DF - Knee to Wall (Left)" hint="cm from wall to big toe, knee touching the wall">
           <Input
             value={data.mobility.ankleDfKneeToWallCmLeft}
             onChange={(e) => setValue("mobility", "ankleDfKneeToWallCmLeft", e.target.value)}
           />
         </Field>
-        <Field label="Ankle DF — Knee to Wall (Right)" hint="cm from wall to big toe, knee touching the wall">
+        <Field label="Ankle DF - Knee to Wall (Right)" hint="cm from wall to big toe, knee touching the wall">
           <Input
             value={data.mobility.ankleDfKneeToWallCmRight}
             onChange={(e) => setValue("mobility", "ankleDfKneeToWallCmRight", e.target.value)}
@@ -259,7 +259,7 @@ export function BjjScreenWorkspace({
       </SectionCard>
 
       <SectionCard title="Conditioning">
-        <Field label="3-Min Watt Bike — Average Power" hint="watts — also needs Bodyweight above (unlike the other tests, this one is scored per kg)">
+        <Field label="3-Min Watt Bike - Average Power" hint="watts - also needs Bodyweight above (unlike the other tests, this one is scored per kg)">
           <Input value={data.conditioning.wattBike3MinAvgWatts} onChange={(e) => setValue("conditioning", "wattBike3MinAvgWatts", e.target.value)} />
         </Field>
       </SectionCard>
@@ -270,27 +270,27 @@ export function BjjScreenWorkspace({
           <Badge tone={scoreTone(score.overall)}>{score.overall !== null ? `${score.overall}/10 overall` : "Not enough data yet"}</Badge>
         </div>
         {!data.sex && (
-          <p className="mb-4 text-xs text-muted">Set Sex above to compare against elite reference data — mobility ratings score regardless.</p>
+          <p className="mb-4 text-xs text-muted">Set Sex above to compare against elite reference data - mobility ratings score regardless.</p>
         )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <MetricResultRow label="IMTP (vs. bodyweight)" result={score.imtp} sex={data.sex} />
           <MetricResultRow label="CMJ Jump Height" result={score.cmjHeight} sex={data.sex} />
           <MetricResultRow label="RSI Mod (Drop Jump)" result={score.dropJumpRsi} sex={data.sex} />
-          <MetricResultRow label="Standing Shoulder Y — Left (ASH-Y)" result={score.standingShoulderYLeft} sex={data.sex} />
-          <MetricResultRow label="Standing Shoulder Y — Right (ASH-Y)" result={score.standingShoulderYRight} sex={data.sex} />
+          <MetricResultRow label="Standing Shoulder Y - Left (ASH-Y)" result={score.standingShoulderYLeft} sex={data.sex} />
+          <MetricResultRow label="Standing Shoulder Y - Right (ASH-Y)" result={score.standingShoulderYRight} sex={data.sex} />
           {score.standingShoulderYLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <span className="text-xs font-medium text-foreground">ASH-Y — L/R Deficit (LSI)</span>
+              <span className="text-xs font-medium text-foreground">ASH-Y - L/R Deficit (LSI)</span>
               <Badge tone={score.standingShoulderYLsi <= 10 ? "good" : score.standingShoulderYLsi <= 15 ? "warning" : "critical"}>{score.standingShoulderYLsi}%</Badge>
             </div>
           )}
           <MetricResultRow label="Max Pull Ups" result={score.maxPullUps} sex={data.sex} />
           <MetricResultRow label="Max Push Ups" result={score.maxPushUps} sex={data.sex} />
-          <MetricResultRow label="Ankle DF — Knee to Wall (L)" result={score.ankleDfLeft} sex={data.sex} />
-          <MetricResultRow label="Ankle DF — Knee to Wall (R)" result={score.ankleDfRight} sex={data.sex} />
+          <MetricResultRow label="Ankle DF - Knee to Wall (L)" result={score.ankleDfLeft} sex={data.sex} />
+          <MetricResultRow label="Ankle DF - Knee to Wall (R)" result={score.ankleDfRight} sex={data.sex} />
           {score.ankleDfLsi !== null && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <span className="text-xs font-medium text-foreground">Ankle DF — L/R Deficit (LSI)</span>
+              <span className="text-xs font-medium text-foreground">Ankle DF - L/R Deficit (LSI)</span>
               <Badge tone={score.ankleDfLsi <= 10 ? "good" : score.ankleDfLsi <= 15 ? "warning" : "critical"}>{score.ankleDfLsi}%</Badge>
             </div>
           )}

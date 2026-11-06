@@ -106,7 +106,7 @@ export function SeniorHeroSummary({
         )}
         {tierValues.length > 0 && (
           <p className="mt-1.5 text-[11px] text-muted">
-            Vertical ticks are the configured T1-T4 reference thresholds — confirm the exact bonus formula with the
+            Vertical ticks are the configured T1-T4 reference thresholds - confirm the exact bonus formula with the
             business before treating pacing vs. a tick as a bonus verdict.
           </p>
         )}

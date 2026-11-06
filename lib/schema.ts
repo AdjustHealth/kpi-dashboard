@@ -107,10 +107,10 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 30, id: "online_bookings_new", label: "New Clients Booked Online", source: "calc", type: "number", category: "Diary" },
 
   // Shared clinic data (from the senior-physio meeting spreadsheet — entered once, feeds every provider page)
-  { idx: 31, id: "cva_new_grads", label: "PVA — New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 32, id: "cva_2_5yr", label: "PVA — 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 33, id: "cva_ep", label: "PVA — EP", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
-  { idx: 34, id: "cva_massage", label: "PVA — Massage", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 31, id: "cva_new_grads", label: "PVA - New Grads", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 32, id: "cva_2_5yr", label: "PVA - 2-5yr", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 33, id: "cva_ep", label: "PVA - EP", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 34, id: "cva_massage", label: "PVA - Massage", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
   { idx: 35, id: "jbv_initial", label: "JBV Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 36, id: "jbv_sub", label: "JBV Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 37, id: "jbv_total", label: "JBV Total", source: "calc", type: "number", category: "Clinic" },
@@ -123,14 +123,14 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 40, id: "admin_email_optin_pct", label: "% of New Clients Subscribed (Email Opt-In)", source: "manual", type: "percent", category: "Admin" },
 
   // Revenue by payer (auto-populated from the Nookal Activity Report; see lib/nookal/payerCategories.ts)
-  { idx: 43, id: "rev_private", label: "Revenue — Private", source: "calc", type: "currency", category: "Payer" },
-  { idx: 44, id: "rev_medicare", label: "Revenue — Medicare", source: "calc", type: "currency", category: "Payer" },
-  { idx: 45, id: "rev_dva", label: "Revenue — DVA", source: "calc", type: "currency", category: "Payer" },
-  { idx: 46, id: "rev_workcover", label: "Revenue — WorkCover", source: "calc", type: "currency", category: "Payer" },
-  { idx: 47, id: "rev_ndis", label: "Revenue — NDIS", source: "calc", type: "currency", category: "Payer" },
-  { idx: 48, id: "rev_other", label: "Revenue — Other", source: "calc", type: "currency", category: "Payer" },
+  { idx: 43, id: "rev_private", label: "Revenue - Private", source: "calc", type: "currency", category: "Payer" },
+  { idx: 44, id: "rev_medicare", label: "Revenue - Medicare", source: "calc", type: "currency", category: "Payer" },
+  { idx: 45, id: "rev_dva", label: "Revenue - DVA", source: "calc", type: "currency", category: "Payer" },
+  { idx: 46, id: "rev_workcover", label: "Revenue - WorkCover", source: "calc", type: "currency", category: "Payer" },
+  { idx: 47, id: "rev_ndis", label: "Revenue - NDIS", source: "calc", type: "currency", category: "Payer" },
+  { idx: 48, id: "rev_other", label: "Revenue - Other", source: "calc", type: "currency", category: "Payer" },
 
-  { idx: 49, id: "cva_senior", label: "PVA — Senior (6+ yrs)", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
+  { idx: 49, id: "cva_senior", label: "PVA - Senior (6+ yrs)", source: "calc", type: "decimal", decimals: 2, category: "Clinic" },
 
   // Clinic-wide specialty consult counts (from the director's "SPECIALTY SERVICES CONSULTATIONS" tracker).
   // Vestibular/Headaches/Paeds/Women's Health all auto-fill from the Activity Report the same way JBV does —
@@ -152,12 +152,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // rows by payer type rather than individual client. No manual fields remain here — Podiatry
   // ageing debt isn't tracked here at all, and the director confirmed the manual Actual Private
   // entry isn't needed either.
-  { idx: 60, id: "ad_total_private", label: "Ageing Debt — Total Private", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 62, id: "ad_ndis", label: "Ageing Debt — NDIS", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt — 3rd Party 61-90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt — 3rd Party >90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 65, id: "ad_medicare_dva_31", label: "Ageing Debt — Medicare/DVA over 31 Days", source: "calc", type: "currency", category: "AgeingDebt" },
-  { idx: 66, id: "ad_total", label: "Total Ageing Debt — Adjust Only", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 60, id: "ad_total_private", label: "Ageing Debt - Total Private", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 62, id: "ad_ndis", label: "Ageing Debt - NDIS", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 63, id: "ad_3rd_party_61_90", label: "Ageing Debt - 3rd Party 61-90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 64, id: "ad_3rd_party_90", label: "Ageing Debt - 3rd Party >90 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 65, id: "ad_medicare_dva_31", label: "Ageing Debt - Medicare/DVA over 31 Days", source: "calc", type: "currency", category: "AgeingDebt" },
+  { idx: 66, id: "ad_total", label: "Total Ageing Debt - Adjust Only", source: "calc", type: "currency", category: "AgeingDebt" },
 
   { idx: 74, id: "specialty_womens_health_initial", label: "Women's Health Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 75, id: "specialty_womens_health_sub", label: "Women's Health Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
@@ -169,12 +169,12 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   { idx: 79, id: "specialty_hydro_initial", label: "Hydro Initial Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 80, id: "specialty_hydro_sub", label: "Hydro Subsequent Consults", source: "calc", type: "number", category: "Clinic" },
   { idx: 81, id: "specialty_hydro_total", label: "Hydro Total Consults", source: "calc", type: "number", category: "Clinic" },
-  { idx: 82, id: "admin_answered_calls_mon", label: "Answered Calls % — Monday", source: "manual", type: "percent", category: "Admin" },
-  { idx: 83, id: "admin_answered_calls_tue", label: "Answered Calls % — Tuesday", source: "manual", type: "percent", category: "Admin" },
-  { idx: 84, id: "admin_answered_calls_wed", label: "Answered Calls % — Wednesday", source: "manual", type: "percent", category: "Admin" },
-  { idx: 85, id: "admin_answered_calls_thu", label: "Answered Calls % — Thursday", source: "manual", type: "percent", category: "Admin" },
-  { idx: 86, id: "admin_answered_calls_fri", label: "Answered Calls % — Friday", source: "manual", type: "percent", category: "Admin" },
-  { idx: 87, id: "admin_answered_calls_sat", label: "Answered Calls % — Saturday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 82, id: "admin_answered_calls_mon", label: "Answered Calls % - Monday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 83, id: "admin_answered_calls_tue", label: "Answered Calls % - Tuesday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 84, id: "admin_answered_calls_wed", label: "Answered Calls % - Wednesday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 85, id: "admin_answered_calls_thu", label: "Answered Calls % - Thursday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 86, id: "admin_answered_calls_fri", label: "Answered Calls % - Friday", source: "manual", type: "percent", category: "Admin" },
+  { idx: 87, id: "admin_answered_calls_sat", label: "Answered Calls % - Saturday", source: "manual", type: "percent", category: "Admin" },
   // Podiatry revenue is only known fortnightly (collected/reconciled every
   // 2 weeks, in arrears) — the real, un-halved figure is typed in once,
   // on whichever week it comes in; the weekly-kpis PATCH handler then
@@ -198,8 +198,8 @@ export const CLINIC_SCHEMA: ClinicField[] = [
   // online-vs-phone signal (device/OS/browser metadata present = booked
   // online), just unscoped to new clients. all_bookings_online_pct is the
   // derived %, same generated-column pattern as online_bookings_pct.
-  { idx: 90, id: "all_bookings_total", label: "Bookings — All Channels", source: "calc", type: "number", category: "Diary" },
-  { idx: 91, id: "all_bookings_online", label: "Bookings — Booked Online", source: "calc", type: "number", category: "Diary" },
+  { idx: 90, id: "all_bookings_total", label: "Bookings - All Channels", source: "calc", type: "number", category: "Diary" },
+  { idx: 91, id: "all_bookings_online", label: "Bookings - Booked Online", source: "calc", type: "number", category: "Diary" },
   { idx: 92, id: "all_bookings_online_pct", label: "Bookings Online %", source: "calc", type: "percent", category: "Diary" },
 ];
 

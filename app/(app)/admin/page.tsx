@@ -29,7 +29,7 @@ export default async function AdminDirectoryPage({
       <PageHeader title="Admin" subtitle="Weekly meeting and KPIs for each admin staff member." />
       <div className="p-8">
         {providers.length === 0 ? (
-          <p className="text-sm text-muted">No active admin staff yet — add them on the Settings page.</p>
+          <p className="text-sm text-muted">No active admin staff yet - add them on the Settings page.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((provider) => (

@@ -72,7 +72,7 @@ export function ReprocessReportsCard() {
     if (toRun.length === 0) return;
     if (
       !window.confirm(
-        `This re-reads the selected ${toRun.length} week(s) of already-uploaded Cancellations/Clients & Cases/Activity/Last Attendances reports with today's full parsing logic (not just the fix you're chasing), and overwrites those weeks' stats — the same effect as re-uploading each file by hand, and it'll undo any manual correction made since. Only continue for weeks you know are affected. Continue?`
+        `This re-reads the selected ${toRun.length} week(s) of already-uploaded Cancellations/Clients & Cases/Activity/Last Attendances reports with today's full parsing logic (not just the fix you're chasing), and overwrites those weeks' stats - the same effect as re-uploading each file by hand, and it'll undo any manual correction made since. Only continue for weeks you know are affected. Continue?`
       )
     ) {
       return;
@@ -108,7 +108,7 @@ export function ReprocessReportsCard() {
         After a parsing fix ships (e.g. a corrected exclusion), past weeks keep their old numbers until the report
         that produced them is re-read. This re-reads a chosen week&apos;s Cancellations, Clients &amp; Cases,
         Activity, and Last Attendances files (already stored from their original upload) with today&apos;s full
-        logic — not just the fix you&apos;re chasing — so{" "}
+        logic - not just the fix you&apos;re chasing - so{" "}
         <span className="font-semibold text-foreground">only tick the week(s) you actually know are affected</span>,
         not everything. It will also undo any manual correction made to that week since.
       </p>

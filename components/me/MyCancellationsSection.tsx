@@ -50,7 +50,7 @@ export function MyCancellationsSection({ week }: { week: string }) {
 
   if (state.status === "loading") {
     return (
-      <Card title={`Cancellations — ${weekLabel}`}>
+      <Card title={`Cancellations - ${weekLabel}`}>
         <p className="text-sm text-muted">Loading…</p>
       </Card>
     );
@@ -62,7 +62,7 @@ export function MyCancellationsSection({ week }: { week: string }) {
 
   return (
     <>
-      <Card title={`Cancellations — ${weekLabel}${state.cancellations.length > 0 ? ` (${state.cancellations.length})` : ""}`}>
+      <Card title={`Cancellations - ${weekLabel}${state.cancellations.length > 0 ? ` (${state.cancellations.length})` : ""}`}>
         {state.cancellations.length === 0 ? (
           <p className="text-sm text-muted">No cancellations or DNAs of yours this week.</p>
         ) : (
@@ -70,7 +70,7 @@ export function MyCancellationsSection({ week }: { week: string }) {
         )}
       </Card>
       <MyFollowUpsCard rows={state.followUps} />
-      <Card title={`Unretained — No Future Booking${state.unretained.length > 0 ? ` (${state.unretained.length})` : ""}`}>
+      <Card title={`Unretained - No Future Booking${state.unretained.length > 0 ? ` (${state.unretained.length})` : ""}`}>
         {state.unretained.length === 0 ? (
           <p className="text-sm text-muted">No clients currently sitting without a future booking.</p>
         ) : (

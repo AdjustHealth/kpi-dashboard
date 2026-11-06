@@ -40,9 +40,9 @@ export function MyFollowUpsCard({ rows }: { rows: FollowUpRow[] }) {
   }
 
   return (
-    <Card title={`Following Up — No Booking Since${localRows.length > 0 ? ` (${localRows.length})` : ""}`}>
+    <Card title={`Following Up - No Booking Since${localRows.length > 0 ? ` (${localRows.length})` : ""}`}>
       {localRows.length === 0 ? (
-        <p className="text-sm text-muted">No one on this list for the week — everyone who attended has a future booking.</p>
+        <p className="text-sm text-muted">No one on this list for the week - everyone who attended has a future booking.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
@@ -68,7 +68,7 @@ export function MyFollowUpsCard({ rows }: { rows: FollowUpRow[] }) {
                     <button
                       type="button"
                       onClick={() => toggleDealtWith(row)}
-                      title={row.dealt_with ? "Mark as not yet dealt with" : "Mark as dealt with — stays visible for the rest of the week"}
+                      title={row.dealt_with ? "Mark as not yet dealt with" : "Mark as dealt with - stays visible for the rest of the week"}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-colors"
                       style={
                         row.dealt_with
@@ -86,7 +86,7 @@ export function MyFollowUpsCard({ rows }: { rows: FollowUpRow[] }) {
         </div>
       )}
       <p className="mt-3 text-xs text-muted">
-        Each week&apos;s list is its own — nothing carries over. Next week&apos;s upload starts a fresh list, and this one stays exactly as you left it.
+        Each week&apos;s list is its own - nothing carries over. Next week&apos;s upload starts a fresh list, and this one stays exactly as you left it.
       </p>
     </Card>
   );

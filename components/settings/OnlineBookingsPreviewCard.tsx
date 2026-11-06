@@ -54,7 +54,7 @@ export function OnlineBookingsPreviewCard() {
   return (
     <Card title="Preview: Online vs. Phone / In-Person split">
       <p className="text-xs text-muted">
-        Read-only — re-reads each week&apos;s already-uploaded Online Bookings Report with today&apos;s logic
+        Read-only - re-reads each week&apos;s already-uploaded Online Bookings Report with today&apos;s logic
         (cross-referenced against the real new-client list) and shows what would change, without writing anything.
         Use &quot;Reprocess past reports&quot; above to actually apply a week shown as changed here.
       </p>

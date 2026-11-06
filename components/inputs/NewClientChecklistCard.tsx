@@ -90,9 +90,9 @@ export function NewClientChecklistCard({ week }: { week: string }) {
     <Card title="New Client Checklist">
       <p className="mb-4 text-xs text-muted">
         Auto-populated from this week&apos;s new clients (Pre-Employment already excluded). Tick each box as it&apos;s
-        done — Onboarding Videos Sent (OBV) % and Follow-up Calls % below are calculated from this and feed straight
+        done - Onboarding Videos Sent (OBV) % and Follow-up Calls % below are calculated from this and feed straight
         into the admin meeting sheets. Online Bookings is tracked separately now, straight from Nookal&apos;s own
-        Online Bookings Report upload — nothing to tick here for it.
+        Online Bookings Report upload - nothing to tick here for it.
       </p>
 
       {error ? (

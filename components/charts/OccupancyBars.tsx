@@ -59,7 +59,7 @@ export function OccupancyBars({ rows, target = 0.85 }: { rows: OccupancyRow[]; t
         );
       })}
       <div className="flex items-center gap-1.5 text-[11px] text-muted">
-        <span className="inline-block h-3 w-0.5 bg-foreground/70" /> Target (varies by service line — see above)
+        <span className="inline-block h-3 w-0.5 bg-foreground/70" /> Target (varies by service line - see above)
       </div>
     </div>
   );

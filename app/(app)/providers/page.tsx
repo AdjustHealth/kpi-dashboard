@@ -27,7 +27,7 @@ export default async function ProvidersPage({
       <PageHeader title="Providers" subtitle="Choose a provider to view their weekly meeting." />
       <div className="p-8">
         {providers.length === 0 ? (
-          <p className="text-sm text-muted">No active providers yet — add them on the Settings page.</p>
+          <p className="text-sm text-muted">No active providers yet - add them on the Settings page.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((provider) => (

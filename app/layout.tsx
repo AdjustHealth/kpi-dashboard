@@ -23,7 +23,7 @@ const barlowCondensed = Barlow_Condensed({
 
 export const metadata: Metadata = {
   title: "Adjust Health OS",
-  description: "Adjust Health internal operating system — weekly input, KPI dashboards, and provider meetings.",
+  description: "Adjust Health internal operating system - weekly input, KPI dashboards, and provider meetings.",
 };
 
 export default function RootLayout({

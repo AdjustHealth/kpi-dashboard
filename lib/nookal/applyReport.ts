@@ -803,7 +803,7 @@ export async function applyNookalReport(
     clinicFieldsUpdated: Object.keys(clinicPatch),
     warning:
       rowsFound === 0
-        ? "No matching rows were found in this file — check it's the correct report type and covers the week you're uploading it against."
+        ? "No matching rows were found in this file - check it's the correct report type and covers the week you're uploading it against."
         : undefined,
   };
 }

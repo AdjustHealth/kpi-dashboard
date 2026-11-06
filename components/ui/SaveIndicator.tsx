@@ -9,7 +9,7 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
   const map = {
     saving: { color: "#9a9aa3", text: "Saving…" },
     saved: { color: STATUS.good, text: "Saved" },
-    error: { color: STATUS.critical, text: "Couldn't save — retrying" },
+    error: { color: STATUS.critical, text: "Couldn't save - retrying" },
   } as const;
   const { color, text } = map[status];
   return (

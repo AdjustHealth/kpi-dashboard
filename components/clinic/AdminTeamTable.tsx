@@ -16,7 +16,7 @@ export function AdminTeamTable({ rows, targets }: { rows: AdminTeamRow[]; target
   if (rows.length === 0) return null;
 
   return (
-    <Card title="Admin Team — This Week">
+    <Card title="Admin Team - This Week">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>

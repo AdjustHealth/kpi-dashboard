@@ -150,7 +150,7 @@ export default async function MyDashboardPage({ searchParams }: { searchParams: 
 
         {gymError && <p className="text-sm text-danger">Could not load your coaching load: {gymError}</p>}
         {gymCounts && (
-          <Card title="Adjust Gym — Your Coaching Load">
+          <Card title="Adjust Gym - Your Coaching Load">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <ColorKpiTile label="Active" value={gymCounts.active} color="var(--success)" iconPath={KPI_ICON_PATHS.active} />
               <ColorKpiTile label="On Hold" value={gymCounts.onHold} color="var(--muted)" iconPath={KPI_ICON_PATHS.hold} />

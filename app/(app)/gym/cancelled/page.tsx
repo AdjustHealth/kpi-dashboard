@@ -37,7 +37,7 @@ export default async function GymCancelledPage() {
         {error ? (
           <p className="text-sm text-danger">Could not load cancelled members: {error.message}</p>
         ) : !data || data.length === 0 ? (
-          <EmptyState icon={CANCELLED_ICON} message="No cancelled members — everyone removed from the tracker will show up here." />
+          <EmptyState icon={CANCELLED_ICON} message="No cancelled members - everyone removed from the tracker will show up here." />
         ) : (
           <div className="overflow-hidden rounded-xl border border-border">
             <div className="border-b border-border bg-surface-raised px-4 py-2.5 text-sm font-semibold text-foreground">

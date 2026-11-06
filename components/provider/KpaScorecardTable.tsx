@@ -151,7 +151,7 @@ export function KpaScorecardTable({
                     {i > 0 && <span className="mr-1.5 h-px w-3 bg-border" aria-hidden />}
                     <button
                       type="button"
-                      title={`${formatWeekLabel(w.week_ending)}${rating ? ` — ${KPA_RATING_LABELS[rating]}` : ""}`}
+                      title={`${formatWeekLabel(w.week_ending)}${rating ? ` - ${KPA_RATING_LABELS[rating]}` : ""}`}
                       onClick={() => isCurrent && setOpenKey(openKey === field.key ? null : field.key)}
                       className={`h-3.5 w-3.5 rounded-full border-2 transition-transform ${
                         isCurrent ? "cursor-pointer hover:scale-125" : "cursor-default"

@@ -85,7 +85,7 @@ export function RoleOverrideTargetsCard({ group, initialValues }: { group: RoleT
           </div>
         </>
       ) : (
-        <p className="text-xs text-muted">Toggle on to set custom targets for {group.label.toLowerCase()} — e.g. a different Completed Consults target.</p>
+        <p className="text-xs text-muted">Toggle on to set custom targets for {group.label.toLowerCase()} - e.g. a different Completed Consults target.</p>
       )}
     </Card>
   );

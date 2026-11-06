@@ -107,7 +107,7 @@ export function BonusTierCard({
               )
           )}
           <span className="self-end text-[11px] text-muted">
-            Reference thresholds for the directors to compare against the specialty metric — confirm the exact bonus formula with the business before automating a &ldquo;tier reached&rdquo; verdict.
+            Reference thresholds for the directors to compare against the specialty metric - confirm the exact bonus formula with the business before automating a &ldquo;tier reached&rdquo; verdict.
           </span>
         </div>
       )}

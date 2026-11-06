@@ -55,14 +55,14 @@ export function ProviderCharts({
           <MultiLineChart title="PVA vs NCVA" data={cvaVsNcvaData} seriesKeys={["PVA", "NCVA"]} format="decimal" decimals={1} height={160} />
           <p className="text-[11px] text-muted">
             PVA: visits per client across the whole caseload. NCVA: visits per new client only, excluding
-            pre-employment/corporate-screening patients and gym classes — both are efficiency numbers, not retention
+            pre-employment/corporate-screening patients and gym classes - both are efficiency numbers, not retention
             ones: a provider with few new patients and a big loyal existing base can score as high as one bringing
             in plenty of new patients who stick. If NCVA runs well below PVA, new clients specifically aren&apos;t
             rebooking as often as the existing caseload.
           </p>
         </div>
         <LineTrendChart
-          title="NCVA — 4wk Rolling Avg"
+          title="NCVA - 4wk Rolling Avg"
           data={rollingSeries(history, "ncva")}
           format="decimal"
           decimals={1}
@@ -104,7 +104,7 @@ export function ProviderCharts({
           <div className="flex flex-col gap-1.5">
             <LineTrendChart title="Drop Out Rate" data={dropOutRateHistory} format="percent" colorIndex={1} accent />
             <p className="text-[11px] text-muted">
-              % of that week&apos;s distinct cancelling clients still without a future booking — updates as clients get
+              % of that week&apos;s distinct cancelling clients still without a future booking - updates as clients get
               rebooked and resolved from the Unretained list above.
             </p>
           </div>

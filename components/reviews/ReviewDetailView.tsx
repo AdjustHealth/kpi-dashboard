@@ -227,7 +227,7 @@ export function ReviewDetailView({
       </div>
 
       {goalsReflection.length > 0 && (
-        <Card title="Goals Reflection — From Last Review">
+        <Card title="Goals Reflection - From Last Review">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -273,9 +273,9 @@ export function ReviewDetailView({
       )}
 
       {kpaGroups.map((group) => (
-        <Card key={group.title} title={`${group.title} — Rolling Averages`}>
+        <Card key={group.title} title={`${group.title} - Rolling Averages`}>
           <p className="mb-3 text-xs text-muted">
-            Auto-computed as a weighted average of the weekly ratings in each window (ties round down) — click a dot
+            Auto-computed as a weighted average of the weekly ratings in each window (ties round down) - click a dot
             to override it.
           </p>
           <div className="flex flex-col divide-y divide-border/60">
@@ -298,7 +298,7 @@ export function ReviewDetailView({
                         {i > 0 && <span className="mr-1.5 h-px w-3 bg-border" aria-hidden />}
                         <button
                           type="button"
-                          title={`${w.label}${rating ? ` — ${KPA_RATING_LABELS[rating]}` : ""}`}
+                          title={`${w.label}${rating ? ` - ${KPA_RATING_LABELS[rating]}` : ""}`}
                           onClick={() => setOpenKey(openKey === cellKey ? null : cellKey)}
                           className={`h-3.5 w-3.5 cursor-pointer rounded-full border-2 transition-transform hover:scale-125 ${!rating ? "border-dashed" : ""}`}
                           style={{ backgroundColor: color ?? "transparent", borderColor: color ?? "var(--color-border)" }}
@@ -365,11 +365,11 @@ export function ReviewDetailView({
         </Card>
       ))}
 
-      <Card title="KPI Scorecard — Rolling Averages">
+      <Card title="KPI Scorecard - Rolling Averages">
         {previousReview && (
           <p className="mb-3 text-xs text-muted">
             &quot;vs Last Review&quot; compares this review&apos;s 6-month figure against the provider&apos;s review on{" "}
-            {formatWeekLabel(previousReview.reviewDate)} — how they&apos;ve actually gone since last time, not the
+            {formatWeekLabel(previousReview.reviewDate)} - how they&apos;ve actually gone since last time, not the
             weekly trend within this one review.
           </p>
         )}
@@ -433,7 +433,7 @@ export function ReviewDetailView({
 
       {kpiFieldsWithTargets.length > 0 && (
         <Card title="KPI Progress vs Target">
-          <p className="mb-3 text-xs text-muted">Same numbers as the table above, shown against target — the {windows[0].label.toLowerCase()} window.</p>
+          <p className="mb-3 text-xs text-muted">Same numbers as the table above, shown against target - the {windows[0].label.toLowerCase()} window.</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {kpiFieldsWithTargets.map((field) => (
               <KpiProgressBar
@@ -451,7 +451,7 @@ export function ReviewDetailView({
       )}
 
       {specialtyFields.length > 0 && (
-        <Card title="⭐ Specialty KPIs — Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
+        <Card title="⭐ Specialty KPIs - Rolling Averages" className="border-2 border-accent-secondary/50 bg-accent-secondary/[0.05]">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -555,7 +555,7 @@ export function ReviewDetailView({
 
           <div className="border-t border-amber-400/30 pt-4">
             <p className="mb-3 text-xs text-muted">
-              Reference numbers only — confirm against the actual bonus formula before deciding. This isn&apos;t computed
+              Reference numbers only - confirm against the actual bonus formula before deciding. This isn&apos;t computed
               automatically.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -621,7 +621,7 @@ export function ReviewDetailView({
       <Card title="New Performance Review Goals">
         <p className="mb-4 text-xs text-muted">
           These carry over to {provider.name.split(" ")[0]}&apos;s weekly Goals card (all starting &quot;Not
-          Started&quot;) when the review is completed — every goal set here also stays on this review record
+          Started&quot;) when the review is completed - every goal set here also stays on this review record
           regardless.
         </p>
         {(["short_term", "long_term"] as const).map((term) => (
