@@ -112,7 +112,7 @@ export function TopicRow({
   }
 
   async function deleteTopic() {
-    if (!window.confirm(`Delete "${name}"? This also removes everyone's completion record for it — that can't be undone.`)) return;
+    if (!window.confirm(`Delete "${name}"? This also removes everyone's completion record for it - that can't be undone.`)) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/training/topics/${topicId}`, { method: "DELETE" });
@@ -185,7 +185,7 @@ export function TopicRow({
           const style = done
             ? "bg-success text-background"
             : "border border-dashed border-border text-muted";
-          const title = done ? `${p.name} — completed ${done.completed_at}${done.marked_by ? ` by ${done.marked_by}` : ""}` : `${p.name} — not started`;
+          const title = done ? `${p.name} - completed ${done.completed_at}${done.marked_by ? ` by ${done.marked_by}` : ""}` : `${p.name} - not started`;
           return canEdit ? (
             <button
               key={p.id}

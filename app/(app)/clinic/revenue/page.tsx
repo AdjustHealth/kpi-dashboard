@@ -132,7 +132,7 @@ export default async function RevenuePage({
       <div className="flex flex-col gap-8 p-8">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Total Turnover</h2>
-          <p className="mb-3 text-xs text-muted">Adjust clinic revenue + Podiatry revenue + Gym revenue combined — matches the weekly finance sheet.</p>
+          <p className="mb-3 text-xs text-muted">Adjust clinic revenue + Podiatry revenue + Gym revenue combined - matches the weekly finance sheet.</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
               label="Total Turnover"
@@ -204,7 +204,7 @@ export default async function RevenuePage({
                 <StackedBarChart title="Payer Mix Over Time" data={payerTrendData} seriesKeys={payerSeriesKeys} format="currency" />
               ) : (
                 <p className="text-xs text-muted">
-                  No revenue-by-payer data yet — upload the Activity Report on Weekly Input to populate it.
+                  No revenue-by-payer data yet - upload the Activity Report on Weekly Input to populate it.
                 </p>
               )}
             </Card>
@@ -269,7 +269,7 @@ export default async function RevenuePage({
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">Podiatry</h2>
           <p className="mb-3 text-xs text-muted">
-            Revenue is only known fortnightly — entered once as the real total, then split in half automatically
+            Revenue is only known fortnightly - entered once as the real total, then split in half automatically
             into that week and the previous week. YTD is a running sum of those weekly figures since the start of
             the current financial year (1 July), not a separately-entered number.
           </p>

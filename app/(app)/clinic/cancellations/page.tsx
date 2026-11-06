@@ -28,19 +28,19 @@ export default async function CancellationsPage({
 
   return (
     <>
-      <PageHeader title="Cancellations" subtitle="Every cancellation and DNA this week — scroll through with the admin team." />
+      <PageHeader title="Cancellations" subtitle="Every cancellation and DNA this week - scroll through with the admin team." />
       <div className="flex flex-col gap-6 p-8">
         {rows.length === 0 ? (
           <Card>
             <p className="text-sm text-muted">
-              No cancellations data for this week yet — upload the Cancellations report on Weekly Input.
+              No cancellations data for this week yet - upload the Cancellations report on Weekly Input.
             </p>
           </Card>
         ) : (
           <>
             <p className="text-xs text-muted">
               {cancelled.length} cancellations, {dnas.length} DNAs for the week ending {formatWeekLabel(week)}. This
-              is every raw row from the Cancellations report — not deduped or filtered like the KPI stats elsewhere
+              is every raw row from the Cancellations report - not deduped or filtered like the KPI stats elsewhere
               in the app, so a client with several cancelled services in one go shows up more than once here. Click
               a column heading to sort.
             </p>

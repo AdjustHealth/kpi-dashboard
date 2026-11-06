@@ -164,7 +164,7 @@ export default async function ClinicHealthPage({
               colorIndex={1}
             />
             <MultiLineChart
-              title="New Clients — Online vs. Phone / In-Person"
+              title="New Clients - Online vs. Phone / In-Person"
               data={newClientsOnlineData}
               seriesKeys={["Online", "Phone / In-Person", "Total New Patients"]}
               format="number"
@@ -172,7 +172,7 @@ export default async function ClinicHealthPage({
           </div>
         </Card>
 
-        <Card title="Occupancy by Service Line — this week">
+        <Card title="Occupancy by Service Line - this week">
           <OccupancyBars rows={occupancyRows} />
         </Card>
 
@@ -188,13 +188,13 @@ export default async function ClinicHealthPage({
             <StatTile
               label="Clinic-wide TPR"
               value={formatValue(cvaRollup.avgTpr, "currency")}
-              sublabel="avg per provider — each provider's TPR is already a total (e.g. 5 consults x $100 = $500)"
+              sublabel="avg per provider - each provider's TPR is already a total (e.g. 5 consults x $100 = $500)"
             />
           </div>
           <div className="mt-4">
             <Card title="PVA by Provider Tier">
               <p className="mb-3 text-xs text-muted">
-                Patient Visit Average (excl. pre-employment) by New Grad / 2-5yr / Senior (6+yr) / Massage / EP — this displays efficiency.
+                Patient Visit Average (excl. pre-employment) by New Grad / 2-5yr / Senior (6+yr) / Massage / EP - this displays efficiency.
               </p>
               <MultiLineChart
                 title="PVA by Tier"
@@ -214,7 +214,7 @@ export default async function ClinicHealthPage({
           </div>
           {providerCvaHistory.length > 0 && (
             <div className="mt-4">
-              <Card title="PVA by Individual Provider — This Week">
+              <Card title="PVA by Individual Provider - This Week">
                 <p className="mb-3 text-xs text-muted">
                   Every clinician ranked by PVA, coloured by tier (New Grad / 2-5yr / Senior / Massage / EP) so
                   same-tier providers share a colour. Trend over time is the tier chart above.
@@ -234,7 +234,7 @@ export default async function ClinicHealthPage({
           )}
           {providerNcvaHistory.length > 0 && (
             <div className="mt-4">
-              <Card title="NCVA by Individual Provider — This Week">
+              <Card title="NCVA by Individual Provider - This Week">
                 <p className="mb-3 text-xs text-muted">
                   Every clinician ranked by NCVA, coloured by tier the same way as the PVA chart above.
                 </p>
@@ -254,9 +254,9 @@ export default async function ClinicHealthPage({
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Ageing Debts — Adjust</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Ageing Debts - Adjust</h2>
           <p className="mb-3 text-xs text-muted">
-            Numbers only — Podiatry ageing debt isn&apos;t tracked here (see Weekly Input).
+            Numbers only - Podiatry ageing debt isn&apos;t tracked here (see Weekly Input).
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile {...clinicStatTile(history, "ad_total", "down")} label="Total Ageing Debt" />
@@ -325,7 +325,7 @@ export default async function ClinicHealthPage({
 
         {newClientsByProvider.length > 0 && (
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-foreground">New Clients This Week — by Provider</h2>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">New Clients This Week - by Provider</h2>
             <Card>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {newClientsByProvider.map((p) => (

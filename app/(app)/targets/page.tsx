@@ -30,7 +30,7 @@ export default async function TargetsPage() {
         <div className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-foreground">Role Targets</h2>
           <p className="text-xs text-muted">
-            One shared target set per group — change it once here and it applies to everyone in that group, instead of
+            One shared target set per group - change it once here and it applies to everyone in that group, instead of
             editing every individual provider.
           </p>
           {ROLE_TARGET_GROUPS.map((group) =>
@@ -46,7 +46,7 @@ export default async function TargetsPage() {
           <div className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold text-foreground">Individual Targets</h2>
             <p className="text-xs text-muted">
-              Only things that genuinely differ person to person — bonus tier thresholds, specialty targets, annual
+              Only things that genuinely differ person to person - bonus tier thresholds, specialty targets, annual
               turnover, working weeks.
             </p>
             {individualProviders.map((provider) => (

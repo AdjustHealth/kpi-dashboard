@@ -44,7 +44,7 @@ export function MyGoalsCard({ goals }: { goals: Goal[] }) {
   if (shortTerm.length === 0 && longTerm.length === 0) {
     return (
       <Card title="Your Goals">
-        <p className="text-sm text-muted">No goals set yet — these get added at your next performance review.</p>
+        <p className="text-sm text-muted">No goals set yet - these get added at your next performance review.</p>
       </Card>
     );
   }

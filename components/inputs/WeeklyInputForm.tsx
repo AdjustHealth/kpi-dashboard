@@ -77,7 +77,7 @@ export function WeeklyInputForm({
 
       <div className="flex items-center justify-between rounded-lg border border-border bg-surface-raised px-4 py-2.5">
         <span className="text-sm text-muted">
-          Editing week ending <span className="font-medium text-foreground">{formatWeekLabel(week)}</span> — everything
+          Editing week ending <span className="font-medium text-foreground">{formatWeekLabel(week)}</span> - everything
           above autosaves as you type.
         </span>
         <div className="flex items-center gap-3">
@@ -102,7 +102,7 @@ export function WeeklyInputForm({
       <div>
         <h2 className="mb-1 text-sm font-semibold text-foreground">Manual Entry</h2>
         <p className="mb-3 text-xs text-muted">
-          These numbers aren&apos;t in any Nookal report — they need to be typed in every week.
+          These numbers aren&apos;t in any Nookal report - they need to be typed in every week.
         </p>
         <div className="flex flex-col gap-6">
           <Card title="Gym">
@@ -140,7 +140,7 @@ export function WeeklyInputForm({
             <h3 className="text-sm font-semibold text-foreground">Provider Meeting Prep</h3>
             {providers.filter((p) => p.role !== "admin").length === 0 && (
               <p className="text-sm text-muted">
-                No active clinicians yet — add them on the Settings page.
+                No active clinicians yet - add them on the Settings page.
               </p>
             )}
             {providers.filter((p) => p.role !== "admin").map((provider) => (
@@ -159,7 +159,7 @@ export function WeeklyInputForm({
             <h3 className="text-sm font-semibold text-foreground">Admin Meeting Prep</h3>
             <p className="text-xs text-muted">
               Entered once, shown identically on every admin staff member&apos;s page. Rx Notes Made is each
-              admin&apos;s own number — edit that on their individual page instead.
+              admin&apos;s own number - edit that on their individual page instead.
             </p>
             <NewClientChecklistCard week={week} />
             <Card title="Admin">
@@ -177,7 +177,7 @@ export function WeeklyInputForm({
               />
               <div className="mt-5 rounded-lg border border-dashed border-accent/40 bg-accent/5 p-4">
                 <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-accent">
-                  Answered Calls — Daily
+                  Answered Calls - Daily
                 </h4>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                   {getClinicFieldsByCategory("Admin")
@@ -185,7 +185,7 @@ export function WeeklyInputForm({
                     .map((f) => (
                       <NumberField
                         key={f.id}
-                        label={f.label.replace("Answered Calls % — ", "").slice(0, 3)}
+                        label={f.label.replace("Answered Calls % - ", "").slice(0, 3)}
                         type={f.type === "date" ? "number" : f.type}
                         decimals={f.decimals}
                         value={weekly[f.id] as number | null | undefined}
@@ -203,7 +203,7 @@ export function WeeklyInputForm({
       <div>
         <h2 className="mb-1 text-sm font-semibold text-foreground">Auto-Filled from CSV Reports</h2>
         <p className="mb-3 text-xs text-muted">
-          Populated by the report uploads above — check them, but you shouldn&apos;t normally need to type into these.
+          Populated by the report uploads above - check them, but you shouldn&apos;t normally need to type into these.
         </p>
         <div className="flex flex-col gap-6">
           <Card title="Clinic Activity &amp; Occupancy">
@@ -225,7 +225,7 @@ export function WeeklyInputForm({
             <ClinicFieldGrid fields={getClinicFieldsByCategory("CX")} values={weekly} onChange={onChange} />
           </Card>
 
-          <Card title="Ageing Debts — Adjust (Auto)">
+          <Card title="Ageing Debts - Adjust (Auto)">
             <p className="mb-4 text-xs text-muted">
               Bucketed from the Aged Debtors report by payer (Private / NDIS / 3rd Party / Medicare-DVA), same
               categorization as Revenue by Payer above.
@@ -233,10 +233,10 @@ export function WeeklyInputForm({
             <ClinicFieldGrid fields={getClinicFieldsByCategory("AgeingDebt")} values={weekly} onChange={onChange} />
           </Card>
 
-          <Card title="Clinic — PVA, JBV &amp; Specialty Consults">
+          <Card title="Clinic - PVA, JBV &amp; Specialty Consults">
             <p className="mb-4 text-xs text-muted">
               PVA by tier auto-fills from the Providers &amp; Practice (12-month) report upload, averaged by
-              experience tier — pre-employment/corporate-screening patients are excluded automatically from the
+              experience tier - pre-employment/corporate-screening patients are excluded automatically from the
               normal weekly Activity Report upload, no separate export needed for that part. JBV,
               Vestibular/Headaches/Paeds/Women&apos;s Health Initial/Subsequent, and 3rd Party Gym Revenue all
               auto-fill from that same weekly Activity Report by matching each row&apos;s service item against a

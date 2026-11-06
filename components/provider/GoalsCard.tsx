@@ -110,7 +110,7 @@ export function GoalsCard({ providerId, initialGoals }: { providerId: string; in
   return (
     <Card title="Performance Review Goals" action={<SaveIndicator status={status} />}>
       <p className="mb-4 text-xs text-muted">
-        Stays exactly as-is week to week — status and text carry over automatically until changed at the next
+        Stays exactly as-is week to week - status and text carry over automatically until changed at the next
         performance review.
       </p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

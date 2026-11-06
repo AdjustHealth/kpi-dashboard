@@ -83,31 +83,31 @@ export const ROLE_TARGET_GROUPS: RoleTargetGroup[] = [
   {
     id: "providers",
     label: "Providers",
-    description: "Physio, Massage, EP — every regular clinician shares these targets, unless overridden below for Massage or EP specifically.",
+    description: "Physio, Massage, EP - every regular clinician shares these targets, unless overridden below for Massage or EP specifically.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
     cvaTierFields: [
-      { key: "cva_target_new_grad", label: "PVA Target — New Grad" },
-      { key: "cva_target_2_5yr", label: "PVA Target — 2-5yr" },
+      { key: "cva_target_new_grad", label: "PVA Target - New Grad" },
+      { key: "cva_target_2_5yr", label: "PVA Target - 2-5yr" },
     ],
   },
   {
     id: "massage",
     label: "Massage Therapists",
-    description: "Only set a field here to override the shared Providers target for massage therapists — leave the rest blank to keep using the shared target.",
+    description: "Only set a field here to override the shared Providers target for massage therapists - leave the rest blank to keep using the shared target.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
   },
   {
     id: "ep",
     label: "Exercise Physiologists",
-    description: "Only set a field here to override the shared Providers target for EPs — leave the rest blank to keep using the shared target.",
+    description: "Only set a field here to override the shared Providers target for EPs - leave the rest blank to keep using the shared target.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
   },
   {
     id: "senior",
     label: "Senior Physio",
-    description: "Shared KPI Scorecard targets for every senior physio — bonus tiers and specialty targets stay individual below.",
+    description: "Shared KPI Scorecard targets for every senior physio - bonus tiers and specialty targets stay individual below.",
     fields: SHARED_CLINICIAN_TARGET_FIELDS,
-    cvaTierFields: [{ key: "cva_target_senior", label: "PVA Target — Senior (6+yr)" }],
+    cvaTierFields: [{ key: "cva_target_senior", label: "PVA Target - Senior (6+yr)" }],
   },
   {
     id: "admin",

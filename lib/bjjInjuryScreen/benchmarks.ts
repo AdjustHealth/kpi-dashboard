@@ -39,7 +39,7 @@ export const IMTP_RATIO_BENCHMARK: SexBenchmark = {
   female: {
     value: 2.5,
     confidence: "general",
-    source: "Adjust Health's own Performance assessment report general-population IMTP relative-strength threshold — no combat-sport-specific female IMTP data exists.",
+    source: "Adjust Health's own Performance assessment report general-population IMTP relative-strength threshold - no combat-sport-specific female IMTP data exists.",
   },
 };
 
@@ -74,12 +74,12 @@ export const CMJ_HEIGHT_CM_YOUTH_BENCHMARK: SexBenchmark = {
   male: {
     value: 34,
     confidence: "general",
-    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for boys — derived from Lesinski et al. 2020 (age 15 P50 = 34.4cm).",
+    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for boys - derived from Lesinski et al. 2020 (age 15 P50 = 34.4cm).",
   },
   female: {
     value: 26,
     confidence: "general",
-    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for girls — derived from Lesinski et al. 2020 (girls' CMJ plateaus by age 14-15, P50 ~26-27cm).",
+    source: "Adjust Health's own Youth Performance Report, Youth 2 tier (13-18) \"Good\" cutoff for girls - derived from Lesinski et al. 2020 (girls' CMJ plateaus by age 14-15, P50 ~26-27cm).",
   },
 };
 
@@ -96,12 +96,12 @@ export const DROP_JUMP_RSI_BENCHMARK: SexBenchmark = {
   male: {
     value: 1.5,
     confidence: "general",
-    source: "Adjust Health's own Performance/Youth assessment report threshold for men (POWD_M.rsi.good = 1.5) — no combat-sport-specific RSI data exists.",
+    source: "Adjust Health's own Performance/Youth assessment report threshold for men (POWD_M.rsi.good = 1.5) - no combat-sport-specific RSI data exists.",
   },
   female: {
     value: 1.2,
     confidence: "general",
-    source: "Adjust Health's own Performance/Youth assessment report threshold for women (POWD_F.rsi.good = 1.2) — no combat-sport-specific RSI data exists.",
+    source: "Adjust Health's own Performance/Youth assessment report threshold for women (POWD_F.rsi.good = 1.2) - no combat-sport-specific RSI data exists.",
   },
 };
 
@@ -110,12 +110,12 @@ export const ASH_Y_NEWTONS_BENCHMARK: SexBenchmark = {
   male: {
     value: 180,
     confidence: "general",
-    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) — no combat-sport-specific ASH-Y data exists.",
+    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) - no combat-sport-specific ASH-Y data exists.",
   },
   female: {
     value: 130,
     confidence: "general",
-    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) — no combat-sport-specific ASH-Y data exists.",
+    source: "Adjust Health's own Performance assessment report general-population threshold for the Shoulder Y Test (N) - no combat-sport-specific ASH-Y data exists.",
   },
 };
 
@@ -124,12 +124,12 @@ export const PULL_UPS_BENCHMARK: SexBenchmark = {
   male: {
     value: 15,
     confidence: "general",
-    source: "General elite/tactical-athlete standard (15-20+ reps cited across multiple strength-standard and tactical-fitness sources) — no rigorous BJJ-specific or combat-sport-specific pull-up data was found in the literature.",
+    source: "General elite/tactical-athlete standard (15-20+ reps cited across multiple strength-standard and tactical-fitness sources) - no rigorous BJJ-specific or combat-sport-specific pull-up data was found in the literature.",
   },
   female: {
     value: 12,
     confidence: "general",
-    source: "General elite/tactical-athlete standard for women (\"excellent\"/\"elite\" tier clusters at 10-14 reps across multiple general strength-standard tables, once a clear outlier from a crowdsourced lifting site is excluded) — no rigorous BJJ-specific or combat-sport-specific pull-up data was found. 12/15 male keeps the same ~80% ratio seen across every other sex-split benchmark in this file.",
+    source: "General elite/tactical-athlete standard for women (\"excellent\"/\"elite\" tier clusters at 10-14 reps across multiple general strength-standard tables, once a clear outlier from a crowdsourced lifting site is excluded) - no rigorous BJJ-specific or combat-sport-specific pull-up data was found. 12/15 male keeps the same ~80% ratio seen across every other sex-split benchmark in this file.",
   },
 };
 
@@ -138,12 +138,12 @@ export const PUSH_UPS_BENCHMARK: SexBenchmark = {
   male: {
     value: 47,
     confidence: "general",
-    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for men aged 20-29 (standard, widely-cited general fitness normative data) — no combat-sport-specific push-up data was found.",
+    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for men aged 20-29 (standard, widely-cited general fitness normative data) - no combat-sport-specific push-up data was found.",
   },
   female: {
     value: 32,
     confidence: "general",
-    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for women aged 20-29 (>32 reps, standard full push-ups from the feet, same table as the men's figure) — no combat-sport-specific push-up data was found.",
+    source: "ACSM/YMCA 1-minute push-up test, \"excellent\" threshold for women aged 20-29 (>32 reps, standard full push-ups from the feet, same table as the men's figure) - no combat-sport-specific push-up data was found.",
   },
 };
 
@@ -152,12 +152,12 @@ export const KNEE_TO_WALL_CM_BENCHMARK: SexBenchmark = {
   male: {
     value: 15.0,
     confidence: "general",
-    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) — no combat-sport-specific ankle dorsiflexion data was found.",
+    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) - no combat-sport-specific ankle dorsiflexion data was found.",
   },
   female: {
     value: 14.0,
     confidence: "general",
-    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) — no combat-sport-specific ankle dorsiflexion data was found.",
+    source: "\"Excellent\" sex-specific threshold for the weight-bearing lunge test (general clinical/athletic norms) - no combat-sport-specific ankle dorsiflexion data was found.",
   },
 };
 
@@ -204,11 +204,11 @@ export const WATT_BIKE_WATTS_PER_KG_BENCHMARK: SexBenchmark = {
   male: {
     value: 5.4,
     confidence: "general",
-    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers — no official intermediate tier or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
+    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers - no official intermediate tier or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
   },
   female: {
     value: 5.4,
     confidence: "general",
-    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers — no official intermediate tier, sex split, or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
+    source: "Midpoint of Wattbike's own published Amateur (3.7 W/kg) and Professional (7.1 W/kg) 3-Minute Test tiers - no official intermediate tier, sex split, or combat-sport-specific data exists; Amateur alone proved too easy to clear in practice.",
   },
 };

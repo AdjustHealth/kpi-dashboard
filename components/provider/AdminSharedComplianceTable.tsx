@@ -145,7 +145,7 @@ export function AdminSharedComplianceTable({
       {latestClinicWeek && (
         <div className="mt-5 rounded-lg border border-dashed border-accent/40 bg-accent/5 p-4">
           <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-accent">
-            Answered Calls — Daily ({formatWeekLabel(latestClinicWeek.week_ending)})
+            Answered Calls - Daily ({formatWeekLabel(latestClinicWeek.week_ending)})
           </h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {DAILY_ANSWERED_CALLS_FIELDS.map((f) => (
@@ -162,8 +162,8 @@ export function AdminSharedComplianceTable({
 
       <p className="mt-3 text-xs text-muted">
         Diary Management/Follow Up Phone Calls/Onboarding Videos/New Clients Subscribed/Answered Calls are shared
-        across every admin staff member — edit on Weekly Input&apos;s Admin Meeting Prep section. Rx Notes Made is
-        each admin&apos;s own number — edit it directly here (this week only).
+        across every admin staff member - edit on Weekly Input&apos;s Admin Meeting Prep section. Rx Notes Made is
+        each admin&apos;s own number - edit it directly here (this week only).
       </p>
     </Card>
   );

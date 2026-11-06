@@ -364,7 +364,7 @@ export function CancellationsTable({
                   <button
                     type="button"
                     onClick={() => toggleDealtWith(row)}
-                    title={row.dealt_with ? "Mark as not yet dealt with" : "Mark as dealt with — stays visible for the rest of the week"}
+                    title={row.dealt_with ? "Mark as not yet dealt with" : "Mark as dealt with - stays visible for the rest of the week"}
                     className="inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold transition-colors"
                     style={
                       row.dealt_with
@@ -381,7 +381,7 @@ export function CancellationsTable({
                   <button
                     type="button"
                     onClick={() => resolveRow(row)}
-                    title="Mark as dealt with — removes it from this list"
+                    title="Mark as dealt with - removes it from this list"
                     className="rounded-md border border-border px-2 py-1 text-xs font-medium text-muted hover:border-accent hover:text-accent"
                   >
                     ✓ Dealt with

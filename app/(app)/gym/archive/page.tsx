@@ -37,7 +37,7 @@ export default async function GymArchivePage() {
         {error ? (
           <p className="text-sm text-danger">Could not load the archive: {error.message}</p>
         ) : !data || data.length === 0 ? (
-          <EmptyState icon={ARCHIVE_ICON} message="No completed blocks yet — they'll land here the moment someone marks a block ✓ Done." />
+          <EmptyState icon={ARCHIVE_ICON} message="No completed blocks yet - they'll land here the moment someone marks a block ✓ Done." />
         ) : (
           <div className="overflow-hidden rounded-xl border border-border">
             <div className="border-b border-border bg-surface-raised px-4 py-2.5 text-sm font-semibold text-foreground">

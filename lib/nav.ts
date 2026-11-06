@@ -159,7 +159,7 @@ function meetingsGroup(access: AccessContext): NavGroup | null {
     items.push({ label: "Providers", href: "/providers", description: "Weekly meetings by provider" });
   }
   if (fullAccess || roles.includes("senior_physio")) {
-    items.push({ label: "Senior Physio", href: "/senior", description: "Sam & Marcio — KPIs and bonus tracking" });
+    items.push({ label: "Senior Physio", href: "/senior", description: "Sam & Marcio - KPIs and bonus tracking" });
   }
   if (fullAccess || roles.includes("admin")) {
     items.push({ label: "Admin", href: "/admin", description: "Weekly meetings by admin staff" });

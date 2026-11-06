@@ -69,8 +69,8 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: "higher" },
   { key: "completed_consults", label: "Completed Consults", type: "number", betterWhen: "higher" },
-  { key: "new_patients", label: "New Patients (NPBR calc — total new patients)", type: "number" },
-  { key: "npbr_recommendations", label: "NPBR calc — total recommendations for new patients", type: "number" },
+  { key: "new_patients", label: "New Patients (NPBR calc - total new patients)", type: "number" },
+  { key: "npbr_recommendations", label: "NPBR calc - total recommendations for new patients", type: "number" },
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 1, betterWhen: "higher" },
   // Key stays "ucva" for backward compatibility (targets, quarterly
   // rollups, tier averages, chart history all key off it) but as of Sept
@@ -96,7 +96,7 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
     type: "decimal",
     decimals: 1,
     betterWhen: "higher",
-    sublabel: "Services per new patient (excl. pre-employment & gym classes) — caseload efficiency, not retention",
+    sublabel: "Services per new patient (excl. pre-employment & gym classes) - caseload efficiency, not retention",
   },
   { key: "tpr", label: "TPR (Total Patient Revenue)", type: "currency", betterWhen: "higher" },
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
@@ -216,8 +216,8 @@ export const SENIOR_KPA_FIELDS: ProviderField[] = [
   { key: "speciality_service_growth", label: "Speciality Service Growth", type: "rating" },
   { key: "lead_junior_staff", label: "Lead Junior Staff", type: "rating" },
   { key: "clinical_training", label: "Clinical Training", type: "rating" },
-  { key: "marketing_internal", label: "Marketing — Internal", type: "rating" },
-  { key: "marketing_external", label: "Marketing — External", type: "rating" },
+  { key: "marketing_internal", label: "Marketing - Internal", type: "rating" },
+  { key: "marketing_external", label: "Marketing - External", type: "rating" },
 ];
 
 /**

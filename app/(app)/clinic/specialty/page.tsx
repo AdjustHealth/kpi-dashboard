@@ -133,7 +133,7 @@ export default async function SpecialtyServicesPage({
     <>
       <PageHeader title="Specialty Services" subtitle="Consults by specialty, clinic-wide." />
       <div className="flex flex-col gap-6 p-8">
-        <Card title="All Specialty Services — Total Consults">
+        <Card title="All Specialty Services - Total Consults">
           <p className="mb-3 text-xs text-muted">Every specialty on one chart, so growth can be compared directly.</p>
           <MultiLineChart
             title="Specialty Services vs Each Other"
@@ -197,7 +197,7 @@ export default async function SpecialtyServicesPage({
               </div>
               {hasInitial ? (
                 <MultiLineChart
-                  title={`${s.name} — Total vs Initial Consults`}
+                  title={`${s.name} - Total vs Initial Consults`}
                   data={chartData}
                   seriesKeys={["Total Consults", "Initial Consults"]}
                   colors={[CATEGORICAL[s.colorIndex % CATEGORICAL.length], CATEGORICAL[(s.colorIndex + 4) % CATEGORICAL.length]]}
@@ -206,7 +206,7 @@ export default async function SpecialtyServicesPage({
                 />
               ) : (
                 <LineTrendChart
-                  title={`${s.name} — Total Consults`}
+                  title={`${s.name} - Total Consults`}
                   data={toTrendSeries(clinicHistory, `${s.key}_total`)}
                   format="number"
                   colorIndex={s.colorIndex}
@@ -218,7 +218,7 @@ export default async function SpecialtyServicesPage({
 
           <Card title="Women's Health">
             <p className="mb-3 text-xs text-muted">
-              Auto-detected from the Activity Report (Women&apos;s Health / pelvic health item names) — no longer manual.
+              Auto-detected from the Activity Report (Women&apos;s Health / pelvic health item names) - no longer manual.
             </p>
             <div className="mb-3 flex flex-wrap gap-6">
               <StatTile {...clinicStatTile(clinicHistory, "specialty_womens_health_initial")} label="Initial Consults" />
@@ -226,7 +226,7 @@ export default async function SpecialtyServicesPage({
             </div>
             <div className="mt-3">
               <MultiLineChart
-                title="Women's Health — Total vs Initial Consults"
+                title="Women's Health - Total vs Initial Consults"
                 data={clinicHistory.map((h) => ({
                   label: formatWeekLabel(h.week_ending),
                   "Total Consults": typeof h.specialty_womens_health_total === "number" ? h.specialty_womens_health_total : null,

@@ -330,7 +330,7 @@ export async function getNotRebookedClientsFor(supabase: SupabaseClient, provide
     provider: r.provider,
     case_name: r.case_name,
     status: "No Future Booking",
-    note: r.booking_type ? `Completed a ${r.booking_type} — nothing booked since` : "Nothing booked since their last visit",
+    note: r.booking_type ? `Completed a ${r.booking_type} - nothing booked since` : "Nothing booked since their last visit",
     next_booking: null,
     modified_user: null,
     discussion_note: r.discussion_note,

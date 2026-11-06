@@ -156,7 +156,7 @@ export function MeetingNotes({ initialMeetings }: { initialMeetings: Meeting[] }
       </div>
 
       {!active ? (
-        <EmptyState message="No meetings yet — create one above." />
+        <EmptyState message="No meetings yet - create one above." />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {AGENDA_DEFS.map((def, idx) => (

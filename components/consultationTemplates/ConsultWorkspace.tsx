@@ -54,7 +54,7 @@ const REASONING_FIELDS: [
   [
     "impression",
     "Clinical Impression",
-    "Your overall synthesis — how the findings connect and what's actually going on",
+    "Your overall synthesis - how the findings connect and what's actually going on",
   ],
   ["diagnosis", "Diagnosis"],
   ["prognosis", "Prognosis"],
@@ -63,9 +63,9 @@ const REASONING_FIELDS: [
 type TreatmentPhaseKey = "symptomReduction" | "restorative" | "consolidation";
 
 const TREATMENT_PHASES: [TreatmentPhaseKey, string][] = [
-  ["symptomReduction", "Phase 1 — Symptom Reduction"],
-  ["restorative", "Phase 2 — Restorative"],
-  ["consolidation", "Phase 3 — Consolidation"],
+  ["symptomReduction", "Phase 1 - Symptom Reduction"],
+  ["restorative", "Phase 2 - Restorative"],
+  ["consolidation", "Phase 3 - Consolidation"],
 ];
 
 function SectionCard({
@@ -353,7 +353,7 @@ export function ConsultWorkspace({
         </Field>
         <Field
           label="Next Appointment"
-          hint="Optional — shown in the patient report and used for the closing line"
+          hint="Optional - shown in the patient report and used for the closing line"
         >
           <Input
             value={note.nextAppointment}
@@ -426,7 +426,7 @@ export function ConsultWorkspace({
             </div>
             <Field
               label="Timeframe"
-              hint="e.g. 10 to 12 weeks — a single headline figure, separate from each phase's own duration"
+              hint="e.g. 10 to 12 weeks - a single headline figure, separate from each phase's own duration"
             >
               <Input
                 value={note.treatmentPlan.estimatedTimeframe}
@@ -474,7 +474,7 @@ export function ConsultWorkspace({
                   <div className="sm:col-span-2">
                     <Field
                       label="Key Interventions"
-                      hint="One per line — shown as a bullet list on the report"
+                      hint="One per line - shown as a bullet list on the report"
                     >
                       <Textarea
                         value={phase.interventions}
@@ -504,7 +504,7 @@ export function ConsultWorkspace({
             </div>
             <Field
               label="Criteria"
-              hint="One benchmark per line — shown as a checklist on the report, e.g. Pain-free single-leg squat x10"
+              hint="One benchmark per line - shown as a checklist on the report, e.g. Pain-free single-leg squat x10"
             >
               <Textarea
                 value={note.treatmentPlan.returnToFunctionCriteria}
@@ -574,7 +574,7 @@ export function ConsultWorkspace({
           </div>
 
           <p className="text-xs text-muted">
-            Edit any section below — these are the exact words the client will
+            Edit any section below - these are the exact words the client will
             see on the PDF (and what gets pasted into Nookal), so tidy up
             anything the AI got slightly off before sending.
           </p>
@@ -614,7 +614,7 @@ export function ConsultWorkspace({
                   </Field>
                   <Field
                     label="Points"
-                    hint="One per line — shown as the scannable bullet list"
+                    hint="One per line - shown as the scannable bullet list"
                   >
                     <Textarea
                       value={s.points.join("\n")}

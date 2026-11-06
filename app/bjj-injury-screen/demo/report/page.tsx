@@ -24,7 +24,7 @@ const DEMO_DATA = mergeBjjScreen({
     hips: "pass",
     knees: "fail",
     ankles: "pass",
-    comments: "Right knee — history of patellar tendinopathy. Cleared for full testing with load monitoring.",
+    comments: "Right knee - history of patellar tendinopathy. Cleared for full testing with load monitoring.",
   },
   mobility: {
     shoulderErIr: "good",

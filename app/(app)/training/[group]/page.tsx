@@ -51,10 +51,10 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
   const viewedRank = PHYSIO_TRACK_GROUPS.indexOf(groupId);
   const rowProviders: TopicRowProvider[] = roster.map((p) => {
     if (!isPhysioTrack) {
-      return { id: p.id, initials: initialsForProvider(p.name), name: currentIds.has(p.id) ? p.name : `${p.name} — no longer in this group` };
+      return { id: p.id, initials: initialsForProvider(p.name), name: currentIds.has(p.id) ? p.name : `${p.name} - no longer in this group` };
     }
     const ownRank = PHYSIO_TRACK_GROUPS.indexOf(trainingGroupForProvider(p) ?? ("" as TrainingGroupId));
-    const suffix = ownRank === -1 ? "" : ownRank < viewedRank ? " — hasn't reached this yet" : ownRank > viewedRank ? " — already past this group" : "";
+    const suffix = ownRank === -1 ? "" : ownRank < viewedRank ? " - hasn't reached this yet" : ownRank > viewedRank ? " - already past this group" : "";
     return { id: p.id, initials: initialsForProvider(p.name), name: `${p.name}${suffix}` };
   });
 
@@ -86,7 +86,7 @@ export default async function TrainingGroupPage({ params }: { params: Promise<{ 
           <p className="max-w-xl text-xs text-muted">
             {isDirector
               ? "You tick these off as they're run, with the date it happened. Staff can't tick their own."
-              : "Directors tick these off as they're run — this is a read-only view of where everyone's up to."}
+              : "Directors tick these off as they're run - this is a read-only view of where everyone's up to."}
           </p>
           {isDirector && <AddTopicForm trainingGroup={groupId} />}
         </div>

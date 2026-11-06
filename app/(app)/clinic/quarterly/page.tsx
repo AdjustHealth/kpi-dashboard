@@ -54,7 +54,7 @@ export default async function QuarterlyReviewPage({
         <PageHeader title="Quarterly Review" subtitle="Compare quarters." showWeekSelector={false} />
         <div className="p-8">
           <Card>
-            <p className="text-sm text-muted">No data yet — upload at least one week on Weekly Input first.</p>
+            <p className="text-sm text-muted">No data yet - upload at least one week on Weekly Input first.</p>
           </Card>
         </div>
       </>
@@ -101,7 +101,7 @@ export default async function QuarterlyReviewPage({
     <>
       <PageHeader
         title="Quarterly Review"
-        subtitle="Compare quarters — clinic-wide totals and the per-provider/tier breakdown."
+        subtitle="Compare quarters - clinic-wide totals and the per-provider/tier breakdown."
         showWeekSelector={false}
         actions={<QuarterSelector quarters={quarters} current={quarter} />}
       />
@@ -111,13 +111,13 @@ export default async function QuarterlyReviewPage({
             {quarterLabel(quarter)}
             <span className="ml-2 text-xs font-normal text-muted">
               {stats.weeksCount} week{stats.weeksCount === 1 ? "" : "s"} of data
-              {previousStats && ` — vs ${quarterLabel(previousQuarter)}`}
+              {previousStats && ` - vs ${quarterLabel(previousQuarter)}`}
             </span>
           </h2>
           {previousStats && stats.weeksCount !== previousStats.weeksCount && (
             <p className="mb-3 text-[11px] text-muted">
               {quarterLabel(quarter)} has {stats.weeksCount} week{stats.weeksCount === 1 ? "" : "s"} of data so far
-              vs {previousStats.weeksCount} for {quarterLabel(previousQuarter)} — Total Revenue/New Patients/Appointments
+              vs {previousStats.weeksCount} for {quarterLabel(previousQuarter)} - Total Revenue/New Patients/Appointments
               deltas compare the per-week average, not the raw totals, so a still-in-progress quarter isn&apos;t
               penalised for having fewer weeks.
             </p>
@@ -193,7 +193,7 @@ export default async function QuarterlyReviewPage({
             <h2 className="mb-3 text-sm font-semibold text-foreground">Quarter over Quarter</h2>
             <p className="mb-3 text-xs text-muted">
               One bar per quarter, oldest to newest. $/count metrics are shown as a per-week average so an
-              in-progress quarter is comparable to a completed one — the totals themselves are in the cards above.
+              in-progress quarter is comparable to a completed one - the totals themselves are in the cards above.
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {metricCards.map((card, i) => (
@@ -214,9 +214,9 @@ export default async function QuarterlyReviewPage({
         )}
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Clinic &amp; Tier Averages — {quarterLabel(quarter)}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Clinic &amp; Tier Averages - {quarterLabel(quarter)}</h2>
           <p className="mb-3 text-xs text-muted">
-            Quarterly average of each week&apos;s figure across everyone in that tier — New Grad / 2-5yr / Senior /
+            Quarterly average of each week&apos;s figure across everyone in that tier - New Grad / 2-5yr / Senior /
             Massage / EP, same grouping as the KPI Scorecard targets.
           </p>
           <Card>
@@ -225,7 +225,7 @@ export default async function QuarterlyReviewPage({
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">By Provider — {quarterLabel(quarter)}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">By Provider - {quarterLabel(quarter)}</h2>
           <p className="mb-3 text-xs text-muted">
             Quarterly average of each week&apos;s figure, per person. Providers with no data for this quarter (e.g.
             before they joined, or before the July 2026 tracking rollout) show as —.

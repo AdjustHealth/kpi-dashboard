@@ -57,7 +57,7 @@ export interface Meeting {
 /** Ported verbatim from the standalone Program Tracker — each entry's index is the key under meetings.notes. */
 export const AGENDA_DEFS: { title: string; sub: string }[] = [
   { title: "Weekly overview", sub: "New agenda items / Issues? / Questions / Training needed?" },
-  { title: "New members — handover", sub: "Move from Glofox to Tracker" },
+  { title: "New members - handover", sub: "Move from Glofox to Tracker" },
   { title: "Membership cancellations", sub: "Cancel from Tracker / Reasoning followed up? / Missed payments?" },
   { title: "Membership holds", sub: "Select Hold on Tracker / Reasoning / procedure followed?" },
   { title: "New programming blocks", sub: "Testing result / New block intention + progressions" },

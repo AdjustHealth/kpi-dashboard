@@ -29,7 +29,7 @@ export default async function SeniorPhysioDirectoryPage({
       <PageHeader title="Senior Physio" subtitle="Weekly meeting, KPIs, and bonus tracking for each senior physio." />
       <div className="p-8">
         {providers.length === 0 ? (
-          <p className="text-sm text-muted">No active senior physios yet — add them on the Settings page.</p>
+          <p className="text-sm text-muted">No active senior physios yet - add them on the Settings page.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {providers.map((provider) => (

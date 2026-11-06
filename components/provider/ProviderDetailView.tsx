@@ -172,7 +172,7 @@ export function ProviderDetailView({
             sixWeekReviewWeek={sixWeekReviewWeek}
           />
           <Card
-            title={`Unretained — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
+            title={`Unretained - No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
           >
             {notRebookedClients && notRebookedClients.length > 0 ? (
               <CancellationsTable rows={notRebookedClients} hideProvider showResolveAction />
@@ -268,7 +268,7 @@ export function ProviderDetailView({
 
       {variant !== "admin" && (
         <Card
-          title={`Unretained — No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
+          title={`Unretained - No Future Booking${notRebookedClients && notRebookedClients.length > 0 ? ` (${notRebookedClients.length})` : ""}`}
         >
           {notRebookedClients && notRebookedClients.length > 0 ? (
             <CancellationsTable rows={notRebookedClients} hideProvider showResolveAction />

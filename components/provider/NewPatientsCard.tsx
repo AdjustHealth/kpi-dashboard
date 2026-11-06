@@ -47,7 +47,7 @@ export function NewPatientsCard({
           </h4>
           <p className="mb-2 text-xs text-muted">
             New patient{sixWeekReviewNames.length > 1 ? "s" : ""} from{" "}
-            {sixWeekReviewWeek ? formatWeekLabel(sixWeekReviewWeek) : "6 weeks ago"} — check in on how they&apos;ve
+            {sixWeekReviewWeek ? formatWeekLabel(sixWeekReviewWeek) : "6 weeks ago"} - check in on how they&apos;ve
             progressed.
           </p>
           <NameList names={sixWeekReviewNames} />

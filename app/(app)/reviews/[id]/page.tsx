@@ -25,7 +25,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
   return (
     <>
       <PageHeader
-        title={`Performance Review — ${provider.name}`}
+        title={`Performance Review - ${provider.name}`}
         subtitle={ROLE_LABELS[provider.role]}
         backTo="history"
         showWeekSelector={false}

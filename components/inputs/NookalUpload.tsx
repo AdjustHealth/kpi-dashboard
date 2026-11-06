@@ -61,7 +61,7 @@ export function NookalUpload({ week }: { week: string }) {
         return;
       }
     } catch {
-      setLastResult({ type: reportType, summary: { error: "Upload failed — check your connection and try again." } });
+      setLastResult({ type: reportType, summary: { error: "Upload failed - check your connection and try again." } });
       return;
     } finally {
       setUploading(null);
@@ -125,7 +125,7 @@ export function NookalUpload({ week }: { week: string }) {
 
       {lastResult && (
         <div className="mt-4 rounded-lg border border-border bg-surface-raised p-3 text-xs">
-          <span className="font-medium text-foreground">{NOOKAL_REPORT_LABELS[lastResult.type]} — auto-fill result</span>
+          <span className="font-medium text-foreground">{NOOKAL_REPORT_LABELS[lastResult.type]} - auto-fill result</span>
           {lastResult.summary.error ? (
             <p className="mt-1 text-danger">{lastResult.summary.error}</p>
           ) : (

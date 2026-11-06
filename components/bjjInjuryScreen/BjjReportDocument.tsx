@@ -81,19 +81,19 @@ function domainNote(score: number | null, focusLabels: string[], copy: { strong:
  * action clause alone.
  */
 const BJJ_NOTES: { match: (label: string) => boolean; why: string; action: string }[] = [
-  { match: (l) => l.includes("IMTP"), why: "Whole-body pulling force relative to bodyweight — the base for grip fights and takedown finishes.", action: "Prioritise heavy trap-bar pulls or deadlifts, 2x/week." },
-  { match: (l) => l.includes("ASH-Y") || l.includes("Standing Shoulder Y"), why: "Shoulder stability in an overhead/lateral position — the quality most linked to shoulder injuries from framing and underhooks.", action: "Prioritise scapular control and loaded carry work before heavy live sparring on that side." },
+  { match: (l) => l.includes("IMTP"), why: "Whole-body pulling force relative to bodyweight - the base for grip fights and takedown finishes.", action: "Prioritise heavy trap-bar pulls or deadlifts, 2x/week." },
+  { match: (l) => l.includes("ASH-Y") || l.includes("Standing Shoulder Y"), why: "Shoulder stability in an overhead/lateral position - the quality most linked to shoulder injuries from framing and underhooks.", action: "Prioritise scapular control and loaded carry work before heavy live sparring on that side." },
   { match: (l) => l.includes("Pull Ups"), why: "Relative pulling strength for closing distance and finishing chokes.", action: "Build with weighted pull-up progressions." },
   { match: (l) => l.includes("Push Ups"), why: "Pressing endurance for base and surviving top pressure.", action: "Build with higher-rep press circuits." },
-  { match: (l) => l.includes("Grip"), why: "The most BJJ-specific strength quality — it controls the sleeve/collar/lapel grip fight.", action: "Build with farmer's carries and gi-grip hangs, 2-3x/week." },
+  { match: (l) => l.includes("Grip"), why: "The most BJJ-specific strength quality - it controls the sleeve/collar/lapel grip fight.", action: "Build with farmer's carries and gi-grip hangs, 2-3x/week." },
   { match: (l) => l.includes("Ankle DF"), why: "Underpins base and squat depth for takedowns, and is a common injury site in foot-trapped scrambles.", action: "Add banded ankle mobilisations and calf/soleus stretching." },
   { match: (l) => l.includes("Shoulder ER/IR"), why: "Underpins framing, underhooks and kimura/americana defence.", action: "Add banded ER/IR work and rotator cuff mobility before loading end-range." },
   { match: (l) => l.includes("Hip ER/IR"), why: "Drives guard retention, triangle/armbar setups and hip escapes.", action: "Add 90/90 hip switches and controlled hip CARs daily." },
   { match: (l) => l.includes("Lumbar"), why: "Restricted lumbar motion often shows up as low-back strain when bridging under a heavier opponent.", action: "Add segmental flexion/extension drills like cat-cow and rock-backs." },
-  { match: (l) => l.includes("Thoracic") || l.includes("(Tx)"), why: "Drives guard passing and back-takes — a restriction here is often compensated for at the shoulder or lumbar spine, raising injury risk there.", action: "Add open-book stretches and rotational work." },
+  { match: (l) => l.includes("Thoracic") || l.includes("(Tx)"), why: "Drives guard passing and back-takes - a restriction here is often compensated for at the shoulder or lumbar spine, raising injury risk there.", action: "Add open-book stretches and rotational work." },
   { match: (l) => l.includes("Cervical"), why: "Matters for base and injury risk in guillotine/neck-crank scenarios.", action: "Add controlled neck CARs and isometric neck strengthening." },
   { match: (l) => l.includes("CMJ"), why: "Lower-body explosive power drives takedown entries and explosive hip movement (upa, hip escape).", action: "Add box jumps and trap-bar jump squats." },
-  { match: (l) => l.includes("RSI"), why: "How fast force is produced right after absorbing a load — drives scramble speed and explosive reactions.", action: "Add short-contact depth jumps." },
+  { match: (l) => l.includes("RSI"), why: "How fast force is produced right after absorbing a load - drives scramble speed and explosive reactions.", action: "Add short-contact depth jumps." },
   { match: (l) => l.includes("Watt Bike"), why: "Determines whether technique holds up in the third round.", action: "Build with structured intervals (e.g. 30s on/30s off) toward match-length efforts." },
 ];
 
@@ -133,14 +133,14 @@ function joinWithAnd(items: string[]): string {
 function findingsText(focusLabels: string[], avgLabels: string[], scoredCount: number, domainLabel: string): string {
   if (scoredCount === 0) return `Nothing here could be compared against target yet.`;
   if (focusLabels.length === 0 && avgLabels.length === 0) {
-    return `Everything in ${domainLabel.toLowerCase()} came back Strong — not a limiter right now.`;
+    return `Everything in ${domainLabel.toLowerCase()} came back Strong - not a limiter right now.`;
   }
   if (focusLabels.length > 0) {
     const also = avgLabels.length > 0 ? ` ${joinWithAnd(avgLabels)} ${avgLabels.length > 1 ? "are" : "is"} a step behind too.` : "";
-    if (focusLabels.length === scoredCount) return `${joinWithAnd(focusLabels)} all came back below target — the clearest place to spend development time.`;
-    return `${joinWithAnd(focusLabels)} ${focusLabels.length > 1 ? "are" : "is"} the clearest gap here — worth prioritising ${focusLabels.length > 1 ? "these" : "this"} on ${focusLabels.length > 1 ? "their" : "its"} own.${also}`;
+    if (focusLabels.length === scoredCount) return `${joinWithAnd(focusLabels)} all came back below target - the clearest place to spend development time.`;
+    return `${joinWithAnd(focusLabels)} ${focusLabels.length > 1 ? "are" : "is"} the clearest gap here - worth prioritising ${focusLabels.length > 1 ? "these" : "this"} on ${focusLabels.length > 1 ? "their" : "its"} own.${also}`;
   }
-  return `${joinWithAnd(avgLabels)} ${avgLabels.length > 1 ? "are" : "is"} solid but not yet Strong — room to close that gap.`;
+  return `${joinWithAnd(avgLabels)} ${avgLabels.length > 1 ? "are" : "is"} solid but not yet Strong - room to close that gap.`;
 }
 
 function formatDate(value: string): string {
@@ -180,7 +180,7 @@ function refLine(row: TestRowData, sex: Sex): string {
   // like it's missing data.
   if (!result.benchmark) return sex ? `No ${sex} reference standard available yet` : "";
   const kind = result.benchmark.confidence === "combat" ? "Combat-sport data" : "General elite standard";
-  return `${kind} — target ${result.benchmark.value}${row.unit ?? ""}`;
+  return `${kind} - target ${result.benchmark.value}${row.unit ?? ""}`;
 }
 
 const RATING_COLOR: Record<"poor" | "demonstrated" | "good", string> = { poor: RED, demonstrated: AMBER, good: GREEN };
@@ -449,7 +449,7 @@ function BjjNotes({ notes }: { notes: string[] }) {
     <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 6 }}>
       {notes.map((note, i) => (
         <div key={i} style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
-          <span style={{ color: LIME, fontWeight: 700 }}>For BJJ — </span>
+          <span style={{ color: LIME, fontWeight: 700 }}>For BJJ - </span>
           {note}
         </div>
       ))}
@@ -589,13 +589,13 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
 
   const powerRows: TestRowData[] = [
     {
-      label: "CMJ — Jump Height",
+      label: "CMJ - Jump Height",
       displayValue: data.power.cmjHeight ? `${data.power.cmjHeight}cm` : "—",
       result: score.cmjHeight,
       unit: "cm",
       refOverride:
         data.ageGroup === "youth" && score.cmjHeight?.benchmark
-          ? `Youth reference (13-18) — target ${score.cmjHeight.benchmark.value}cm`
+          ? `Youth reference (13-18) - target ${score.cmjHeight.benchmark.value}cm`
           : undefined,
     },
     { label: "RSI Mod (Drop Jump)", displayValue: data.power.dropJumpRsi ? Number(data.power.dropJumpRsi).toFixed(2) : "—", result: score.dropJumpRsi, unit: "" },
@@ -603,7 +603,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
 
   const conditioningRows: TestRowData[] = [
     {
-      label: "3-Min Watt Bike — Avg Power",
+      label: "3-Min Watt Bike - Avg Power",
       // Falls back to the raw watts reading (unscored) when there's no
       // Bodyweight to convert it to W/kg — the entered value should never
       // just vanish from the page because one other field is blank.
@@ -698,7 +698,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
   const overallSummaryText = (() => {
     if (score.overall === null) return null;
     if (focusAreas.length === 0) {
-      return "Every tested quality sits at or above the Avg band — a strong, well-rounded physical profile for BJJ. Technique and game plan are the limiting factors right now, not physical output.";
+      return "Every tested quality sits at or above the Avg band - a strong, well-rounded physical profile for BJJ. Technique and game plan are the limiting factors right now, not physical output.";
     }
     const top = focusAreas[0];
     const topAction = bjjActionFor(top.label);
@@ -754,15 +754,15 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             label="Mobility"
             score={score.categoryScores.mobility}
             note={domainNote(score.categoryScores.mobility, mobilityFocusLabels, {
-              strong: "Full, functional range across what was tested — no restriction limiting output here.",
-              avg: "Workable range with some restriction — worth revisiting alongside strength work.",
-              focus: "Restricted range is the clearest limiter here — prioritise this before loading strength/power on top of it.",
+              strong: "Full, functional range across what was tested - no restriction limiting output here.",
+              avg: "Workable range with some restriction - worth revisiting alongside strength work.",
+              focus: "Restricted range is the clearest limiter here - prioritise this before loading strength/power on top of it.",
               unset: "Set Sex above to compare the measured tests against reference data.",
             })}
           />
           <div>
             {mobilityRatingRows.map((r) => <RatingRow key={r.label} label={r.label} rating={r.rating} />)}
-            <BilateralRow label="Ankle DF — Knee to Wall" left={score.ankleDfLeft} right={score.ankleDfRight} unit="cm" />
+            <BilateralRow label="Ankle DF - Knee to Wall" left={score.ankleDfLeft} right={score.ankleDfRight} unit="cm" />
           </div>
           <InterpretationBox title="Mobility Interpretation">
             {findingsText(mobilityFocusLabels, mobilityAvgLabels, mobilityScoredCount, "Mobility")}
@@ -779,9 +779,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             label="Strength"
             score={score.categoryScores.strength}
             note={domainNote(score.categoryScores.strength, strengthFocusLabels, {
-              strong: "Strong across the board — force production is not the limiting factor right now.",
-              avg: "Solid base — targeted loading will close the gap to elite reference data.",
-              focus: "Clear development priority — build a base here before adding volume elsewhere.",
+              strong: "Strong across the board - force production is not the limiting factor right now.",
+              avg: "Solid base - targeted loading will close the gap to elite reference data.",
+              focus: "Clear development priority - build a base here before adding volume elsewhere.",
               unset: "Set Sex above to compare these tests against reference data.",
             })}
           />
@@ -806,9 +806,9 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                 label="Power"
                 score={score.categoryScores.power}
                 note={domainNote(score.categoryScores.power, powerFocusLabels, {
-                  strong: "Elite-level rate of force development — translates directly to explosive scrambles and takedowns.",
-                  avg: "Good power output with room to develop — plyometric and ballistic work will move this.",
-                  focus: "Power is the clearest development priority — low jump height/RSI usually means force is there but isn't being expressed quickly.",
+                  strong: "Elite-level rate of force development - translates directly to explosive scrambles and takedowns.",
+                  avg: "Good power output with room to develop - plyometric and ballistic work will move this.",
+                  focus: "Power is the clearest development priority - low jump height/RSI usually means force is there but isn't being expressed quickly.",
                   unset: "Set Sex above to compare these tests against reference data.",
                 })}
               />
@@ -821,12 +821,12 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
                 label="Conditioning"
                 score={score.categoryScores.conditioning}
                 note={domainNote(score.categoryScores.conditioning, conditioningFocusLabels, {
-                  strong: "Strong aerobic/anaerobic base — unlikely to be the first thing that fades in a long match.",
-                  avg: "Workable engine — interval work will lift this further.",
-                  focus: "Conditioning is a development priority — technique tends to break down first when this is the limiter.",
+                  strong: "Strong aerobic/anaerobic base - unlikely to be the first thing that fades in a long match.",
+                  avg: "Workable engine - interval work will lift this further.",
+                  focus: "Conditioning is a development priority - technique tends to break down first when this is the limiter.",
                   unset: !data.sex
                     ? "Set Sex above to compare this test against reference data."
-                    : "Set Bodyweight above to compare this test against reference data — the Watt Bike test is normalised per kg, unlike the other tests.",
+                    : "Set Bodyweight above to compare this test against reference data - the Watt Bike test is normalised per kg, unlike the other tests.",
                 })}
               />
               <div>{conditioningRows.map((r) => <TestRow key={r.label} row={r} sex={data.sex} />)}</div>
@@ -840,7 +840,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
       )}
 
       {/* ---- Summary ---- */}
-      <PageShell title="Summary" subtitle="Performance profile — vs. elite &amp; general-population reference data" pageNum={summaryPage}>
+      <PageShell title="Summary" subtitle="Performance profile - vs. elite &amp; general-population reference data" pageNum={summaryPage}>
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, display: "flex", overflow: "hidden" }}>
           <div style={{ padding: "16px 30px", textAlign: "center", borderRight: `1px solid ${BORDER}` }}>
             <div style={{ fontFamily: COND, fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: MUTED }}>Overall</div>
@@ -852,7 +852,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
               ? score.overall >= 7.5
                 ? "Strong overall athlete"
                 : score.overall >= 5
-                  ? "Good foundation — targeted development will drive gains"
+                  ? "Good foundation - targeted development will drive gains"
                   : "Key areas identified for focused development"
               : "Complete assessment"}
           </div>
@@ -922,7 +922,7 @@ export function BjjReportDocument({ data, athleteName }: { data: BjjScreenFormDa
             </div>
           ) : allScored.length > 0 ? (
             <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${GREEN}`, padding: 18, color: TEXT, fontSize: 12 }}>
-              Every tested metric is at or above the Strong band — no focus areas identified.
+              Every tested metric is at or above the Strong band - no focus areas identified.
             </div>
           ) : (
             <div style={{ background: PANEL, border: `1px solid ${BORDER}`, padding: 18, color: MUTED, fontSize: 11 }}>—</div>

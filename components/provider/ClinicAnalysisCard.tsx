@@ -29,14 +29,14 @@ export function ClinicAnalysisCard({
         <StatTile {...clinicStatTile(history, "diary_mgmt_pct")} label="Diary Management" />
         <StatTile
           {...clinicStatTile(history, "cva_new_grads", "up", newGradTarget !== null ? { target: newGradTarget, betterWhen: "higher" } : undefined)}
-          label="PVA — New Grads"
+          label="PVA - New Grads"
         />
         <StatTile
           {...clinicStatTile(history, "cva_2_5yr", "up", tier25Target !== null ? { target: tier25Target, betterWhen: "higher" } : undefined)}
-          label="PVA — 2-5yr"
+          label="PVA - 2-5yr"
         />
-        <StatTile {...clinicStatTile(history, "cva_ep")} label="PVA — EP" />
-        <StatTile {...clinicStatTile(history, "cva_massage")} label="PVA — Massage" />
+        <StatTile {...clinicStatTile(history, "cva_ep")} label="PVA - EP" />
+        <StatTile {...clinicStatTile(history, "cva_massage")} label="PVA - Massage" />
         <StatTile {...clinicStatTile(history, "jbv_initial")} label="JBV Initial" />
         <StatTile {...clinicStatTile(history, "jbv_sub")} label="JBV Subsequent" />
         <StatTile {...clinicStatTile(history, "jbv_total")} label="Total JBVs (growth rate)" />

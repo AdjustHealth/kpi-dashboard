@@ -82,7 +82,7 @@ export default async function MyTrainingPage() {
               <div className="text-base font-semibold text-foreground">
                 {currentComplete} of {currentTopics.length} {trainingGroupLabel(currentGroup)} topics complete
               </div>
-              <p className="mt-1.5 text-sm text-muted">A director ticks each one off as it&apos;s run — this page is just your progress, there&apos;s nothing for you to click here.</p>
+              <p className="mt-1.5 text-sm text-muted">A director ticks each one off as it&apos;s run - this page is just your progress, there&apos;s nothing for you to click here.</p>
             </div>
           </div>
         )}
