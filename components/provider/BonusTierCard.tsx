@@ -73,7 +73,7 @@ export function BonusTierCard({
 
   return (
     <Card
-      title="💰 Bonus Tier Tracker"
+      title="Bonus Tier Tracker"
       className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]"
     >
       <div className="mb-4 flex flex-wrap gap-6">
