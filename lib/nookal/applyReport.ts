@@ -538,17 +538,26 @@ export async function applyNookalReport(
     // provider's already-"Dealt with" Unretained rows that happened to
     // appear in that one week's file reverted to unresolved at once, not
     // just Dean's.
+    //
+    // The match key deliberately does NOT include `status` (unlike an
+    // earlier version of this code) -- a stale cancellation getting
+    // re-classified between exports (e.g. Cancelled vs Did Not Arrive) is
+    // exactly the kind of drift that silently broke the match and reopened
+    // already-resolved Unretained rows a second time. client/provider/
+    // appointment_date/case_name already identify "the same" cancellation;
+    // status isn't needed to tell it apart from anything else and only adds
+    // a way for the match to fail.
     const existingCancellationState = await fetchExistingEventState(
       supabase,
       "cancellation_events",
-      ["client", "provider", "appointment_date", "case_name", "status"]
+      ["client", "provider", "appointment_date", "case_name"]
     );
     await supabase.from("cancellation_events").delete().eq("week_ending", weekEnding);
     if (result.detailRows.length > 0) {
       await supabase.from("cancellation_events").insert(
         result.detailRows.map((row) => {
           const existing = existingCancellationState.get(
-            eventStateKey([row.client, row.provider, row.appointmentDate, row.caseName, row.status])
+            eventStateKey([row.client, row.provider, row.appointmentDate, row.caseName])
           );
           return {
             week_ending: weekEnding,
