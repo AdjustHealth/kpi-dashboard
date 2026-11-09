@@ -605,6 +605,41 @@ Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance
     expect(weekOneRowStillThere).toBeDefined();
   });
 
+  it("cancellations: a stale cancellation's Status getting re-classified between exports doesn't break the carry-forward match -- the real bug: status used to be part of the match key, so a cancellation reported 'Did Not Arrive' one week and 'Cancelled' the next (same client/provider/appointment/case) silently reopened an already-'Dealt with' row", async () => {
+    const weekOneCsv = `Cancellations Report
+
+Parameters
+Dates,29/06/2026 - 05/07/2026
+
+Summary
+Provider,Cancellations,DNAs,Completed,Cancellation %,DNA %,Total %
+Marcio Dos Santos,1,0,10,,,
+
+Details
+Appointment Date,Location,Client,Phone,Provider,Case,Type,Status,Last Attendance,Next Booking,Note,Modifed Date,Modified Time,Modified User,Client ID
+28/09/2026,Adjust Physiotherapy,Sheena Mulvey,0400 000 030,Marcio Dos Santos,Private - Physio,Service,Did Not Arrive,2026-09-20 10:00:00,,no rebook needed,28/09/2026,9:00am,Marcio Dos Santos,4001
+
+`;
+    // Same client/provider/appointment_date/case_name, re-classified from
+    // "Did Not Arrive" to "Cancelled" by the time it's re-exported --
+    // confirmed as a real pattern (Nookal updates a cancellation's Status
+    // after the fact).
+    const weekTwoCsv = weekOneCsv.replace("Did Not Arrive", "Cancelled");
+
+    const { client, getCancellationEvents } = createFakeSupabase([{ id: "p1", name: "Marcio Dos Santos", role: "senior_physio" }]);
+
+    await applyNookalReport(client as never, "cancellations", "2026-10-04", weekOneCsv);
+    const weekOneRow = getCancellationEvents().find((r) => r.client === "Sheena Mulvey")!;
+    weekOneRow.not_rebooked_resolved = true;
+    weekOneRow.dealt_with = true;
+
+    await applyNookalReport(client as never, "cancellations", "2026-10-11", weekTwoCsv);
+    const weekTwoRow = getCancellationEvents().find((r) => r.client === "Sheena Mulvey" && r.week_ending === "2026-10-11")!;
+    expect(weekTwoRow.status).toBe("Cancelled");
+    expect(weekTwoRow.not_rebooked_resolved).toBe(true);
+    expect(weekTwoRow.dealt_with).toBe(true);
+  });
+
   it("clients_and_cases: computes New Patient Booking Rate from each new client's own Bookings 'Total' count, excluding Pre-Employment", async () => {
     const CLIENTS_AND_CASES_CSV = `Clients and Cases Report
 
