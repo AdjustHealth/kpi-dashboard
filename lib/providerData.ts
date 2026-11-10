@@ -24,6 +24,40 @@ export function retentionPct(metrics: Record<string, unknown>): number | undefin
 /** New patients are checked in on 6 weeks after their first visit — director's own clinical follow-up cadence. */
 export const SIX_WEEK_REVIEW_OFFSET = 6;
 
+function hasActionContent(notes: Record<string, unknown> | undefined): boolean {
+  if (!notes) return false;
+  const steps = notes.action_steps;
+  const plan = notes.action_plan;
+  return (
+    (Array.isArray(steps) && steps.length > 0) || (plan !== null && typeof plan === "object" && Object.keys(plan as object).length > 0)
+  );
+}
+
+/**
+ * The most recent REAL meeting's Action Steps/Action Plan, for carrying
+ * into this week's "Review from Last Week / Action Steps" field (see
+ * MeetingNotesCard) so the team sees what they committed to at the top of
+ * the next meeting instead of starting from a blank box. Walks backward
+ * through `rowsByWeek` (up to `historyWeeks`) for the most recent week that
+ * actually has action content, rather than hardcoding exactly one week
+ * back — a provider away on leave has empty weeks with nothing typed in,
+ * and hardcoding one week back used to silently drop their real last
+ * action items the moment the gap was more than one week, even though that
+ * data was still sitting right there in the older week's row, just never
+ * looked at.
+ */
+export function findPreviousActionNotes(
+  rowsByWeek: Map<string, { meeting_notes?: Record<string, unknown> }>,
+  week: string,
+  historyWeeks: number
+): Record<string, unknown> {
+  for (let weeksBack = 1; weeksBack <= historyWeeks; weeksBack++) {
+    const candidate = rowsByWeek.get(shiftWeek(week, -weeksBack))?.meeting_notes;
+    if (hasActionContent(candidate)) return candidate!;
+  }
+  return {};
+}
+
 export async function getProviderDetailData(providerId: string, week: string, historyWeeks = 12) {
   const supabase = await createClient();
   const weeks = recentWeeks(week, historyWeeks);
@@ -70,13 +104,7 @@ export async function getProviderDetailData(providerId: string, week: string, hi
 
   const current = rowsByWeek.get(week);
 
-  // Last week's Action Steps/Action Plan — carried into this week's "Review
-  // from Last Week / Action Steps" field (see MeetingNotesCard) so the team
-  // sees what they committed to at the top of the next meeting instead of
-  // starting from a blank box. Only reaches back one week (not a chain of
-  // "last non-empty week") since action_steps/action_plan is the durable
-  // per-week record this is sourced from.
-  const previousMeetingNotes = rowsByWeek.get(shiftWeek(week, -1))?.meeting_notes ?? {};
+  const previousMeetingNotes = findPreviousActionNotes(rowsByWeek, week, historyWeeks);
 
   // Whichever provider has a "memberships" specialty metric (currently just
   // Sam) no longer types this in by hand — it's the exact same live count

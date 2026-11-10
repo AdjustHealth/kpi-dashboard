@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { retentionPct } from "@/lib/providerData";
+import { retentionPct, findPreviousActionNotes } from "@/lib/providerData";
 
 describe("retentionPct", () => {
   it("derives from the raw not_rebooked/cancellations counts, not a stored percentage", () => {
@@ -28,5 +28,41 @@ describe("retentionPct", () => {
 
   it("returns undefined when not_rebooked itself is missing", () => {
     expect(retentionPct({ cancellations: 10 })).toBeUndefined();
+  });
+});
+
+describe("findPreviousActionNotes", () => {
+  it("falls back to exactly last week when it has real action content, same as before", () => {
+    const rowsByWeek = new Map([
+      ["2026-10-31", { meeting_notes: { action_steps: [{ id: "1", text: "Book venue", status: "open" }] } }],
+    ]);
+    expect(findPreviousActionNotes(rowsByWeek, "2026-11-07", 12)).toEqual({
+      action_steps: [{ id: "1", text: "Book venue", status: "open" }],
+    });
+  });
+
+  it("walks back past empty leave weeks to the last real meeting — the real bug: Sam's 3 weeks of leave meant last week was empty, so his Action Steps from before leave used to vanish from view even though the row was still there", () => {
+    const rowsByWeek = new Map([
+      // 2026-10-31, 2026-10-24, 2026-10-17 -- on leave, no meeting, nothing saved.
+      ["2026-10-10", { meeting_notes: { action_plan: { turnover: [{ id: "1", text: "Chase 3 new referrals", status: "open" }] } } }],
+    ]);
+    expect(findPreviousActionNotes(rowsByWeek, "2026-11-07", 12)).toEqual({
+      action_plan: { turnover: [{ id: "1", text: "Chase 3 new referrals", status: "open" }] },
+    });
+  });
+
+  it("skips a week whose row exists but has no real action content (e.g. only KPI metrics were ever entered that week)", () => {
+    const rowsByWeek = new Map([
+      ["2026-10-31", { meeting_notes: { action_steps: [] } }],
+      ["2026-10-24", { meeting_notes: { action_steps: [{ id: "1", text: "Follow up with Dana", status: "open" }] } }],
+    ]);
+    expect(findPreviousActionNotes(rowsByWeek, "2026-11-07", 12)).toEqual({
+      action_steps: [{ id: "1", text: "Follow up with Dana", status: "open" }],
+    });
+  });
+
+  it("gives up and returns {} once it's looked back historyWeeks without finding anything", () => {
+    const rowsByWeek = new Map([["2026-08-01", { meeting_notes: { action_steps: [{ id: "1", text: "Old", status: "open" }] } }]]);
+    expect(findPreviousActionNotes(rowsByWeek, "2026-11-07", 4)).toEqual({});
   });
 });
