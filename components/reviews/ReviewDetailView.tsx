@@ -129,7 +129,11 @@ export function ReviewDetailView({
   const metricFields = metricFieldsForRole(provider.role, provider.targets).filter((f) => f.key in review.kpi_rollups);
   const specialtyFields = (provider.specialty_metrics ?? []).filter((f) => f.key in review.kpi_rollups);
   const kpaGroups = kpaGroupsForRole(provider.role);
-  const windows = ROLLING_WINDOWS.slice(0, 2); // 6mth + 1yr shown by default; data for 2yr/3yr fills in as history grows
+  // Just the one window that matches this provider's actual review cadence
+  // (6-monthly providers see 6mth, everyone else sees 1yr) rather than
+  // showing both side by side — a provider is only ever assessed against
+  // their own cadence, so the other window was dead weight on the table.
+  const windows = cadenceMonths === 6 ? ROLLING_WINDOWS.slice(0, 1) : ROLLING_WINDOWS.slice(1, 2);
 
   function updateKpaRating(fieldKey: string, windowKey: string, rating: KpaRating) {
     const next = { ...kpaRollups, [fieldKey]: { ...kpaRollups[fieldKey], [windowKey]: rating } };
