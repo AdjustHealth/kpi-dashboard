@@ -82,6 +82,7 @@ export function ReviewDetailView({
   const [refreshing, setRefreshing] = useState(false);
   const [completedAt, setCompletedAt] = useState(review.completed_at);
   const [kpaRollups, setKpaRollups] = useState(review.kpa_rollups);
+  const [windowOverride, setWindowOverride] = useState<"6mth" | "1yr" | null>(review.window_override ?? null);
   const [bonusSummary, setBonusSummary] = useState<Record<string, unknown>>(review.bonus_summary ?? {});
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -133,7 +134,15 @@ export function ReviewDetailView({
   // (6-monthly providers see 6mth, everyone else sees 1yr) rather than
   // showing both side by side — a provider is only ever assessed against
   // their own cadence, so the other window was dead weight on the table.
-  const windows = cadenceMonths === 6 ? ROLLING_WINDOWS.slice(0, 1) : ROLLING_WINDOWS.slice(1, 2);
+  // Manually overridable per review (windowOverride) since a provider's
+  // real-world cadence can change without this being updated in sync.
+  const effectiveWindowKey = windowOverride ?? (cadenceMonths === 6 ? "6mth" : "1yr");
+  const windows = ROLLING_WINDOWS.filter((w) => w.key === effectiveWindowKey);
+
+  function setWindow(key: "6mth" | "1yr") {
+    setWindowOverride(key);
+    set("window_override", key);
+  }
 
   function updateKpaRating(fieldKey: string, windowKey: string, rating: KpaRating) {
     const next = { ...kpaRollups, [fieldKey]: { ...kpaRollups[fieldKey], [windowKey]: rating } };
@@ -194,6 +203,24 @@ export function ReviewDetailView({
           </span>
           <span className="rounded-full bg-accent-secondary/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent-secondary">
             {cadenceMonths === 6 ? "6-Monthly" : "Annual"}
+          </span>
+          <span className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-0.5 text-[11px] font-medium">
+            {(["6mth", "1yr"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                title="Which rolling window this review's KPI/KPA tables show — defaults to the provider's cadence above, but can be switched here if that's changed"
+                onClick={() => setWindow(key)}
+                className="rounded-full px-2 py-0.5 transition-colors"
+                style={
+                  effectiveWindowKey === key
+                    ? { backgroundColor: "var(--color-accent)", color: "var(--color-accent-foreground)" }
+                    : { color: "var(--color-muted)" }
+                }
+              >
+                {key === "6mth" ? "6 Month" : "1 Year"}
+              </button>
+            ))}
           </span>
           <span
             className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
