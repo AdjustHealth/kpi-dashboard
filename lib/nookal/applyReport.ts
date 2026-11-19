@@ -588,17 +588,26 @@ export async function applyNookalReport(
     // carry-over as cancellation_events above, for the same reason.
     const result = parseLastAttendancesReport(csvText);
     rowsFound = result.rows.length;
+    // The match key deliberately does NOT include last_booking_date -- a
+    // client with recurring sessions (gym supervision/classes especially)
+    // attends again each week without ever making a clinical "future
+    // booking", so their last_booking_date keeps advancing on every export
+    // of what's really the same ongoing situation. Including it in the key
+    // broke the carry-forward match on every single new upload and reopened
+    // an already-"Dealt with" row right back onto the list -- same failure
+    // shape as cancellation_events' status drift above, different field.
+    // client/provider/case_name already identify "the same" situation.
     const existingFollowUpState = await fetchExistingEventState(
       supabase,
       "no_future_booking_events",
-      ["client", "provider", "last_booking_date", "case_name"]
+      ["client", "provider", "case_name"]
     );
     await supabase.from("no_future_booking_events").delete().eq("week_ending", weekEnding);
     if (result.rows.length > 0) {
       await supabase.from("no_future_booking_events").insert(
         result.rows.map((row) => {
           const existing = existingFollowUpState.get(
-            eventStateKey([row.client, row.provider, row.lastBookingDate, row.caseName])
+            eventStateKey([row.client, row.provider, row.caseName])
           );
           return {
             week_ending: weekEnding,
