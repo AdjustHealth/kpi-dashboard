@@ -406,7 +406,6 @@ export function ReviewDetailView({
                 </div>
                 <Input
                   value={kpaNotes[field.key] ?? ""}
-                  placeholder="Comment - why was this good or bad this review?"
                   onChange={(e) => updateKpaNote(field.key, e.target.value)}
                   className="text-xs"
                 />
@@ -492,7 +491,6 @@ export function ReviewDetailView({
                     <td className="py-1.5 pl-3 min-w-48">
                       <Input
                         value={kpiNotes[field.key] ?? ""}
-                        placeholder="Good or bad - why?"
                         onChange={(e) => updateKpiNote(field.key, e.target.value)}
                         className="text-xs"
                       />
@@ -580,8 +578,7 @@ export function ReviewDetailView({
                       <td className="py-1.5 pl-3 min-w-48">
                         <Input
                           value={kpiNotes[field.key] ?? ""}
-                          placeholder="Good or bad - why?"
-                          onChange={(e) => updateKpiNote(field.key, e.target.value)}
+                            onChange={(e) => updateKpiNote(field.key, e.target.value)}
                           className="text-xs"
                         />
                       </td>
