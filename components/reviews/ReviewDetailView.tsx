@@ -157,6 +157,21 @@ export function ReviewDetailView({
   }
 
   const hasBonusSummary = typeof bonusSummary.cumulative_turnover === "number";
+  // The big annual-target progress bar at the top of Bonus & Growth —
+  // cumulative turnover against the provider's full annual_turnover_target
+  // (e.g. "$152,340 of $200,000"), distinct from pacing_pct (time-adjusted:
+  // are they ahead/behind SCHEDULE, not just behind the total dollar figure).
+  // Both matter and both get shown, but the raw annual-target progress is
+  // the headline number the director actually wants to see at a glance.
+  const cumulativeTurnover = hasBonusSummary ? (bonusSummary.cumulative_turnover as number) : null;
+  const annualTurnoverTarget = typeof targets.annual_turnover_target === "number" ? (targets.annual_turnover_target as number) : null;
+  const annualProgressPct =
+    cumulativeTurnover !== null && annualTurnoverTarget ? Math.min(100, (cumulativeTurnover / annualTurnoverTarget) * 100) : null;
+  const bonusPacingPct = typeof bonusSummary.pacing_pct === "number" ? (bonusSummary.pacing_pct as number) : null;
+  const bonusOnTrack = bonusPacingPct !== null && bonusPacingPct >= 100;
+  const bonusBaseTargetCumulative = typeof bonusSummary.base_target_cumulative === "number" ? (bonusSummary.base_target_cumulative as number) : null;
+  const bonusTurnoverGap =
+    cumulativeTurnover !== null && bonusBaseTargetCumulative !== null ? cumulativeTurnover - bonusBaseTargetCumulative : null;
 
   // A calc-source specialty metric (e.g. Marcio's Headache Total = Init + Sub)
   // is never itself written to provider_weekly.metrics — recompute it into
@@ -544,29 +559,79 @@ export function ReviewDetailView({
 
       {hasBonusSummary && (
         <Card title="Bonus &amp; Growth" className="border-2 border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-300/40 dark:bg-amber-300/[0.05]">
-          <div className="mb-4 flex flex-wrap gap-6">
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-muted">Cumulative Turnover</div>
-              <div className="text-lg font-semibold text-foreground">
-                {formatValue(bonusSummary.cumulative_turnover as number, "currency")}
+          {annualTurnoverTarget !== null && cumulativeTurnover !== null && (
+            <div className="mb-5 rounded-xl border border-amber-400/40 bg-surface p-5 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Annual Turnover Target</div>
+                  <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+                    <span className="text-3xl font-extrabold tabular-nums text-foreground">
+                      {formatValue(cumulativeTurnover, "currency")}
+                    </span>
+                    <span className="text-sm font-medium text-muted">of {formatValue(annualTurnoverTarget, "currency")}</span>
+                  </div>
+                </div>
+                {bonusPacingPct !== null && (
+                  <span
+                    className="whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold"
+                    style={
+                      bonusOnTrack
+                        ? { color: "var(--color-success)", backgroundColor: "color-mix(in srgb, var(--color-success) 15%, transparent)" }
+                        : { color: "var(--color-danger)", backgroundColor: "color-mix(in srgb, var(--color-danger) 15%, transparent)" }
+                    }
+                  >
+                    {bonusOnTrack ? "✓ On Track" : "⚠ Behind Pace"} - {bonusPacingPct.toFixed(0)}% of schedule
+                  </span>
+                )}
+              </div>
+              <div className="relative h-5 w-full overflow-hidden rounded-full bg-surface-raised">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${annualProgressPct ?? 0}%`,
+                    backgroundColor: bonusOnTrack ? "var(--color-success)" : "var(--color-danger)",
+                  }}
+                />
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
+                <span className="font-medium text-muted">
+                  {annualProgressPct !== null ? `${annualProgressPct.toFixed(0)}% of annual target` : ""}
+                </span>
+                {bonusTurnoverGap !== null && (
+                  <span className="font-semibold" style={{ color: bonusTurnoverGap >= 0 ? "var(--color-success)" : "var(--color-danger)" }}>
+                    {bonusTurnoverGap >= 0 ? "+" : "−"}
+                    {formatValue(Math.abs(bonusTurnoverGap), "currency")} {bonusTurnoverGap >= 0 ? "ahead of" : "behind"} pace-to-date
+                  </span>
+                )}
               </div>
             </div>
+          )}
+
+          <div className="mb-4 flex flex-wrap gap-6">
+            {annualTurnoverTarget === null && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted">Cumulative Turnover</div>
+                <div className="text-lg font-semibold text-foreground">
+                  {formatValue(bonusSummary.cumulative_turnover as number, "currency")}
+                </div>
+              </div>
+            )}
             {typeof bonusSummary.base_target_cumulative === "number" && (
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted">Base Target</div>
+                <div className="text-[11px] uppercase tracking-wide text-muted">Base Target (to date)</div>
                 <div className="text-lg font-semibold text-foreground">
                   {formatValue(bonusSummary.base_target_cumulative as number, "currency")}
                 </div>
               </div>
             )}
-            {typeof bonusSummary.pacing_pct === "number" && (
+            {bonusPacingPct !== null && annualTurnoverTarget === null && (
               <div>
                 <div className="text-[11px] uppercase tracking-wide text-muted">Turnover Pacing</div>
                 <div
                   className="text-lg font-semibold"
-                  style={{ color: (bonusSummary.pacing_pct as number) >= 100 ? "var(--color-success)" : "var(--color-danger)" }}
+                  style={{ color: bonusOnTrack ? "var(--color-success)" : "var(--color-danger)" }}
                 >
-                  {(bonusSummary.pacing_pct as number).toFixed(1)}%
+                  {bonusPacingPct.toFixed(1)}%
                 </div>
               </div>
             )}
