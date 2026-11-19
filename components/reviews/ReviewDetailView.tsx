@@ -83,6 +83,8 @@ export function ReviewDetailView({
   const [completedAt, setCompletedAt] = useState(review.completed_at);
   const [kpaRollups, setKpaRollups] = useState(review.kpa_rollups);
   const [windowOverride, setWindowOverride] = useState<"6mth" | "1yr" | null>(review.window_override ?? null);
+  const [kpiNotes, setKpiNotes] = useState<Record<string, string>>(review.kpi_notes ?? {});
+  const [kpaNotes, setKpaNotes] = useState<Record<string, string>>(review.kpa_notes ?? {});
   const [bonusSummary, setBonusSummary] = useState<Record<string, unknown>>(review.bonus_summary ?? {});
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -148,6 +150,18 @@ export function ReviewDetailView({
     const next = { ...kpaRollups, [fieldKey]: { ...kpaRollups[fieldKey], [windowKey]: rating } };
     setKpaRollups(next);
     set("kpa_rollups", next);
+  }
+
+  function updateKpiNote(fieldKey: string, text: string) {
+    const next = { ...kpiNotes, [fieldKey]: text };
+    setKpiNotes(next);
+    set("kpi_notes", next);
+  }
+
+  function updateKpaNote(fieldKey: string, text: string) {
+    const next = { ...kpaNotes, [fieldKey]: text };
+    setKpaNotes(next);
+    set("kpa_notes", next);
   }
 
   function updateBonusSummary(patch: Record<string, unknown>) {
@@ -326,10 +340,8 @@ export function ReviewDetailView({
           </p>
           <div className="flex flex-col divide-y divide-border/60">
             {group.fields.map((field) => (
-              <div
-                key={field.key}
-                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-              >
+              <div key={field.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
                 <div className="max-w-xl">
                   <div className="text-sm font-bold text-foreground">{field.label}</div>
                   {field.sublabel && <div className="mt-0.5 text-xs text-muted">{field.sublabel}</div>}
@@ -391,6 +403,13 @@ export function ReviewDetailView({
                       );
                     })()}
                 </div>
+                </div>
+                <Input
+                  value={kpaNotes[field.key] ?? ""}
+                  placeholder="Comment - why was this good or bad this review?"
+                  onChange={(e) => updateKpaNote(field.key, e.target.value)}
+                  className="text-xs"
+                />
               </div>
             ))}
           </div>
@@ -431,6 +450,7 @@ export function ReviewDetailView({
                     {w.label}
                   </th>
                 ))}
+                <th className="py-2 pl-3 font-medium">Comment</th>
               </tr>
             </thead>
             <tbody>
@@ -469,6 +489,14 @@ export function ReviewDetailView({
                         </td>
                       );
                     })}
+                    <td className="py-1.5 pl-3 min-w-48">
+                      <Input
+                        value={kpiNotes[field.key] ?? ""}
+                        placeholder="Good or bad - why?"
+                        onChange={(e) => updateKpiNote(field.key, e.target.value)}
+                        className="text-xs"
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -510,6 +538,7 @@ export function ReviewDetailView({
                       {w.label}
                     </th>
                   ))}
+                  <th className="py-2 pl-3 font-medium">Comment</th>
                 </tr>
               </thead>
               <tbody>
@@ -548,6 +577,14 @@ export function ReviewDetailView({
                           </td>
                         );
                       })}
+                      <td className="py-1.5 pl-3 min-w-48">
+                        <Input
+                          value={kpiNotes[field.key] ?? ""}
+                          placeholder="Good or bad - why?"
+                          onChange={(e) => updateKpiNote(field.key, e.target.value)}
+                          className="text-xs"
+                        />
+                      </td>
                     </tr>
                   );
                 })}
