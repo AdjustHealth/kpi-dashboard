@@ -212,6 +212,19 @@ export function ProviderDetailView({
         </div>
 
         <GoalsCard providerId={provider.id} initialGoals={provider.goals} />
+
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Development</SectionLabel>
+          <ActionStepsCard
+            providerId={provider.id}
+            week={week}
+            initialNotes={currentMeetingNotes}
+            showGoals={false}
+            fieldKey="development_action_steps"
+            cardTitle="Development Action Steps"
+            previousItems={previousMeetingNotes?.development_action_steps}
+          />
+        </div>
       </div>
     );
   }
@@ -329,6 +342,21 @@ export function ProviderDetailView({
         <AdminPerformanceCharts history={history} targets={effectiveTargets} />
       ) : (
         <ProviderCharts history={history} targets={effectiveTargets} dropOutRateHistory={dropOutRateHistory} />
+      )}
+
+      {variant !== "admin" && (
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Development</SectionLabel>
+          <ActionStepsCard
+            providerId={provider.id}
+            week={week}
+            initialNotes={currentMeetingNotes}
+            showGoals={false}
+            fieldKey="development_action_steps"
+            cardTitle="Development Action Steps"
+            previousItems={previousMeetingNotes?.development_action_steps}
+          />
+        </div>
       )}
     </div>
   );

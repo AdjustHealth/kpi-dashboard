@@ -79,6 +79,8 @@ export interface PerformanceReviewRecord {
   kpi_rollups: KpiRollups;
   kpa_rollups: KpaRollups;
   bonus_summary: Record<string, unknown>;
+  /** Manual override of which rolling window (6mth/1yr) this review displays — null uses reviewCadenceMonths(provider)'s default. */
+  window_override: "6mth" | "1yr" | null;
 }
 
 /** Every stored week for this provider, oldest first — used to draw sparklines next to the review's rollup numbers. Real history is short (this system rolled out July 2026), so no windowing needed. */
