@@ -860,6 +860,40 @@ Geraldine Agurto,27/08/2026 - 12 days ago,Imogen O'Neill,Pre-Employment Assessme
     expect(getNoFutureBookingEvents()).toHaveLength(1);
   });
 
+  it("last_attendances: a recurring client's Last Booking date advancing week to week doesn't break the carry-forward match -- the real bug: last_booking_date used to be part of the match key, so a client who keeps attending (gym supervision/classes especially) without ever making a clinical future booking got a brand new last_booking_date every export, silently reopening an already-'Dealt with' row every single week", async () => {
+    const weekOneCsv = `Last Attendances Report
+
+Parameters
+Dates,24/08/2026 - 30/08/2026
+
+Details
+Client,Last Booking,Provider,Booking Type,Location,Payment Type,Case,Case Status,Mobile,Email,Client ID
+Joshua Tate,24/08/2026 - 15 days ago,Sam Johnston,TL Private Subs 505,Adjust Physiotherapy,Private,TL Private Subs 505,Active,0481 266 163,joshua@example.com,80583
+
+`;
+    // Same client/provider/case, re-exported the following week with a
+    // LATER Last Booking date -- exactly what happens when someone keeps
+    // attending recurring sessions without ever booking a clinical
+    // appointment ahead.
+    const weekTwoCsv = weekOneCsv.replace("24/08/2026 - 15 days ago", "31/08/2026 - 8 days ago");
+
+    const { client, getNoFutureBookingEvents } = createFakeSupabase([{ id: "p1", name: "Sam Johnston", role: "senior_physio" }]);
+
+    await applyNookalReport(client as never, "last_attendances", "2026-08-30", weekOneCsv);
+    const weekOneRow = getNoFutureBookingEvents().find((r) => r.client === "Joshua Tate")!;
+    expect(weekOneRow.not_rebooked_resolved).toBe(false);
+
+    // Director clicks "Dealt with" on Sam's Unretained list.
+    weekOneRow.not_rebooked_resolved = true;
+    weekOneRow.dealt_with = true;
+
+    await applyNookalReport(client as never, "last_attendances", "2026-09-06", weekTwoCsv);
+    const weekTwoRow = getNoFutureBookingEvents().find((r) => r.client === "Joshua Tate" && r.week_ending === "2026-09-06")!;
+    expect(weekTwoRow.last_booking_date).toBe("2026-08-31");
+    expect(weekTwoRow.not_rebooked_resolved).toBe(true);
+    expect(weekTwoRow.dealt_with).toBe(true);
+  });
+
   it("online_bookings: writes both the new-clients-only pair (online_bookings_total/new) and the all-bookings pair (all_bookings_total/online) — clinic-wide, no per-provider data", async () => {
     const ONLINE_BOOKINGS_CSV = `Online Bookings Report
 
