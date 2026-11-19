@@ -394,6 +394,8 @@ export interface ProviderMeetingNotes {
   multi_disc_utilisation?: MultiDiscUtilisation;
   /** Growing checklist of action steps/agreements — standard/admin providers. See lib/actionItems.ts; older weeks may still hold the legacy string[] shape, normalized at render time. */
   action_steps?: unknown;
+  /** Growing checklist for professional/clinical development commitments — same shape and carry-forward-until-done behaviour as action_steps, shown as its own card at the bottom of the meeting page, under the performance charts. */
+  development_action_steps?: unknown;
   /** Senior physio only: one checklist per ACTION_PLAN_CATEGORIES key, matching the real worksheet's Action Plan tab. Older weeks may hold the legacy Record<string,string> shape. */
   action_plan?: Record<string, unknown>;
   performance_review_goals?: string;

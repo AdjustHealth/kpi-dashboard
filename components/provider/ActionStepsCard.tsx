@@ -144,6 +144,8 @@ export function ActionStepsCard({
   categorized = false,
   previousActionPlan,
   previousItems,
+  fieldKey = "action_steps",
+  cardTitle,
 }: {
   providerId: string;
   week: string;
@@ -153,8 +155,12 @@ export function ActionStepsCard({
   categorized?: boolean;
   /** Senior physios only — last week's Action Plan, carried automatically into any category this week hasn't touched yet (key entirely absent, not just cleared). */
   previousActionPlan?: Record<string, unknown>;
-  /** Standard/admin's flat Action Steps — last week's list, carried automatically the same way, into this week's list if it hasn't been touched yet. */
+  /** Flat-list mode's items — last week's list, carried automatically the same way, into this week's list if it hasn't been touched yet. */
   previousItems?: unknown;
+  /** Flat-list mode only — which meeting_notes key this instance reads/writes. Lets the same flat checklist (add/complete/auto-carry-forward) back a second, independent list (e.g. Development Action Steps) alongside the default Action Steps. */
+  fieldKey?: string;
+  /** Flat-list mode only — overrides the default "Action Steps & Agreements for This Week" card title. */
+  cardTitle?: string;
 }) {
   // A category (or, for the flat list, the whole thing) carries over only
   // if it's never been saved this week (key absent, not just an empty
@@ -168,12 +174,12 @@ export function ActionStepsCard({
     return normalizeActionItems(previousActionPlan?.[categoryKey]).filter((i) => i.status === "open");
   }
   function flatCarry(): ActionItem[] {
-    if (categorized || initialNotes.action_steps !== undefined) return [];
+    if (categorized || (initialNotes as Record<string, unknown>)[fieldKey] !== undefined) return [];
     return normalizeActionItems(previousItems).filter((i) => i.status === "open");
   }
 
   const [items, setItems] = useState<ActionItem[]>(() => {
-    const own = normalizeActionItems(initialNotes.action_steps);
+    const own = normalizeActionItems((initialNotes as Record<string, unknown>)[fieldKey]);
     const carried = flatCarry();
     return own.length > 0 ? own : carried.map((i) => newActionItem(i.text));
   });
@@ -206,7 +212,7 @@ export function ActionStepsCard({
 
   useEffect(() => {
     if (carriedOverCategories.size > 0) set("action_plan", plan);
-    if (carriedOverFlat) set("action_steps", items);
+    if (carriedOverFlat) set(fieldKey, items);
     // Runs once at mount, using the carry-over snapshot computed above —
     // persists it as this week's real saved value so it isn't lost if
     // nobody happens to edit this category/list this week.
@@ -214,7 +220,8 @@ export function ActionStepsCard({
   }, []);
 
   const { markActive, markInactive } = useRealtimeMeetingNotes(providerId, week, (remote) => {
-    if (remote.action_steps !== undefined) setItems(normalizeActionItems(remote.action_steps));
+    const remoteFlat = (remote as Record<string, unknown>)[fieldKey];
+    if (remoteFlat !== undefined) setItems(normalizeActionItems(remoteFlat));
     if (remote.action_plan !== undefined) {
       const remotePlan = remote.action_plan as Record<string, unknown>;
       setPlan((prev) => {
@@ -256,17 +263,17 @@ export function ActionStepsCard({
   function updateItemText(id: string, text: string) {
     const next = items.map((i) => (i.id === id ? { ...i, text } : i));
     setItems(next);
-    set("action_steps", next);
+    set(fieldKey, next);
   }
   function resolveItem(id: string) {
     const next = items.map((i) => (i.id === id ? { ...i, status: "completed" as const } : i));
     setItems(next);
-    set("action_steps", next);
+    set(fieldKey, next);
   }
   function addItem(text: string) {
     const next = [...items, newActionItem(text)];
     setItems(next);
-    set("action_steps", next);
+    set(fieldKey, next);
   }
 
   // Categorized (senior) plan — same rule as above.
@@ -297,16 +304,16 @@ export function ActionStepsCard({
   }
 
   async function copyAll() {
-    const title = categorized ? "Action Plan for This Week" : "Action Steps & Agreements for This Week";
+    const copyTitle = cardTitle ?? (categorized ? "Action Plan for This Week" : "Action Steps & Agreements for This Week");
     const text = categorized
-      ? `${title}\n\n${ACTION_PLAN_CATEGORIES.map((c) => {
+      ? `${copyTitle}\n\n${ACTION_PLAN_CATEGORIES.map((c) => {
           const open = (plan[c.key] ?? []).filter((i) => i.status === "open");
           if (open.length === 0) return null;
           return `${c.label}:\n${open.map((i) => `- ${i.text}`).join("\n")}`;
         })
           .filter(Boolean)
           .join("\n\n")}`
-      : formatActionItemsForCopy(items, title);
+      : formatActionItemsForCopy(items, copyTitle);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -316,7 +323,7 @@ export function ActionStepsCard({
 
   return (
     <Card
-      title={categorized ? "Action Plan for This Week" : "Action Steps & Agreements for This Week"}
+      title={cardTitle ?? (categorized ? "Action Plan for This Week" : "Action Steps & Agreements for This Week")}
       action={
         <div className="flex items-center gap-3">
           <button type="button" onClick={copyAll} className="text-xs font-medium text-accent hover:underline">
@@ -363,7 +370,7 @@ export function ActionStepsCard({
               <Badge tone="neutral">Carried over from last week</Badge>
             </div>
           )}
-          <div className="flex flex-col gap-2" {...fieldFocusHandlers("action_steps")}>
+          <div className="flex flex-col gap-2" {...fieldFocusHandlers(fieldKey)}>
             {items
               .filter((i) => i.status === "open")
               .map((item, i) => (
