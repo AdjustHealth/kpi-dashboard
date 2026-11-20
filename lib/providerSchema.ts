@@ -69,7 +69,11 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "fba", label: "FBA (Forward Booking Average)", type: "decimal", decimals: 1, betterWhen: "higher" },
   { key: "occupancy_pct", label: "Occupancy", type: "percent", betterWhen: "higher" },
   { key: "completed_consults", label: "Completed Consults", type: "number", betterWhen: "higher" },
-  { key: "new_patients", label: "New Patients (NPBR calc - total new patients)", type: "number" },
+  // new_patients (the raw new-client count) is still written to
+  // provider_weekly.metrics and still feeds this calc and the New
+  // Patients card's name list — just not shown as its own KPI Scorecard
+  // row any more. Director's call: New Patient Booking Rate (NPBR) below
+  // is the one number that matters here, not its raw calc inputs.
   { key: "npbr_recommendations", label: "NPBR calc - total recommendations for new patients", type: "number" },
   { key: "new_pt_booking_rate", label: "New Patient Booking Rate", type: "decimal", decimals: 1, betterWhen: "higher" },
   // Key stays "ucva" for backward compatibility (targets, quarterly
