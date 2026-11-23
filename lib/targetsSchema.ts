@@ -66,7 +66,7 @@ const SHARED_CLINICIAN_TARGET_FIELDS: TargetField[] = [
   { key: "dnas", label: "Number of DNAs", type: "number" },
   { key: "cancellations", label: "Number of Cancellations", type: "number" },
   { key: "not_rebooked", label: "Unretained", type: "number" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent" },
+  { key: "drop_out_rate", label: "Drop Out Rate", type: "percent" },
 ];
 
 /**

@@ -44,6 +44,11 @@ export default async function SeniorPhysioPage({
     getNotRebookedClients(provider.name),
     getDropOutRateHistory(provider.name, history.map((h) => h.week_ending)),
   ]);
+  // KPI Scorecard's own Drop Out Rate row reads this off each week's
+  // metrics, same as every other KPI — ProviderCharts' trend line below
+  // still gets the raw dropOutRateHistory array directly.
+  const dropOutRateByWeek = new Map(dropOutRateHistory.map((d) => [d.week_ending, d.value]));
+  for (const h of history) h.metrics = { ...h.metrics, drop_out_rate: dropOutRateByWeek.get(h.week_ending) ?? null };
 
   return (
     <>

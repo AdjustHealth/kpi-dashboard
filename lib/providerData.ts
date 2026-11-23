@@ -93,11 +93,17 @@ export async function getProviderDetailData(providerId: string, week: string, hi
   const sixWeekAgoNames = sixWeekAgoResult.data?.metrics?.new_patient_names;
   const sixWeekReviewNames = Array.isArray(sixWeekAgoNames) ? (sixWeekAgoNames as string[]) : [];
 
+  // drop_out_rate (the KPI Scorecard row that replaced retention_pct) is
+  // merged in separately by the caller (see app/(app)/providers/[id]/page.tsx
+  // and app/(app)/senior/[id]/page.tsx) — it comes from cancellation_events
+  // via getDropOutRateHistory (lib/clinicData.ts), not from provider_weekly,
+  // and importing that here would create a circular import (clinicData.ts
+  // already imports retentionPct from this module).
   const history: WeekMetrics[] = weeks.map((w) => {
     const metrics = rowsByWeek.get(w)?.metrics ?? {};
     return {
       week_ending: w,
-      metrics: { ...metrics, retention_pct: retentionPct(metrics) },
+      metrics,
       kpas: rowsByWeek.get(w)?.kpas ?? {},
     };
   });
