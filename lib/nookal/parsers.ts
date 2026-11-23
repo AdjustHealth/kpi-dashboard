@@ -892,6 +892,11 @@ export function parseProvidersAndPracticeReport(text: string): ProvidersAndPract
  * payer-exclusion filter (Village/Top Golf/Move OT, excl Pre Employments)
  * is applied when the report is generated in Nookal itself, based on the
  * Parameters section's Payers list — nothing further to exclude here.
+ *
+ * Nookal has since renamed these columns to NPVA/UPVA (New/Unique PATIENT
+ * Visit Average) in its own live report view, same Client->Patient rename
+ * pattern as "Unique Clients"->"Unique Patients" elsewhere — accept either,
+ * so a fresh export under the new names doesn't silently come back empty.
  */
 export function parseBusinessPerformanceReport(text: string): BusinessPerformanceReportResult {
   const rows = parseCsvRows(text);
@@ -905,8 +910,8 @@ export function parseBusinessPerformanceReport(text: string): BusinessPerformanc
     const provider = r["Provider"];
     if (!provider) continue;
     byProvider[provider] = {
-      ncva: parseNumber(r["NCVA"]),
-      ucva: parseNumber(r["UCVA"]),
+      ncva: parseNumber(r["NCVA"] ?? r["NPVA"]),
+      ucva: parseNumber(r["UCVA"] ?? r["UPVA"]),
       tpr: parseNumber(r["TPR"]),
     };
   }
