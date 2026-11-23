@@ -918,6 +918,12 @@ Lachlan Brazier,8.86,0,81.33,13.75,44.69,614.4875,53.45%,49.88119436619718,32.87
     expect(result.byProvider["Lachlan Brazier"]).toEqual({ ncva: 81.33, ucva: 13.75, tpr: 614.4875 });
   });
 
+  it("also reads NPVA/UPVA -- Nookal's own live report view has since renamed these columns from NCVA/UCVA", () => {
+    const RENAMED_CSV = REAL_BUSINESS_PERFORMANCE_CSV.replace("NCVA,UCVA", "NPVA,UPVA");
+    const result = parseBusinessPerformanceReport(RENAMED_CSV);
+    expect(result.byProvider["Sam Johnston"]).toEqual({ ncva: 27.19, ucva: 6.2, tpr: 615.0400000000001 });
+  });
+
   it("does not confuse this report's UCVA with Providers & Practice's unrelated Client Visit Average column", () => {
     const result = parseBusinessPerformanceReport(REAL_BUSINESS_PERFORMANCE_CSV);
     // Samantha Delohery has 0 completed consults this period (still ramping up),
