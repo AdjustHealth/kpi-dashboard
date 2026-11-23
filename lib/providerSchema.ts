@@ -106,7 +106,21 @@ export const CLINICIAN_METRIC_FIELDS: ProviderField[] = [
   { key: "dnas", label: "Number of DNAs", type: "number", betterWhen: "lower" },
   { key: "cancellations", label: "Number of Cancellations", type: "number", betterWhen: "lower" },
   { key: "not_rebooked", label: "Unretained", type: "number", betterWhen: "lower" },
-  { key: "retention_pct", label: "Retention Rate", type: "percent", betterWhen: "higher", sublabel: "% of cancelled clients rebooked" },
+  // Replaces retention_pct (director's call) -- also fixes a real gap:
+  // retention_pct was only ever computed client-side on the live provider
+  // page (lib/providerData.ts's retentionPct()), never actually written
+  // anywhere a review's rollup snapshot could read it from, so every
+  // review showed it blank. drop_out_rate is a real stored-history figure
+  // (see getDropOutRateHistory/lib/clinicData.ts), injected into both the
+  // live page's and a review's week rows the same way — see
+  // getProviderDetailData and buildReviewSnapshot.
+  {
+    key: "drop_out_rate",
+    label: "Drop Out Rate",
+    type: "percent",
+    betterWhen: "lower",
+    sublabel: "% of this week's cancelling clients with no future booking on file",
+  },
 ];
 
 // Turnover and TPR stay off the standard physio/massage/EP scorecard —

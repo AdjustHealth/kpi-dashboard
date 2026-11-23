@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { computeKpiRollups, computeKpaRollups, WeeklyRow } from "@/lib/performanceReview";
 import { metricFieldsForRole, kpaGroupsForRole, ProviderRole } from "@/lib/providerSchema";
 import { weeklyBaseTarget, cumulativeTurnoverSeries, turnoverPacingPct, computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
+import { getDropOutRateHistory } from "@/lib/clinicData";
 import { Goal, SpecialtyMetricDef } from "@/lib/types";
 
 /**
@@ -57,15 +58,27 @@ async function buildReviewSnapshot(
   providerId: string
 ): Promise<{ error: string } | { kpiRollups: ReturnType<typeof computeKpiRollups>; kpaRollups: ReturnType<typeof computeKpaRollups>; bonusSummary: Record<string, unknown>; goalsReflection: { text: string; achieved: boolean; note: string }[]; asOf: string }> {
   const [{ data: provider, error: providerError }, { data: weeklyRows, error: weeklyError }] = await Promise.all([
-    supabase.from("providers").select("role, goals, targets, specialty_metrics").eq("id", providerId).single(),
+    supabase.from("providers").select("name, role, goals, targets, specialty_metrics").eq("id", providerId).single(),
     supabase.from("provider_weekly").select("week_ending, metrics, kpas").eq("provider_id", providerId),
   ]);
   if (providerError) return { error: providerError.message };
   if (weeklyError) return { error: weeklyError.message };
 
   const role = provider.role as ProviderRole;
-  const rows = (weeklyRows ?? []) as WeeklyRow[];
   const asOf = new Date().toISOString().slice(0, 10);
+
+  // Drop Out Rate (the KPI Scorecard row that replaced the always-blank-
+  // on-reviews Retention Rate) comes from cancellation_events, not
+  // provider_weekly — merge it onto each week's metrics the same way the
+  // live provider page does (app/(app)/providers/[id]/page.tsx), so this
+  // review's rollup snapshot can actually see it.
+  const weeklyRowsRaw = (weeklyRows ?? []) as WeeklyRow[];
+  const dropOutRate = await getDropOutRateHistory(provider.name, weeklyRowsRaw.map((r) => r.week_ending));
+  const dropOutRateByWeek = new Map(dropOutRate.map((d) => [d.week_ending, d.value]));
+  const rows: WeeklyRow[] = weeklyRowsRaw.map((r) => ({
+    ...r,
+    metrics: { ...r.metrics, drop_out_rate: dropOutRateByWeek.get(r.week_ending) ?? null },
+  }));
 
   const kpaFields = kpaGroupsForRole(role).flatMap((g) => g.fields);
   const kpiRollups = computeKpiRollups(rows, metricFieldsForRole(role, provider.targets), asOf);
