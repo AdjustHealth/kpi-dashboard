@@ -16,6 +16,7 @@ import {
   hasRescheduleTag,
 } from "@/lib/nookal/parsers";
 import { classifyRescheduleNotes } from "@/lib/nookal/rescheduleClassifier";
+import { computeSpecialtyCalcMetrics } from "@/lib/providerCalc";
 
 export interface ApplyReportResult {
   matchedProviders: string[];
@@ -28,6 +29,9 @@ export interface ApplyReportResult {
 interface SpecialtyMetricRow {
   key: string;
   label: string;
+  /** Present on every real row (see e.g. 0055_specialist_physio_specialty_metrics.sql) -- this interface just never needed them until computeSpecialtyCalcMetrics did. */
+  type?: string;
+  source?: "manual" | "calc";
 }
 
 interface ExistingEventState {
@@ -363,20 +367,35 @@ export async function applyNookalReport(
     }
 
     for (const [mapKey, { providerId, initKey, subKey, clinicWideCategory }] of Object.entries(specialtyKeyMap)) {
+      // Init/Sub are real stored fields, but a calc Total (e.g. Women's
+      // Health Total = Init + Sub) is ordinarily only ever computed live in
+      // the browser for whichever week is currently open (SpecialtyKpiCard's
+      // own update()) — a report upload writing Init/Sub for every OTHER
+      // week never recomputed and saved the Total alongside them, leaving
+      // that week's Total genuinely absent from provider_weekly.metrics.
+      // Not a display bug: the trend chart reads metrics[key] directly, and
+      // there was nothing there to read. Recompute and write it in the same
+      // patch so every week a report ever populates has a real Total too.
+      const p = providers.find((pp) => pp.id === providerId);
+      function withCalcTotal(patch: Record<string, number>): Record<string, number> {
+        if (!p) return patch;
+        const metrics = (p.specialty_metrics ?? []).map((m) => ({ ...m, type: m.type ?? "" }));
+        return { ...patch, ...computeSpecialtyCalcMetrics(metrics, patch) };
+      }
       if (clinicWideCategory) {
         const counts = result.specialtyCounts[clinicWideCategory];
         // Always write (even 0) — this is the authoritative clinic-wide
         // count, not a per-row match that might legitimately be absent this
         // week, so a real zero is a real zero.
-        if (counts) await upsertProviderMetrics(providerId, { [initKey]: counts.initial, [subKey]: counts.sub });
+        if (counts) await upsertProviderMetrics(providerId, withCalcTotal({ [initKey]: counts.initial, [subKey]: counts.sub }));
         continue;
       }
-      const providerName = providers.find((p) => p.id === providerId)?.name;
+      const providerName = p?.name;
       if (!providerName) continue;
       const initCount = result.keywordCountsByProvider[`${mapKey}:init`]?.[providerName] ?? 0;
       const subCount = result.keywordCountsByProvider[`${mapKey}:sub`]?.[providerName] ?? 0;
       if (initCount > 0 || subCount > 0) {
-        await upsertProviderMetrics(providerId, { [initKey]: initCount, [subKey]: subCount });
+        await upsertProviderMetrics(providerId, withCalcTotal({ [initKey]: initCount, [subKey]: subCount }));
       }
     }
 
